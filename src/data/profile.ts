@@ -67,7 +67,7 @@ export const profile: Profile = {
   location: "Pittsburgh, PA",
   email: "contact@example.com",
   links: [
-    { label: "CV", href: "/cv/" },
+    { label: "CV", href: "/files/2026ZiyuZhaoJune.pdf" },
     { label: "GitHub", href: "#" },
     { label: "Google Scholar", href: "#" },
   ],

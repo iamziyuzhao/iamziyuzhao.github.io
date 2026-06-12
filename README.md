@@ -1,6 +1,6 @@
 # Albert (Ziyu) Zhao — Personal Website
 
-Bilingual (English / 中文) academic personal website. Static site with pages for home, CV, projects, blog, and writing. Every page renders both languages; a header toggle switches between them client-side without a reload.
+Bilingual (English / 中文) academic personal website. Static site with a home page and a blog. Every page renders both languages; a header toggle switches between them client-side without a reload.
 
 ## Tech stack
 
@@ -22,21 +22,23 @@ npm run preview   # serve the production build locally
 ```text
 /
 ├── src/
-│   ├── layouts/Base.astro      # shared HTML shell: head, Header/Footer, language-toggle script
+│   ├── layouts/
+│   │   ├── Base.astro          # shared HTML shell: head, Header/Footer, language-toggle script
+│   │   └── BlogPost.astro      # blog post layout: title, date, reading time, comments
 │   ├── components/
 │   │   ├── Header.astro        # site nav + language toggle button
 │   │   ├── Footer.astro        # footer
-│   │   └── LogoMark.astro      # site logo mark
+│   │   ├── Comments.astro      # giscus comments (hidden until configured in data/site.ts)
+│   │   └── LogoMark.astro      # institution logo renderer
 │   ├── data/profile.ts         # ALL site content (bio, education, experience, projects, news)
+│   ├── data/site.ts            # site URL + giscus comment configuration
 │   ├── styles/global.css       # the only stylesheet
 │   └── pages/
 │       ├── index.astro         # home
-│       ├── cv.astro            # CV page, links the PDF in public/files/
-│       ├── projects/index.astro
-│       ├── writing/index.astro
 │       └── blog/
-│           ├── index.astro     # blog listing
-│           └── *.md            # blog posts (markdown, layout: Base.astro)
+│           ├── index.astro     # blog listing (auto-generated from the .md files)
+│           ├── _post-template.md  # copy to start a new post (not published)
+│           └── *.md            # blog posts (markdown, layout: BlogPost.astro)
 ├── public/
 │   ├── files/                  # CV PDF
 │   └── images/, logos/, brand/ # photos, institution logos, site mark
@@ -46,7 +48,7 @@ npm run preview   # serve the production build locally
 ## Editing content
 
 - **Almost everything lives in `src/data/profile.ts`.** It exports `profile`, `education`, `experience`, `projects`, `news`, and `newsZh`. Each entry has parallel English/Chinese fields (e.g. `intro` / `introZh`, `degree` / `degreeZh`) — keep both in sync when editing.
-- **CV PDF:** drop the file in `public/files/` and update the link in `src/pages/cv.astro`.
+- **CV PDF:** drop the file in `public/files/` and update the `CV` link in `src/data/profile.ts` (the sidebar chip links straight to the PDF).
 - **Blog posts:** add a markdown file under `src/pages/blog/` using the `BlogPost.astro` layout — copy `src/pages/blog/_post-template.md` to start. The `/blog/` index lists posts automatically from frontmatter (`title`, `titleZh`, `description`, `category`, `date`); no manual listing needed. Posts can also be written in the browser via Pages CMS, and readers can comment via giscus — see [docs/publishing.md](docs/publishing.md) for the one-time setup, and [docs/writing-tech-posts.md](docs/writing-tech-posts.md) for how to structure a post.
 
 ## Language toggle
