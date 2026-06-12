@@ -1087,6 +1087,21 @@ main {
   width: 174px;
 }
 
+/* Post comments (giscus) — rendered only when configured in src/data/site.ts */
+.comments {
+  margin-top: 64px;
+  padding-top: 28px;
+  border-top: 1px solid var(--line);
+}
+.comments::before {
+  content: "// comments";
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--accent);
+  margin-bottom: 18px;
+}
+
 /* ===========================================================================
    10. Footer
    =========================================================================== */

@@ -47,7 +47,7 @@ npm run preview   # serve the production build locally
 
 - **Almost everything lives in `src/data/profile.ts`.** It exports `profile`, `education`, `experience`, `projects`, `news`, and `newsZh`. Each entry has parallel English/Chinese fields (e.g. `intro` / `introZh`, `degree` / `degreeZh`) — keep both in sync when editing.
 - **CV PDF:** drop the file in `public/files/` and update the link in `src/pages/cv.astro`.
-- **Blog posts:** add a markdown file under `src/pages/blog/` with `layout` pointing at `Base.astro`; it gets a route from its filename. Update the listing in `src/pages/blog/index.astro` as needed.
+- **Blog posts:** add a markdown file under `src/pages/blog/` using the `BlogPost.astro` layout — copy `src/pages/blog/_post-template.md` to start. The `/blog/` index lists posts automatically from frontmatter (`title`, `titleZh`, `description`, `category`, `date`); no manual listing needed. Posts can also be written in the browser via Pages CMS, and readers can comment via giscus — see [docs/publishing.md](docs/publishing.md) for the one-time setup, and [docs/writing-tech-posts.md](docs/writing-tech-posts.md) for how to structure a post.
 
 ## Language toggle
 

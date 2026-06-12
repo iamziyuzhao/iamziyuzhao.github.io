@@ -1,5 +1,6 @@
 ---
 import Base from "./Base.astro";
+import Comments from "../components/Comments.astro";
 
 const { frontmatter, rawContent } = Astro.props;
 const date = frontmatter.date ? new Date(frontmatter.date) : null;
@@ -32,5 +33,6 @@ const readingMinutes = words ? Math.max(1, Math.round(words / 200)) : null;
       )}
     </div>
     <slot />
+    <Comments />
   </article>
 </Base>
