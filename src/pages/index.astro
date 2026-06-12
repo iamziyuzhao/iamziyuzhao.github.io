@@ -1,0 +1,140 @@
+---
+import Base from "../layouts/Base.astro";
+import LogoMark from "../components/LogoMark.astro";
+import { education, experience, news, newsZh, profile } from "../data/profile";
+
+const focusAreas = [
+  "LLM inference",
+  "GPU kernels",
+  "Agent runtimes",
+  "Evaluation infrastructure",
+];
+
+const profileStats = [
+  { label: "Incoming", value: "CMU MSIN" },
+  { label: "Research", value: "Systems for AI" },
+  { label: "Base", value: "Pittsburgh" },
+];
+---
+
+<Base title="Albert (Ziyu) Zhao">
+  <section class="academic-shell">
+    <aside class="profile-card">
+      <img class="portrait" src="/images/albert-zhao.jpg" alt="Albert Zhao" loading="eager" />
+      <div class="profile-name">Albert (Ziyu) Zhao</div>
+      <div class="profile-title">
+        <span class="lang-en">{profile.title}</span>
+        <span class="lang-zh">{profile.titleZh}</span>
+      </div>
+      <div class="profile-detail">
+        <span class="lang-en">Incoming M.S. student</span>
+        <span class="lang-zh">硕士新生</span>
+        <br />
+        Carnegie Mellon University
+        <br />
+        Pittsburgh, PA
+      </div>
+      <div class="profile-links" aria-label="Profile links">
+        {profile.links.map((link) => <a href={link.href}>{link.label}</a>)}
+      </div>
+      <div class="profile-facts" aria-label="Research focus areas">
+        {focusAreas.map((area) => <span>{area}</span>)}
+      </div>
+      <p class="profile-note">
+        <span class="lang-en">Interested in the systems layer below large models: serving, kernels, runtimes, and evaluation infrastructure.</span>
+        <span class="lang-zh">关注大模型之下的系统层：serving、kernels、runtimes 与评测基础设施。</span>
+      </p>
+    </aside>
+
+    <div class="academic-main">
+      <section class="hero-statement">
+        <div class="eyebrow"><span class="lang-en">Research Profile</span><span class="lang-zh">研究主页</span></div>
+        <h1>
+          <span class="lang-en">About Me</span>
+          <span class="lang-zh">关于我</span>
+        </h1>
+        <p>
+          <span class="lang-en">{profile.intro}</span>
+          <span class="lang-zh">{profile.introZh}</span>
+        </p>
+        <p>
+          <span class="lang-en">{profile.focus}</span>
+          <span class="lang-zh">{profile.focusZh}</span>
+        </p>
+        <div class="fact-strip" aria-label="Profile summary">
+          {profileStats.map((stat) => (
+            <span>
+              <strong>{stat.value}</strong>
+              <small>{stat.label}</small>
+            </span>
+          ))}
+        </div>
+      </section>
+
+      <section class="content-card">
+        <div class="cv-grid">
+          <div class="cv-block">
+            <h2><span class="lang-en">Education</span><span class="lang-zh">教育</span></h2>
+            <ul class="cv-list">
+              {education.map((item) => (
+                <li>
+                  <div class="affiliation-row">
+                    <LogoMark item={item} />
+                    <span>
+                      <strong>{item.school}</strong>
+                      <span class="lang-en">{item.degree}</span>
+                      <span class="lang-zh">{item.degreeZh}</span>
+                      <br />
+                      <span>{item.date}</span>
+                      <br />
+                      <span class="lang-en">{item.meta}</span>
+                      <span class="lang-zh">{item.metaZh}</span>
+                    </span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div class="cv-block">
+            <h2><span class="lang-en">Experience</span><span class="lang-zh">经历</span></h2>
+            <ul class="cv-list">
+              {experience.map((item) => (
+                <li>
+                  <div class="affiliation-row">
+                    <LogoMark item={item} />
+                    <span>
+                      <strong>{item.org}</strong>
+                      <span class="lang-en">{item.role}</span>
+                      <span class="lang-zh">{item.roleZh}</span>
+                      <br />
+                      <span>{item.date}</span>
+                    </span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+
+          </div>
+        </div>
+      </section>
+
+      <section class="content-card">
+        <div class="section-heading">
+          <h2><span class="lang-en">News</span><span class="lang-zh">动态</span></h2>
+        </div>
+        <ul class="news-list">
+          {news.map((item, index) => (
+            <li>
+              <time>{item.slice(0, 4)}</time>
+              <span>
+                <span class="lang-en">{item.replace(/^\d{4}:\s*/, "")}</span>
+                <span class="lang-zh">{newsZh[index].replace(/^\d{4}：\s*/, "")}</span>
+              </span>
+            </li>
+          ))}
+        </ul>
+      </section>
+    </div>
+  </section>
+</Base>

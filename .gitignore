@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.astro/
+output/
+screenshots/
+archive/
+.DS_Store
+npm-debug.log*

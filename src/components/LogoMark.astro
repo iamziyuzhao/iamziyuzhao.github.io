@@ -1,0 +1,52 @@
+---
+type LogoItem = {
+  src?: string;
+  alt?: string;
+  wide?: boolean;
+  text?: string;
+  href?: string;
+};
+
+type Props = {
+  item: {
+    logo?: string;
+    logoAlt?: string;
+    logoWide?: boolean;
+    logoHref?: string;
+    logoPair?: LogoItem[];
+  };
+};
+
+const { item } = Astro.props;
+const logos = item.logoPair?.length
+  ? item.logoPair
+  : [{ src: item.logo, alt: item.logoAlt, wide: item.logoWide, href: item.logoHref }];
+
+const logoClass = (logo: LogoItem) => {
+  const src = logo.src ?? "";
+  if (src.includes("cmu")) return "logo-cmu";
+  if (src.includes("cornell")) return "logo-cornell";
+  if (src.includes("rochester")) return "logo-rochester";
+  if (src.includes("catalyst")) return "logo-catalyst";
+  if (src.includes("csl")) return "logo-csl";
+  if (src.includes("tencent-hunyuan")) return "logo-tencent-hunyuan";
+  if (src.includes("tencent")) return "logo-tencent";
+  if (src.includes("getmyhome")) return "logo-getmyhome";
+  if (src.includes("haystack")) return "logo-haystack";
+  return "";
+};
+---
+
+<span class:list={["logo-mark", logos.length > 1 ? "logo-pair" : ""]}>
+  {logos.map((logo) => (
+    <span class:list={["logo-box", logo.wide ? "wide" : "", logo.text ? "text-logo" : "", logoClass(logo)]}>
+      {logo.href ? (
+        <a href={logo.href} target="_blank" rel="noreferrer" aria-label={logo.alt ?? logo.text ?? "Organization website"}>
+          {logo.text ? <span>{logo.text}</span> : <img src={logo.src} alt="" loading="lazy" />}
+        </a>
+      ) : (
+        logo.text ? <span>{logo.text}</span> : <img src={logo.src} alt="" loading="lazy" />
+      )}
+    </span>
+  ))}
+</span>
