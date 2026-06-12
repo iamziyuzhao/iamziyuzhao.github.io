@@ -14,13 +14,13 @@
 
 :root {
   color-scheme: light;
-  --bg: #fcfaf6;
-  --paper: #fffefb;
+  --bg: #ffffff;
+  --paper: #ffffff;
   --ink: #221e1a;
   --muted: #5c554d;
   --faint: #8b8278;
-  --line: #e8e2d7;
-  --line-strong: #d3cabc;
+  --line: #e8e5e1;
+  --line-strong: #d7d2cb;
   --accent: #b31b1b;            /* Cornell red — the ink */
   --accent-dark: #9d1818;       /* hover red */
   --accent-deep: #7f1313;       /* pressed / high-contrast red */
