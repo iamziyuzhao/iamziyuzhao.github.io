@@ -1,0 +1,27 @@
+---
+const nav = [
+  { href: "/", label: "Home", labelZh: "首页" },
+  { href: "/projects/", label: "Research", labelZh: "研究" },
+  { href: "/writing/", label: "Writing", labelZh: "写作" },
+  { href: "/blog/", label: "Blog", labelZh: "博客" },
+  { href: "/cv/", label: "CV", labelZh: "简历" },
+];
+---
+
+<header class="site-header">
+  <nav class="nav" aria-label="Main navigation">
+    <a class="brand" href="/">Albert Zhao</a>
+    <div class="nav-links">
+      {nav.map((item) => (
+        <a href={item.href}>
+          <span class="lang-en">{item.label}</span>
+          <span class="lang-zh">{item.labelZh}</span>
+        </a>
+      ))}
+      <button class="lang-toggle" type="button" aria-label="Toggle language" aria-pressed="false" data-lang-toggle>
+        <span class="lang-en">中文</span>
+        <span class="lang-zh">EN</span>
+      </button>
+    </div>
+  </nav>
+</header>
