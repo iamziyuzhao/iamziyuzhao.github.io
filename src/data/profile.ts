@@ -1,4 +1,66 @@
-export const profile = {
+export interface ProfileLink {
+  label: string;
+  href: string;
+}
+
+export interface LogoRef {
+  src: string;
+  alt?: string;
+  wide?: boolean;
+  text?: string;
+  href?: string;
+}
+
+export interface Profile {
+  name: string;
+  title: string;
+  titleZh: string;
+  location: string;
+  email: string;
+  links: ProfileLink[];
+  intro: string;
+  introZh: string;
+  focus: string;
+  focusZh: string;
+}
+
+interface LogoFields {
+  logo: string;
+  logoAlt?: string;
+  logoWide?: boolean;
+  logoHref?: string;
+  logoPair?: LogoRef[];
+}
+
+export interface EducationEntry extends LogoFields {
+  school: string;
+  degree: string;
+  degreeZh: string;
+  meta: string;
+  metaZh: string;
+  date: string;
+}
+
+export interface ExperienceEntry extends LogoFields {
+  org: string;
+  role: string;
+  roleZh: string;
+  date: string;
+  detail: string;
+  detailZh: string;
+}
+
+export interface ProjectEntry extends LogoFields {
+  title: string;
+  venue: string;
+  venueZh: string;
+  date: string;
+  summary: string;
+  summaryZh: string;
+  links: ProfileLink[];
+}
+
+export const profile: Profile = {
   name: "Albert (Ziyu) Zhao",
   title: "Machine Learning Systems & AI Infrastructure",
   titleZh: "机器学习系统与 AI 基础设施",
@@ -19,7 +81,7 @@ export const profile = {
     "我感兴趣的是前沿 AI 系统背后的基础设施：推理服务、高效 kernels、agent 执行，以及让大模型在真实部署中可用的系统工作。",
 };
 
-export const education = [
+export const education: EducationEntry[] = [
   {
     school: "Carnegie Mellon University",
     logo: "/logos/provided/cmu.png",
@@ -43,7 +105,7 @@ export const education = [
   },
 ];
 
-export const experience = [
+export const experience: ExperienceEntry[] = [
   {
     org: "Carnegie Mellon University, Catalyst Group",
     logo: "/logos/provided/catalyst.svg",
@@ -113,7 +175,7 @@ export const experience = [
   },
 ];
 
-export const projects = [
+export const projects: ProjectEntry[] = [
   {
     title: "FlashInfer-Bench",
     logo: "/logos/flashinfer.svg",
@@ -170,14 +232,14 @@ export const projects = [
   },
 ];
 
-export const news = [
+export const news: string[] = [
   "2026: Starting M.S. study at Carnegie Mellon University in Information Networking.",
   "2026: Joined CMU Catalyst Group and Cornell CSL as a research assistant intern.",
   "2025: Contributed DeepSeek-V4 model support to FlashInfer-Bench.",
   "2025: Received a Kaggle Research Competition Silver Medal for MakeDataCount.",
 ];
 
-export const newsZh = [
+export const newsZh: string[] = [
   "2026：即将在 Carnegie Mellon University 攻读 Information Networking 硕士。",
   "2026：加入 CMU Catalyst Group 和 Cornell CSL 担任研究助理实习生。",
   "2025：为 FlashInfer-Bench 贡献 DeepSeek-V4 模型支持。",
