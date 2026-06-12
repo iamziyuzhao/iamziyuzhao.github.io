@@ -1,10 +1,13 @@
 ---
-layout: ../../layouts/Base.astro
+layout: ../../layouts/BlogPost.astro
 title: Notes Toward LLM Inference Systems
-description: A working outline for writing about LLM inference systems.
+titleZh: LLM 推理系统笔记
+description: The opening thread for a blog that treats AI infrastructure as a serious systems discipline.
+descriptionZh: 这是一组把 AI 基础设施当作严肃系统学科来写的开篇笔记。
+category: Research Notes
+categoryZh: 研究笔记
+date: 2026-05-19
 ---
-
-# Notes Toward LLM Inference Systems
 
 Large language models are usually introduced through model quality, benchmarks, or product demos. The system underneath is less visible: the kernels, runtimes, serving policies, memory movement, batching decisions, and failure modes that decide whether a model can be used at scale.
 

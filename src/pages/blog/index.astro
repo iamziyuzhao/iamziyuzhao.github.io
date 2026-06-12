@@ -1,5 +1,27 @@
 ---
 import Base from "../../layouts/Base.astro";
+
+interface PostModule {
+  url: string;
+  frontmatter: {
+    title: string;
+    titleZh?: string;
+    description?: string;
+    descriptionZh?: string;
+    category?: string;
+    categoryZh?: string;
+    date?: string;
+  };
+}
+
+// Files starting with "_" (e.g. _post-template.md) are not routed by Astro
+// and are excluded here too.
+const posts = (Object.values(import.meta.glob("./[!_]*.md", { eager: true })) as PostModule[]).sort(
+  (a, b) => new Date(b.frontmatter.date ?? 0).valueOf() - new Date(a.frontmatter.date ?? 0).valueOf(),
+);
+
+const dateLabel = (d?: string) =>
+  d ? new Date(d).toLocaleDateString("en-US", { month: "long", year: "numeric" }) : "";
 ---
 
 <Base title="Blog | Albert Zhao">
@@ -13,16 +35,36 @@ import Base from "../../layouts/Base.astro";
   </section>
 
   <section class="section">
-    <article class="item">
-      <div>
-        <h2><a href="/blog/llm-inference-notes/"><span class="lang-en">Notes Toward LLM Inference Systems</span><span class="lang-zh">LLM 推理系统笔记</span></a></h2>
-        <div class="meta"><span class="lang-en">Research Notes</span><span class="lang-zh">研究笔记</span></div>
-        <p>
-          <span class="lang-en">The opening thread for a blog that treats AI infrastructure as a serious systems discipline.</span>
-          <span class="lang-zh">这是一组把 AI 基础设施当作严肃系统学科来写的开篇笔记。</span>
-        </p>
-      </div>
-      <time>May 2026</time>
-    </article>
+    {posts.map((post) => (
+      <article class="item">
+        <div>
+          <h2>
+            <a href={`${post.url}/`}>
+              {post.frontmatter.titleZh ? (
+                <>
+                  <span class="lang-en">{post.frontmatter.title}</span>
+                  <span class="lang-zh">{post.frontmatter.titleZh}</span>
+                </>
+              ) : (
+                post.frontmatter.title
+              )}
+            </a>
+          </h2>
+          {(post.frontmatter.category || post.frontmatter.categoryZh) && (
+            <div class="meta">
+              <span class="lang-en">{post.frontmatter.category}</span>
+              <span class="lang-zh">{post.frontmatter.categoryZh ?? post.frontmatter.category}</span>
+            </div>
+          )}
+          {(post.frontmatter.description || post.frontmatter.descriptionZh) && (
+            <p>
+              <span class="lang-en">{post.frontmatter.description}</span>
+              <span class="lang-zh">{post.frontmatter.descriptionZh ?? post.frontmatter.description}</span>
+            </p>
+          )}
+        </div>
+        <time>{dateLabel(post.frontmatter.date)}</time>
+      </article>
+    ))}
   </section>
 </Base>
