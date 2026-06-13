@@ -709,34 +709,37 @@ main {
 
 h1.term-name {
   position: relative;
-  margin: 6px 0 4px;
-  /* the New York serif name renders as a pre-trimmed PNG; height drives the
-     box and the 8.746 aspect ratio sets width. ~34px tall on desktop. */
+  margin: 8px 0 6px;
+  /* the New York serif name is the centerpiece; height drives the box and the
+     8.746 aspect ratio sets width. ~46px tall on desktop so the dotted mosaic
+     has enough rows of dots to read the serif shapes. */
   line-height: 0;
 }
 
 .term-name-img {
   display: block;
-  height: 34px;
+  height: 46px;
   width: auto;
   /* lock aspect so the box never reflows while the canvas overlay is up */
   aspect-ratio: 2099 / 240;
 }
 
-/* canvas that paints the pixel-by-pixel reveal, positioned exactly over the
-   img. Absolute so it never adds to the h1 box; the img stays in flow
-   (visibility:hidden) holding the size while the canvas animates above it. */
+/* canvas that paints the dotted New York mosaic (and stays as the final
+   settled state). Absolute so it never adds to the h1 box; the img stays in
+   flow (visibility:hidden) holding the size while the canvas paints above it.
+   When JS runs, .has-dots is set on the h1 and the img is hidden permanently —
+   the dotted mosaic is the final look, not a transient overlay. */
 .term-name-canvas {
   position: absolute;
   top: 0;
   left: 0;
   display: block;
-  height: 34px;
+  height: 46px;
   width: auto;
   aspect-ratio: 2099 / 240;
 }
 
-h1.term-name.is-revealing .term-name-img {
+h1.term-name.has-dots .term-name-img {
   visibility: hidden;
 }
 
@@ -859,10 +862,16 @@ h1.term-name.is-revealing .term-name-img {
    booting flips to booted and everything cascades in like terminal output.
    html.skip zeroes the whole choreography for an instant settled state. */
 
-/* the interactive shell's live prompt + input is appended at parse time; keep
-   it out of sight during the boot so a stray "$" caret never floats in the
-   fullscreen terminal. It returns the moment the page settles. */
-html.booting .term-live,
+/* the interactive shell's live prompt + input is appended at parse time. Keep
+   the live prompt OCCUPYING its layout space during the boot (visibility:hidden,
+   not display:none) so the natural rect the boot script measures already
+   includes it — otherwise the window would grow by one line after docking (an
+   end-jump). It's just invisible so no stray "$" caret floats in the fullscreen
+   terminal; it becomes visible the moment the page settles. The input stays
+   fully removed from layout (it's clipped to 1px and absolutely positioned). */
+html.booting .term-live {
+  visibility: hidden;
+}
 html.booting .term-input {
   display: none;
 }
@@ -891,14 +900,16 @@ html.booted .profile-card {
 }
 
 /* stagger in visual order: masthead, about + tiles (0x00), education /
-   experience (0x01–0x02), projects (0x03), news (0x04), sidebar, footer */
+   experience (0x01–0x02), projects (0x03), news (0x04), sidebar, footer.
+   The footer is the status bar at the very bottom, so it prints LAST (after
+   news), keeping the whole reveal a single continuous downward sweep. */
 html.booted .site-header { animation-delay: 0s; }
 html.booted .academic-main > section:nth-child(2) { animation-delay: 0.07s; }
 html.booted .academic-main > section:nth-child(3) { animation-delay: 0.14s; }
 html.booted .academic-main > section:nth-child(4) { animation-delay: 0.21s; }
 html.booted .academic-main > section:nth-child(5) { animation-delay: 0.28s; }
-html.booted .profile-card { animation-delay: 0.36s; }
-html.booted .footer { animation-delay: 0.44s; }
+html.booted .profile-card { animation-delay: 0.18s; }
+html.booted .footer { animation-delay: 1.5s; }
 
 @keyframes boot-in {
   from {
@@ -1052,6 +1063,73 @@ html.booted .news-list > li:nth-child(n+1)::before { animation-delay: 1.22s; }
   100% { opacity: 0; }
 }
 
+/* --- masthead, sidebar + footer also PRINT (not just fade) so EVERY block of
+   the page participates in the one continuous "terminal types the page" sweep.
+   The brand types on with a clip wipe (its existing block cursor is the caret);
+   nav items, sidebar text + status-bar segments tick in with a brief leading
+   caret. All carets are absolutely positioned and fade out, so the settled
+   layout is byte-identical to the no-boot render. ---------------------------- */
+
+/* brand types on left-to-right, led by its own .brand::after block cursor */
+html.booted .brand {
+  clip-path: inset(0 100% 0 0);
+  animation: boot-type 0.3s steps(11, end) 0.04s both;
+}
+
+/* nav links + lang toggle tick in just after the brand */
+html.booted .nav-links a,
+html.booted .nav-links .lang-toggle {
+  opacity: 0;
+  animation: boot-print 0.08s ease-out both;
+}
+html.booted .nav-links a:nth-of-type(1) { animation-delay: 0.16s; }
+html.booted .nav-links a:nth-of-type(2) { animation-delay: 0.2s; }
+html.booted .nav-links .lang-toggle { animation-delay: 0.24s; }
+
+/* sidebar text blocks print top-to-bottom with a small leading caret */
+html.booted .profile-card .profile-title,
+html.booted .profile-card .profile-detail,
+html.booted .profile-card .profile-links,
+html.booted .profile-card .profile-note {
+  position: relative;
+  opacity: 0;
+  animation: boot-print 0.1s ease-out both;
+}
+html.booted .profile-card .profile-title::after,
+html.booted .profile-card .profile-detail::after,
+html.booted .profile-card .profile-links::after {
+  content: "▌";
+  position: absolute;
+  left: -0.05ch;
+  bottom: 0;
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  animation: boot-tick 0.32s steps(1, end) both;
+  pointer-events: none;
+}
+html.booted .profile-card .portrait-frame { animation-delay: 0.24s; }
+html.booted .profile-card .profile-title { animation-delay: 0.32s; }
+html.booted .profile-card .profile-title::after { animation-delay: 0.32s; }
+html.booted .profile-card .profile-detail { animation-delay: 0.4s; }
+html.booted .profile-card .profile-detail::after { animation-delay: 0.4s; }
+html.booted .profile-card .profile-links { animation-delay: 0.48s; }
+html.booted .profile-card .profile-links::after { animation-delay: 0.48s; }
+html.booted .profile-card .profile-note { animation-delay: 0.56s; }
+
+/* status-bar segments tick in left-to-right as the very last print */
+html.booted .footer .sb-seg {
+  opacity: 0;
+  animation: boot-print 0.07s ease-out both;
+}
+html.booted .footer .sb-seg:nth-child(1) { animation-delay: 1.52s; }
+html.booted .footer .sb-seg:nth-child(2) { animation-delay: 1.56s; }
+html.booted .footer .sb-seg:nth-child(3) { animation-delay: 1.6s; }
+html.booted .footer .sb-seg:nth-child(5) { animation-delay: 1.64s; }
+html.booted .footer .sb-seg:nth-child(6) { animation-delay: 1.68s; }
+html.booted .footer .sb-seg:nth-child(7) { animation-delay: 1.72s; }
+html.booted .footer .sb-seg:nth-child(8) { animation-delay: 1.76s; }
+
 /* --- fullscreen boot: the terminal fills the whole viewport like a maximized
    terminal app, then shrinks + docks to its natural in-flow rect. The inline
    boot script measures the card's natural rect on DOMContentLoaded, locks the
@@ -1087,13 +1165,18 @@ html.booting .terminal-hero .term-window.boot-full {
 /* the dock: same fixed positioning, but the script swaps top/left/width/height
    to the stored natural rect and these transitions carry it home */
 html.booting .terminal-hero .term-window.boot-full.boot-dock {
+  /* balanced ease-in-out: gentle acceleration AND gentle deceleration so the
+     window glides home with no sudden motion at either end (ease-out-expo did
+     ~half the shrink in the first 80ms, which still read as an abrupt start;
+     the old back-loaded cubic-bezier(.7,0,.2,1) snapped at the end instead). */
   transition:
-    top 0.62s cubic-bezier(0.7, 0, 0.2, 1),
-    left 0.62s cubic-bezier(0.7, 0, 0.2, 1),
-    width 0.62s cubic-bezier(0.7, 0, 0.2, 1),
-    height 0.62s cubic-bezier(0.7, 0, 0.2, 1),
-    border-radius 0.62s cubic-bezier(0.7, 0, 0.2, 1),
-    box-shadow 0.62s cubic-bezier(0.7, 0, 0.2, 1);
+    top 1s cubic-bezier(0.65, 0, 0.35, 1),
+    left 1s cubic-bezier(0.65, 0, 0.35, 1),
+    width 1s cubic-bezier(0.65, 0, 0.35, 1),
+    height 1s cubic-bezier(0.65, 0, 0.35, 1),
+    border-radius 1s cubic-bezier(0.65, 0, 0.35, 1),
+    box-shadow 1s cubic-bezier(0.65, 0, 0.35, 1);
+  will-change: top, left, width, height, border-radius;
   border: 1px solid var(--term-edge);
   border-radius: 9px;
   box-shadow:
@@ -1108,13 +1191,28 @@ html.booting .terminal-hero .term-window.boot-full .term-body {
 }
 
 /* skip: any click/keydown during the show zeroes every duration and delay —
-   session fully printed, page fully revealed, carets already faded */
+   session fully printed, page fully revealed, carets already faded. The
+   universal-descendant selectors catch the masthead brand/nav, sidebar text,
+   status-bar segments and every per-block caret so nothing is stranded at
+   opacity:0 or mid-clip when the visitor skips. */
 html.skip .term-body > *,
 html.skip .term-cmd,
 html.skip .site-header,
+html.skip .site-header *,
+html.skip .site-header *::before,
+html.skip .site-header *::after,
 html.skip .footer,
+html.skip .footer *,
+html.skip .footer *::before,
+html.skip .footer *::after,
 html.skip .profile-card,
+html.skip .profile-card *,
+html.skip .profile-card *::before,
+html.skip .profile-card *::after,
 html.skip .academic-main > section,
+html.skip .academic-main > section *,
+html.skip .academic-main > section *::before,
+html.skip .academic-main > section *::after,
 html.skip .academic-main > section h2 > span::after {
   animation-duration: 0s !important;
   animation-delay: 0s !important;
@@ -2135,7 +2233,7 @@ p.code-comment {
   }
 
   .term-name-img,
-  .term-name-canvas { height: 22px; }
+  .term-name-canvas { height: 26px; }
 
   .about-section p { font-size: 17px; }
   h1 { font-size: 36px; }

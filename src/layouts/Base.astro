@@ -34,10 +34,12 @@ const description =
       // paint so the rest of the page never flashes. Without JS this script
       // never runs, no class is added, and the site renders normally.
       //
-      // Upgrade: the terminal boots FULLSCREEN (a maximized terminal app), then
-      // shrinks + docks (FLIP on box geometry) to its natural in-flow rect when
-      // "$ source ~/.profile" finishes typing, while the rest of the page prints
-      // in. Any key/click skips pixel-exactly to the settled page.
+      // Choreography: the terminal boots FULLSCREEN (a maximized terminal app)
+      // and types its session. When "$ source ~/.profile" finishes typing, the
+      // window shrinks + docks (FLIP on box geometry, ease-out glide) to its
+      // natural in-flow rect. The dock FINISHES FIRST; only then does the rest
+      // of the page print in top-to-bottom like the terminal is typing it out.
+      // Any key/click skips pixel-exactly to the settled page.
       (function () {
         if (
           location.pathname !== "/" ||
@@ -49,6 +51,7 @@ const description =
         var card = null;
         var hero = null;
         var natural = null; // stored natural rect {top,left,width,height}
+        var measured = false; // natural rect captured after fonts.ready
         var settleTimer = 0;
         var dockTimer = 0;
         var revealTimer = 0;
@@ -83,14 +86,13 @@ const description =
           html.classList.remove("booted");
         };
 
-        // measure the card's natural rect, lock the hero height to preserve
-        // layout, then pin the card fullscreen. The card stays invisible under
-        // html.booting until .boot-full lands, so the first painted frame is the
-        // maximized terminal — never the natural card.
-        var fullscreen = function () {
-          card = document.querySelector(".terminal-hero .term-window");
-          hero = document.querySelector(".terminal-hero");
-          if (!card || !html.classList.contains("booting")) return;
+        // measure the card's natural rect (re-measured after fonts.ready so the
+        // dock target is exact and never end-jumps from a stale serif metric),
+        // lock the hero height to preserve layout, then pin the card fullscreen.
+        // The card stays invisible under html.booting until .boot-full lands, so
+        // the first painted frame is the maximized terminal — never the card.
+        var measure = function () {
+          if (!card) return;
           var r = card.getBoundingClientRect();
           natural = {
             top: r.top + scrollY,
@@ -98,20 +100,46 @@ const description =
             width: r.width,
             height: r.height,
           };
+        };
+
+        var fullscreen = function () {
+          card = document.querySelector(".terminal-hero .term-window");
+          hero = document.querySelector(".terminal-hero");
+          if (!card || !html.classList.contains("booting")) return;
+          measure();
           // hold the in-flow space so nothing reflows while the card is fixed
           if (hero) hero.style.minHeight = hero.offsetHeight + "px";
           card.classList.add("boot-full");
+          // re-measure once webfonts settle so the dock target is sub-pixel exact
+          if (document.fonts && document.fonts.ready) {
+            document.fonts.ready.then(function () {
+              if (measured || !html.classList.contains("booting") || !hero)
+                return;
+              // briefly un-fix to read the true in-flow rect, then re-fix
+              card.classList.remove("boot-full");
+              hero.style.removeProperty("min-height");
+              measure();
+              hero.style.minHeight = hero.offsetHeight + "px";
+              card.classList.add("boot-full");
+              measured = true;
+            });
+          }
         };
 
+        // start the typed page cascade — the dock has fully landed by now.
         var reveal = function () {
           html.classList.remove("booting");
           html.classList.add("booted");
-          // page cascade settles by ~3.5s; then stop listening + clean up
-          settleTimer = setTimeout(teardown, 3500);
+          // the content reveal finishes ~1.8s in (footer is the last block at
+          // ~1.5s + ramp); give it a small margin, then stop listening + drop
+          // the booted class so the whole boot has settled by ~7s.
+          settleTimer = setTimeout(teardown, 2600);
         };
 
         // shrink + dock: set the fixed inset to the stored natural rect so the
-        // .boot-dock transitions carry the card home, then strip on transitionend.
+        // .boot-dock transitions carry the card home with an ease-out glide,
+        // then strip on transitionend (inside a rAF, so the in-flow rect equals
+        // the animated target to sub-pixel — no end-jump) and reveal the page.
         var dock = function () {
           if (!card || !natural) {
             reveal();
@@ -123,7 +151,8 @@ const description =
           card.style.width = "100vw";
           card.style.height = "100vh";
           card.style.borderRadius = "0px";
-          // force a reflow so the transition has a from-state to animate from
+          // force a reflow so the transition has a real from-state to animate
+          // from (otherwise the browser collapses both writes and it snaps)
           void card.offsetWidth;
           card.classList.add("boot-dock");
           card.style.top = natural.top + "px";
@@ -132,22 +161,26 @@ const description =
           card.style.height = natural.height + "px";
           card.style.borderRadius = "9px";
           var settled = false;
-          dockEndHandler = function (e) {
-            if (e.propertyName !== "width" && e.propertyName !== "height") return;
+          var land = function () {
             if (settled) return;
             settled = true;
-            stripGeometry();
+            clearTimeout(dockTimer);
+            // strip inside a rAF so the card lands in-flow on the same frame
+            // the animated target was reached — no measured end-jump
+            requestAnimationFrame(function () {
+              stripGeometry();
+              // a short beat after the dock fully completes, print the page
+              revealTimer = setTimeout(reveal, 120);
+            });
+          };
+          dockEndHandler = function (e) {
+            if (e.propertyName !== "width" && e.propertyName !== "height")
+              return;
+            land();
           };
           card.addEventListener("transitionend", dockEndHandler);
-          // safety: strip even if transitionend never fires
-          dockTimer = setTimeout(function () {
-            if (!settled) {
-              settled = true;
-              stripGeometry();
-            }
-          }, 760);
-          // the content cascade starts ~250ms into the shrink (overlap)
-          revealTimer = setTimeout(reveal, 250);
+          // safety: land even if transitionend never fires (just past the 1s dock)
+          dockTimer = setTimeout(land, 1200);
         };
 
         var boot = function (instant) {
@@ -195,7 +228,7 @@ const description =
         // safety net: never strand the visitor on a blank page
         fallback = setTimeout(function () {
           boot(true);
-        }, 6000);
+        }, 7000);
       })();
     </script>
   </head>
