@@ -278,6 +278,7 @@ const profileStats = [
     // build the canvas + sample the PNG into a dot grid. Returns false if the
     // image isn't ready / measurable yet.
     const build = (): boolean => {
+      if (canvas) return true; // idempotent — canvas already built, img already hidden
       const box = img.getBoundingClientRect();
       const cw = box.width, ch = box.height;
       if (!cw || !ch) return false;
@@ -379,24 +380,22 @@ const profileStats = [
       requestAnimationFrame(tick);
     };
 
-    // reduced-motion (or boot already settled): draw the full mosaic instantly
-    const instant = () => {
-      if (!build()) return;
-      finishMosaic();
-    };
-
     const ready = (run: () => void) => {
       if (img.complete && img.naturalWidth) run();
       else img.addEventListener("load", run, { once: true });
     };
 
-    if (reduce || !booting) {
-      // no sweep — render the settled dotted mosaic immediately
-      ready(instant);
-    } else {
-      // start the sweep just as the name line lands (CSS reveal delay ~0.50s)
-      ready(() => setTimeout(sweep, 550));
-    }
+    // Build the canvas and HIDE the crisp img IMMEDIATELY — as soon as the PNG is
+    // decodable — so the un-pixelated New York name can never flash before the
+    // name line's CSS reveal (~0.50s). Previously .has-dots was only added inside
+    // sweep() at ~550ms, leaving a brief crisp-serif flash. Then either settle the
+    // full mosaic (reduced-motion / not booting) or run the dot sweep in sync with
+    // the name-line reveal.
+    ready(() => {
+      build(); // adds .has-dots (img hidden) + inserts the empty canvas
+      if (reduce || !booting) finishMosaic();
+      else setTimeout(sweep, 550);
+    });
   })();
 
   // tiny interactive shell — progressive enhancement on the hero terminal
