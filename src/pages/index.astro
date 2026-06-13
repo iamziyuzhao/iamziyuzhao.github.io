@@ -72,7 +72,7 @@ const profileStats = [
                 <span class="lang-zh">{area.zh}</span>
               </p>
             ))}
-            <p class="term-line term-last"><span class="term-prompt" aria-hidden="true">$</span><a class="term-cmd term-open type-15" href="#projects">open ~/projects</a><span class="term-cursor" aria-hidden="true" data-static-cursor></span></p>
+            <p class="term-line term-last"><span class="term-prompt" aria-hidden="true">$</span><span class="term-cmd type-17" data-boot-cmd>source ~/.profile</span><span class="term-cursor" aria-hidden="true" data-static-cursor></span></p>
           </div>
         </div>
       </section>
@@ -230,8 +230,9 @@ const profileStats = [
       tb.insertBefore(p, live);
     };
     const commands: Record<string, () => void> = {
-      help: () => out("commands: help  ls  cat focus.txt  open blog  clear"),
+      help: () => out("commands: help  ls  cat focus.txt  source ~/.profile  open blog  clear"),
       ls: () => out("blog/  projects/  focus.txt"),
+      "source ~/.profile": () => out("profile already loaded — you're looking at it"),
       "cat focus.txt": () =>
         tb.querySelectorAll("p.term-focus").forEach((line) => {
           const copy = line.cloneNode(true) as HTMLElement;

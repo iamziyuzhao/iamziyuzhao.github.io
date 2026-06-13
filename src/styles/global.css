@@ -705,20 +705,7 @@ main {
 
 .type-6 { width: 6ch; }
 .type-13 { width: 13ch; }
-.type-15 { width: 15ch; }
-
-/* the closing command doubles as an in-page link to the projects section */
-a.term-open {
-  color: var(--term-ink);
-  cursor: pointer;
-  text-decoration: none;
-}
-
-a.term-open:hover {
-  color: var(--term-red);
-  text-decoration: underline;
-  text-decoration-color: var(--term-red);
-}
+.type-17 { width: 17ch; }
 
 h1.term-name {
   font-family: var(--font-mono);
@@ -805,7 +792,7 @@ h1.term-name {
 
   .type-6 { animation: type-w 0.3s steps(6, end) 0.14s both; }
   .type-13 { animation: type-w 0.45s steps(13, end) 1.0s both; }
-  .type-15 { animation: type-w 0.5s steps(15, end) 1.98s both; }
+  .type-17 { animation: type-w 0.5s steps(17, end) 1.98s both; }
 
   .term-cursor { animation: cursor-pulse 1.25s ease-in-out 2.5s infinite; }
 
@@ -824,6 +811,86 @@ h1.term-name {
 
 @keyframes type-w {
   from { width: 0; }
+}
+
+/* --- boot sequence: "$ source ~/.profile" loads the rest of the page ------
+   An inline <head> script (Base.astro) sets html.booting before first paint,
+   home page only, motion permitting. No JS → no class → normal render, and
+   blog pages never get the class. When the final command finishes typing,
+   booting flips to booted and everything cascades in like terminal output.
+   html.skip zeroes the whole choreography for an instant settled state. */
+
+/* hidden but still occupying layout — the terminal must not shift while it
+   sits alone on the blank page */
+html.booting .site-header,
+html.booting .footer,
+html.booting .profile-card,
+html.booting .academic-main > section:not(.terminal-hero) {
+  opacity: 0;
+  visibility: hidden;
+}
+
+html.booted .site-header,
+html.booted .footer,
+html.booted .profile-card,
+html.booted .academic-main > section:not(.terminal-hero) {
+  animation: boot-in 0.28s ease-out both;
+}
+
+/* stagger in visual order: masthead, about + tiles (0x00), education /
+   experience (0x01–0x02), projects (0x03), news (0x04), sidebar, footer */
+html.booted .site-header { animation-delay: 0s; }
+html.booted .academic-main > section:nth-child(2) { animation-delay: 0.07s; }
+html.booted .academic-main > section:nth-child(3) { animation-delay: 0.14s; }
+html.booted .academic-main > section:nth-child(4) { animation-delay: 0.21s; }
+html.booted .academic-main > section:nth-child(5) { animation-delay: 0.28s; }
+html.booted .profile-card { animation-delay: 0.36s; }
+html.booted .footer { animation-delay: 0.44s; }
+
+@keyframes boot-in {
+  from {
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+  }
+}
+
+/* transient red block cursor on section headings as their block lands; the
+   glyph rides the visible lang span and fades out, leaving opacity 0 */
+html.booted .academic-main > section:not(.terminal-hero) h2 > span::after {
+  content: "▌";
+  margin-left: 0.4ch;
+  color: var(--accent);
+  text-transform: none;
+  animation: boot-caret 0.6s ease-out both;
+}
+
+html.booted .academic-main > section:nth-child(2) h2 > span::after { animation-delay: 0.31s; }
+html.booted .academic-main > section:nth-child(3) h2 > span::after { animation-delay: 0.38s; }
+html.booted .academic-main > section:nth-child(4) h2 > span::after { animation-delay: 0.45s; }
+html.booted .academic-main > section:nth-child(5) h2 > span::after { animation-delay: 0.52s; }
+
+@keyframes boot-caret {
+  0%, 65% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* skip: any click/keydown during the show zeroes every duration and delay —
+   session fully printed, page fully revealed, carets already faded */
+html.skip .term-body > *,
+html.skip .term-cmd,
+html.skip .site-header,
+html.skip .footer,
+html.skip .profile-card,
+html.skip .academic-main > section,
+html.skip .academic-main > section h2 > span::after {
+  animation-duration: 0s !important;
+  animation-delay: 0s !important;
 }
 
 /* --- about section under the terminal ----------------------------------- */

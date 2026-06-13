@@ -29,6 +29,63 @@ const description =
     <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Crimson+Pro:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>{title}</title>
+    <script is:inline>
+      // boot sequence — home page only, motion permitting. Runs before first
+      // paint so the rest of the page never flashes. Without JS this script
+      // never runs, no class is added, and the site renders normally.
+      (function () {
+        if (
+          location.pathname !== "/" ||
+          matchMedia("(prefers-reduced-motion: reduce)").matches
+        )
+          return;
+        var html = document.documentElement;
+        html.classList.add("booting");
+        var settleTimer = 0;
+        var fallback = 0;
+        var teardown = function () {
+          document.removeEventListener("animationend", onType);
+          document.removeEventListener("keydown", skip, true);
+          document.removeEventListener("pointerdown", skip, true);
+          clearTimeout(fallback);
+          clearTimeout(settleTimer);
+        };
+        var boot = function (instant) {
+          if (!html.classList.contains("booting")) return;
+          html.classList.remove("booting");
+          if (instant) html.classList.add("skip");
+          html.classList.add("booted");
+          if (instant) teardown();
+          // natural reveal settles in <1.2s; then stop listening entirely
+          else settleTimer = setTimeout(teardown, 1300);
+        };
+        // the typed "source ~/.profile" finishing is the reveal trigger
+        var onType = function (e) {
+          if (
+            e.animationName === "type-w" &&
+            e.target instanceof Element &&
+            e.target.hasAttribute("data-boot-cmd")
+          )
+            boot(false);
+        };
+        // any click/keydown during the show jumps to the settled state
+        var skip = function () {
+          if (html.classList.contains("booting")) {
+            boot(true);
+          } else {
+            html.classList.add("skip");
+            teardown();
+          }
+        };
+        document.addEventListener("animationend", onType);
+        document.addEventListener("keydown", skip, true);
+        document.addEventListener("pointerdown", skip, true);
+        // safety net: never strand the visitor on a blank page
+        fallback = setTimeout(function () {
+          boot(true);
+        }, 4000);
+      })();
+    </script>
   </head>
   <body>
     <Header />
