@@ -880,6 +880,39 @@ html.booted .academic-main > section:nth-child(5) h2 > span::after { animation-d
   100% { opacity: 0; }
 }
 
+/* --- centered boot: the terminal sits alone mid-viewport, then glides home.
+   The inline boot script measures the card's natural rect on DOMContentLoaded,
+   sets --boot-dx/--boot-dy, and adds .boot-centered — a pure transform, so
+   the layout underneath never moves. Until that class lands the card stays
+   invisible (first paint is a blank page; the card pops in already centered).
+   These classes are only ever added by the boot script, so reduced-motion,
+   no-JS, and blog pages never see any of this. */
+html.booting .terminal-hero .term-window {
+  opacity: 0;
+}
+
+html.booting .terminal-hero .term-window.boot-centered,
+html.booting .terminal-hero .term-window.boot-glide {
+  opacity: 1;
+}
+
+.terminal-hero .term-window.boot-centered {
+  transform: translate(var(--boot-dx, 0px), var(--boot-dy, 0px));
+  /* lifted: a deeper shadow than the resting card, relaxed during the glide */
+  box-shadow:
+    0 34px 80px -30px rgba(24, 14, 10, 0.6),
+    0 10px 30px rgba(24, 14, 10, 0.14);
+  will-change: transform;
+}
+
+/* the glide: .boot-glide swaps in for .boot-centered, so transform and shadow
+   transition back to the card's own resting values — the dock */
+.terminal-hero .term-window.boot-glide {
+  transition:
+    transform 0.5s cubic-bezier(0.22, 0.9, 0.26, 1),
+    box-shadow 0.5s cubic-bezier(0.22, 0.9, 0.26, 1);
+}
+
 /* skip: any click/keydown during the show zeroes every duration and delay —
    session fully printed, page fully revealed, carets already faded */
 html.skip .term-body > *,
@@ -891,6 +924,13 @@ html.skip .academic-main > section,
 html.skip .academic-main > section h2 > span::after {
   animation-duration: 0s !important;
   animation-delay: 0s !important;
+}
+
+/* skip also lands the card itself: no transform, no glide-in-progress —
+   the boot script removes the classes too; this is the same-frame guarantee */
+html.skip .terminal-hero .term-window {
+  transform: none !important;
+  transition: none !important;
 }
 
 /* --- about section under the terminal ----------------------------------- */

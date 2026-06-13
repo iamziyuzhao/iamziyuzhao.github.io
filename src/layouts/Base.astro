@@ -41,23 +41,68 @@ const description =
           return;
         var html = document.documentElement;
         html.classList.add("booting");
+        var card = null;
         var settleTimer = 0;
+        var glideTimer = 0;
+        var revealTimer = 0;
         var fallback = 0;
+        var started = false;
         var teardown = function () {
           document.removeEventListener("animationend", onType);
           document.removeEventListener("keydown", skip, true);
           document.removeEventListener("pointerdown", skip, true);
           clearTimeout(fallback);
           clearTimeout(settleTimer);
+          clearTimeout(glideTimer);
+          clearTimeout(revealTimer);
+          // leave the card exactly as it renders without the boot show:
+          // no transform, no transition, default shadow
+          if (card) {
+            card.classList.remove("boot-centered", "boot-glide");
+            card.style.removeProperty("--boot-dx");
+            card.style.removeProperty("--boot-dy");
+          }
+        };
+        // FLIP centering: once the DOM is measurable, compute the offset from
+        // the card's natural rect to the viewport center (clamped so a tall
+        // card never slides off-screen) and apply it as a pure transform. The
+        // card stays invisible under html.booting until .boot-centered lands,
+        // so it never flashes at its natural position.
+        var center = function () {
+          card = document.querySelector(".terminal-hero .term-window");
+          if (!card || !html.classList.contains("booting")) return;
+          var r = card.getBoundingClientRect();
+          var dx = Math.max(16, (innerWidth - r.width) / 2) - r.left;
+          var dy = Math.max(16, (innerHeight - r.height) / 2) - r.top;
+          card.style.setProperty("--boot-dx", dx.toFixed(2) + "px");
+          card.style.setProperty("--boot-dy", dy.toFixed(2) + "px");
+          card.classList.add("boot-centered");
+        };
+        var reveal = function () {
+          html.classList.remove("booting");
+          html.classList.add("booted");
+          // natural reveal settles in <1.2s; then stop listening entirely
+          settleTimer = setTimeout(teardown, 1300);
         };
         var boot = function (instant) {
           if (!html.classList.contains("booting")) return;
-          html.classList.remove("booting");
-          if (instant) html.classList.add("skip");
-          html.classList.add("booted");
-          if (instant) teardown();
-          // natural reveal settles in <1.2s; then stop listening entirely
-          else settleTimer = setTimeout(teardown, 1300);
+          if (instant) {
+            html.classList.remove("booting");
+            html.classList.add("skip", "booted");
+            teardown();
+            return;
+          }
+          if (started) return;
+          started = true;
+          // a beat, then the card glides home; the content cascade starts
+          // partway through the glide so the page materializes around it
+          glideTimer = setTimeout(function () {
+            if (card) {
+              card.classList.add("boot-glide");
+              card.classList.remove("boot-centered");
+            }
+            revealTimer = setTimeout(reveal, 270);
+          }, 150);
         };
         // the typed "source ~/.profile" finishing is the reveal trigger
         var onType = function (e) {
@@ -80,10 +125,13 @@ const description =
         document.addEventListener("animationend", onType);
         document.addEventListener("keydown", skip, true);
         document.addEventListener("pointerdown", skip, true);
+        if (document.readyState === "loading")
+          document.addEventListener("DOMContentLoaded", center, { once: true });
+        else center();
         // safety net: never strand the visitor on a blank page
         fallback = setTimeout(function () {
           boot(true);
-        }, 4000);
+        }, 5000);
       })();
     </script>
   </head>
