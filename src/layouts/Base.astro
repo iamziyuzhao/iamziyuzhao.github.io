@@ -126,8 +126,59 @@ const description =
           }
         };
 
+        // SIMULTANEOUS reveal scheduling: instead of a long chain of increasing
+        // delays (a top-to-bottom wave), stamp every revealing element with a
+        // tiny RANDOM animation-delay (0–200ms organic jitter) via the --bd
+        // custom property the cascade CSS reads. Every component therefore
+        // begins typing at essentially the same moment — many cursors at once,
+        // in parallel — and the whole page settles in ~1.4–2.2s. This must run
+        // BEFORE html.booted is added so the delays are in place on the first
+        // animated frame (no element briefly animates at delay:0 then resets).
+        var prepareReveal = function () {
+          // selector list = every block/line that types itself in
+          var sel =
+            ".site-header .brand," +
+            ".site-header .nav-links a," +
+            ".site-header .nav-links .lang-toggle," +
+            ".academic-main > section:not(.terminal-hero) h2 > span.lang-en," +
+            ".academic-main > section:not(.terminal-hero) h2 > span.lang-zh," +
+            ".about-section p,.fact-strip," +
+            ".cv-list > li,.project-list > li,.news-list > li," +
+            ".section-heading .shell-hint," +
+            ".profile-card .portrait-frame," +
+            ".profile-card .profile-title,.profile-card .profile-detail," +
+            ".profile-card .profile-links,.profile-card .profile-note," +
+            ".footer .sb-seg";
+          var nodes = document.querySelectorAll(sel);
+          for (var i = 0; i < nodes.length; i++) {
+            // 0–200ms organic jitter; the portrait gets a smaller jitter so its
+            // longer scan still finishes within the parallel window
+            var jitter = Math.round(Math.random() * 200);
+            nodes[i].style.setProperty("--bd", jitter / 1000 + "s");
+          }
+          // inject the portrait scan-cursor bar (a child div so the corner
+          // bracket ::before/::after pseudo-frame stays intact). The CSS rides
+          // it down the reveal edge as a bright red scan line, then fades it.
+          var frame = document.querySelector(".profile-card .portrait-frame");
+          if (frame && !frame.querySelector(".portrait-scan")) {
+            var bar = document.createElement("div");
+            bar.className = "portrait-scan";
+            bar.setAttribute("aria-hidden", "true");
+            // match the portrait's own --bd so the bar tracks its clip edge
+            bar.style.setProperty(
+              "--bd",
+              frame.style.getPropertyValue("--bd") || "0s"
+            );
+            frame.appendChild(bar);
+          }
+        };
+
         // start the typed page cascade — the dock has fully landed by now.
         var reveal = function () {
+          // stamp the parallel jitter + inject the portrait scan bar while the
+          // content is still gated under html.booting, so the first booted frame
+          // already carries the per-element delays.
+          prepareReveal();
           // flip to booted, drop booting, THEN strip the boot geometry — all in
           // one synchronous frame, in this order. Removing `booting` first takes
           // the card out from under the `html.booting .term-window { opacity:0 }`
@@ -138,9 +189,9 @@ const description =
           html.classList.add("booted");
           html.classList.remove("booting");
           stripGeometry();
-          // the content reveal finishes ~1.8s in (footer is the last block at
-          // ~1.5s + ramp); give it a small margin, then stop listening + drop
-          // the booted class so the whole boot has settled by ~7s.
+          // the parallel reveal settles in ~1.4–2.2s; give it margin, then stop
+          // listening + drop the booted class so the whole boot has settled
+          // well within ~7s.
           settleTimer = setTimeout(teardown, 2600);
         };
 

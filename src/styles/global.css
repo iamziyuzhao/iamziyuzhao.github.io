@@ -711,14 +711,15 @@ h1.term-name {
   position: relative;
   margin: 8px 0 6px;
   /* the New York italic serif name is the centerpiece; height drives the box
-     and the 7.388 aspect ratio sets width. ~46px tall on desktop so the dotted
-     mosaic has enough rows of dots to read the serif shapes. */
+     and the 7.388 aspect ratio sets width. ~34px tall on desktop — small but
+     still tall enough that the finer dot grid (~3px cells → ~11 rows) keeps
+     the serif shapes legible while reading as a grid of discrete dots. */
   line-height: 0;
 }
 
 .term-name-img {
   display: block;
-  height: 46px;
+  height: 34px;
   width: auto;
   /* lock aspect so the box never reflows while the canvas overlay is up */
   aspect-ratio: 1788 / 242;
@@ -734,7 +735,7 @@ h1.term-name {
   top: 0;
   left: 0;
   display: block;
-  height: 46px;
+  height: 34px;
   width: auto;
   aspect-ratio: 1788 / 242;
 }
@@ -893,35 +894,15 @@ html.booted .academic-main > section:not(.terminal-hero) {
   animation: boot-show 0.01s linear both;
 }
 
+/* the masthead / sidebar / footer reveal as container shells — but with NO
+   transform/opacity gate of their own (their inner blocks each print on their
+   own parallel schedule). Keeping them ungated means every inner caret can fire
+   the instant the page boots, so the whole page types AT ONCE rather than the
+   shell fading first. They reveal instantly (visibility only). */
 html.booted .site-header,
 html.booted .footer,
 html.booted .profile-card {
-  animation: boot-in 0.28s ease-out both;
-}
-
-/* stagger in visual order: masthead, about + tiles (0x00), education /
-   experience (0x01–0x02), projects (0x03), news (0x04), sidebar, footer.
-   The footer is the status bar at the very bottom, so it prints LAST (after
-   news), keeping the whole reveal a single continuous downward sweep. */
-html.booted .site-header { animation-delay: 0s; }
-html.booted .academic-main > section:nth-child(2) { animation-delay: 0.07s; }
-html.booted .academic-main > section:nth-child(3) { animation-delay: 0.14s; }
-html.booted .academic-main > section:nth-child(4) { animation-delay: 0.21s; }
-html.booted .academic-main > section:nth-child(5) { animation-delay: 0.28s; }
-html.booted .profile-card { animation-delay: 0.18s; }
-html.booted .footer { animation-delay: 1.5s; }
-
-@keyframes boot-in {
-  from {
-    opacity: 0;
-    visibility: hidden;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    visibility: visible;
-    transform: none;
-  }
+  animation: boot-show 0.01s linear both;
 }
 
 @keyframes boot-show {
@@ -952,20 +933,16 @@ html.booted body[data-lang="zh"] .academic-main > section:not(.terminal-hero) h2
   animation: boot-caret 0.95s steps(1, end) both;
 }
 
-/* per-heading delays — specificity matched to the type-on rule (via :is and a
-   body ancestor) and placed later in source so they win the animation-delay.
-   Language-neutral so both EN and ZH headings type on the same downward flow. */
-html.booted body .academic-main > section:nth-child(2):not(.terminal-hero) h2 > span:is(.lang-en, .lang-zh),
-html.booted body .academic-main > section:nth-child(2):not(.terminal-hero) h2 > span:is(.lang-en, .lang-zh)::after { animation-delay: 0.28s; }
-html.booted body .academic-main > section:nth-child(3):not(.terminal-hero) h2 > span:is(.lang-en, .lang-zh),
-html.booted body .academic-main > section:nth-child(3):not(.terminal-hero) h2 > span:is(.lang-en, .lang-zh)::after { animation-delay: 0.42s; }
-html.booted body .academic-main > section:nth-child(4):not(.terminal-hero) h2 > span:is(.lang-en, .lang-zh),
-html.booted body .academic-main > section:nth-child(4):not(.terminal-hero) h2 > span:is(.lang-en, .lang-zh)::after { animation-delay: 0.78s; }
-html.booted body .academic-main > section:nth-child(5):not(.terminal-hero) h2 > span:is(.lang-en, .lang-zh),
-html.booted body .academic-main > section:nth-child(5):not(.terminal-hero) h2 > span:is(.lang-en, .lang-zh)::after { animation-delay: 0.98s; }
-/* education + experience headings live in one section but two cv-blocks */
-html.booted body .academic-main > section:nth-child(3):not(.terminal-hero) .cv-block:nth-child(2) h2 > span:is(.lang-en, .lang-zh),
-html.booted body .academic-main > section:nth-child(3):not(.terminal-hero) .cv-block:nth-child(2) h2 > span:is(.lang-en, .lang-zh)::after { animation-delay: 0.56s; }
+/* SIMULTANEOUS reveal: every heading types on at essentially the same moment.
+   The boot script (reveal()) assigns each revealing element a tiny random
+   inline animation-delay (0–0.2s organic jitter) via --bd, so the page reads as
+   many cursors typing in PARALLEL rather than a top-to-bottom wave. The default
+   here (a small shared jitter via --bd, fallback 0s) keeps it parallel even if
+   the JS jitter pass is skipped. */
+html.booted body .academic-main > section:not(.terminal-hero) h2 > span:is(.lang-en, .lang-zh),
+html.booted body .academic-main > section:not(.terminal-hero) h2 > span:is(.lang-en, .lang-zh)::after {
+  animation-delay: var(--bd, 0s);
+}
 
 @keyframes boot-type {
   from { clip-path: inset(0 100% 0 0); }
@@ -1020,37 +997,26 @@ html.booted .section-heading .shell-hint::before {
   pointer-events: none;
 }
 
-/* per-block stagger within each section: ~60ms apart, flowing downward.
-   Section-level delays are folded in so the whole page settles by ~3.2s. */
-html.booted .about-section p:nth-of-type(1) { animation-delay: 0.34s; }
-html.booted .about-section p:nth-of-type(2) { animation-delay: 0.40s; }
-html.booted .fact-strip { animation-delay: 0.48s; }
-html.booted .about-section p:nth-of-type(1)::before { animation-delay: 0.34s; }
-html.booted .about-section p:nth-of-type(2)::before { animation-delay: 0.40s; }
-
-html.booted .cv-grid .cv-block:nth-child(1) .cv-list > li:nth-child(1) { animation-delay: 0.62s; }
-html.booted .cv-grid .cv-block:nth-child(1) .cv-list > li:nth-child(2) { animation-delay: 0.68s; }
-html.booted .cv-grid .cv-block:nth-child(1) .cv-list > li:nth-child(1)::before { animation-delay: 0.62s; }
-html.booted .cv-grid .cv-block:nth-child(1) .cv-list > li:nth-child(2)::before { animation-delay: 0.68s; }
-html.booted .cv-grid .cv-block:nth-child(2) .cv-list > li:nth-child(1) { animation-delay: 0.78s; }
-html.booted .cv-grid .cv-block:nth-child(2) .cv-list > li:nth-child(2) { animation-delay: 0.84s; }
-html.booted .cv-grid .cv-block:nth-child(2) .cv-list > li:nth-child(3) { animation-delay: 0.90s; }
-html.booted .cv-grid .cv-block:nth-child(2) .cv-list > li:nth-child(4) { animation-delay: 0.96s; }
-html.booted .cv-grid .cv-block:nth-child(2) .cv-list > li:nth-child(n+1)::before { animation-delay: 0.80s; }
-
-html.booted #projects .shell-hint { animation-delay: 0.92s; }
-html.booted .project-list > li:nth-child(1) { animation-delay: 1.00s; }
-html.booted .project-list > li:nth-child(2) { animation-delay: 1.06s; }
-html.booted .project-list > li:nth-child(3) { animation-delay: 1.12s; }
-html.booted .project-list > li:nth-child(4) { animation-delay: 1.18s; }
-html.booted .project-list > li:nth-child(n+1)::before { animation-delay: 1.02s; }
-html.booted #projects .shell-hint::before { animation-delay: 0.92s; }
-
-html.booted .news-list > li:nth-child(1) { animation-delay: 1.20s; }
-html.booted .news-list > li:nth-child(2) { animation-delay: 1.26s; }
-html.booted .news-list > li:nth-child(3) { animation-delay: 1.32s; }
-html.booted .news-list > li:nth-child(4) { animation-delay: 1.38s; }
-html.booted .news-list > li:nth-child(n+1)::before { animation-delay: 1.22s; }
+/* SIMULTANEOUS: every output block (and its leading caret) starts on the SAME
+   --bd jitter the boot script stamps on it (0–0.2s organic), so all the about
+   paragraphs, every cv/experience/project/news entry and every shell hint print
+   together — many cursors at once — instead of a downward wave. The element and
+   its ::before caret share --bd so the caret tracks its own line. */
+html.booted .about-section p,
+html.booted .fact-strip,
+html.booted .cv-list > li,
+html.booted .project-list > li,
+html.booted .news-list > li,
+html.booted .section-heading .shell-hint {
+  animation-delay: var(--bd, 0s);
+}
+html.booted .about-section p::before,
+html.booted .cv-list > li::before,
+html.booted .project-list > li::before,
+html.booted .news-list > li::before,
+html.booted .section-heading .shell-hint::before {
+  animation-delay: var(--bd, 0s);
+}
 
 @keyframes boot-print {
   from { opacity: 0; }
@@ -1063,6 +1029,24 @@ html.booted .news-list > li:nth-child(n+1)::before { animation-delay: 1.22s; }
   100% { opacity: 0; }
 }
 
+/* portrait wipe: the clip opens top→bottom, revealing the photo behind the
+   moving scan edge. Ends fully visible (inset 0). */
+@keyframes portrait-scan {
+  0% { clip-path: inset(0 0 100% 0); }
+  100% { clip-path: inset(0 0 0% 0); }
+}
+
+/* the bright red scan cursor rides the reveal edge from the top of the image
+   to the bottom, fading out as it lands so no residue remains. translateY is
+   in CSS px to match the 186px portrait (154px on mobile — close enough that
+   the edge still reads as it sweeps; it always fades fully at 100%). */
+@keyframes portrait-scanline {
+  0% { transform: translateY(0); opacity: 0; }
+  10% { opacity: 1; }
+  82% { opacity: 1; }
+  100% { transform: translateY(186px); opacity: 0; }
+}
+
 /* --- masthead, sidebar + footer also PRINT (not just fade) so EVERY block of
    the page participates in the one continuous "terminal types the page" sweep.
    The brand types on with a clip wipe (its existing block cursor is the caret);
@@ -1070,21 +1054,21 @@ html.booted .news-list > li:nth-child(n+1)::before { animation-delay: 1.22s; }
    caret. All carets are absolutely positioned and fade out, so the settled
    layout is byte-identical to the no-boot render. ---------------------------- */
 
-/* brand types on left-to-right, led by its own .brand::after block cursor */
+/* brand types on left-to-right, led by its own .brand::after block cursor —
+   starts with the rest of the page on its own --bd jitter */
 html.booted .brand {
   clip-path: inset(0 100% 0 0);
-  animation: boot-type 0.3s steps(11, end) 0.04s both;
+  animation: boot-type 0.3s steps(11, end) both;
+  animation-delay: var(--bd, 0s);
 }
 
-/* nav links + lang toggle tick in just after the brand */
+/* nav links + lang toggle tick in in parallel with everything else */
 html.booted .nav-links a,
 html.booted .nav-links .lang-toggle {
   opacity: 0;
   animation: boot-print 0.08s ease-out both;
+  animation-delay: var(--bd, 0s);
 }
-html.booted .nav-links a:nth-of-type(1) { animation-delay: 0.16s; }
-html.booted .nav-links a:nth-of-type(2) { animation-delay: 0.2s; }
-html.booted .nav-links .lang-toggle { animation-delay: 0.24s; }
 
 /* sidebar text blocks print top-to-bottom with a small leading caret */
 html.booted .profile-card .profile-title,
@@ -1108,27 +1092,57 @@ html.booted .profile-card .profile-links::after {
   animation: boot-tick 0.32s steps(1, end) both;
   pointer-events: none;
 }
-html.booted .profile-card .portrait-frame { animation-delay: 0.24s; }
-html.booted .profile-card .profile-title { animation-delay: 0.32s; }
-html.booted .profile-card .profile-title::after { animation-delay: 0.32s; }
-html.booted .profile-card .profile-detail { animation-delay: 0.4s; }
-html.booted .profile-card .profile-detail::after { animation-delay: 0.4s; }
-html.booted .profile-card .profile-links { animation-delay: 0.48s; }
-html.booted .profile-card .profile-links::after { animation-delay: 0.48s; }
-html.booted .profile-card .profile-note { animation-delay: 0.56s; }
+/* sidebar text blocks all print in parallel on their own --bd jitter */
+html.booted .profile-card .profile-title,
+html.booted .profile-card .profile-title::after,
+html.booted .profile-card .profile-detail,
+html.booted .profile-card .profile-detail::after,
+html.booted .profile-card .profile-links,
+html.booted .profile-card .profile-links::after,
+html.booted .profile-card .profile-note {
+  animation-delay: var(--bd, 0s);
+}
 
-/* status-bar segments tick in left-to-right as the very last print */
+/* === PORTRAIT scan reveal ===============================================
+   The portrait reveals PROGRESSIVELY (top→bottom clip wipe) with a thin bright
+   red leading scan edge acting as a cursor, ending fully visible. It animates
+   IN PARALLEL with all the typed text (same --bd jitter, ~0s). The image is
+   masked with a clip-path that opens top→bottom; a JS-injected `.portrait-scan`
+   bar (so the existing ::before/::after corner brackets stay intact) slides down
+   with the reveal edge as the bright red scan cursor, then fades at the bottom.
+   The bar lives inside .portrait-frame, above .portrait (z-index), below the
+   bracket pseudos. */
+html.booted .profile-card .portrait-frame {
+  animation: none;            /* not the old whole-unit boot-in fade */
+}
+html.booted .profile-card .portrait-frame .portrait {
+  clip-path: inset(0 0 100% 0);
+  animation: portrait-scan 0.9s cubic-bezier(0.35, 0, 0.25, 1) both;
+  animation-delay: var(--bd, 0s);
+}
+/* the moving red scan line — injected by the boot script as a child div so it
+   never collides with the corner-bracket pseudo-elements */
+html.booted .profile-card .portrait-frame .portrait-scan {
+  position: absolute;
+  left: 7px;
+  right: 7px;
+  top: 7px;
+  height: 3px;
+  z-index: 2;
+  background: var(--term-red, #e3554d);
+  box-shadow: 0 0 12px 2px var(--term-red, #e3554d);
+  pointer-events: none;
+  opacity: 0;
+  animation: portrait-scanline 0.9s cubic-bezier(0.35, 0, 0.25, 1) both;
+  animation-delay: var(--bd, 0s);
+}
+
+/* status-bar segments print together with everything else, in parallel */
 html.booted .footer .sb-seg {
   opacity: 0;
   animation: boot-print 0.07s ease-out both;
+  animation-delay: var(--bd, 0s);
 }
-html.booted .footer .sb-seg:nth-child(1) { animation-delay: 1.52s; }
-html.booted .footer .sb-seg:nth-child(2) { animation-delay: 1.56s; }
-html.booted .footer .sb-seg:nth-child(3) { animation-delay: 1.6s; }
-html.booted .footer .sb-seg:nth-child(5) { animation-delay: 1.64s; }
-html.booted .footer .sb-seg:nth-child(6) { animation-delay: 1.68s; }
-html.booted .footer .sb-seg:nth-child(7) { animation-delay: 1.72s; }
-html.booted .footer .sb-seg:nth-child(8) { animation-delay: 1.76s; }
 
 /* --- fullscreen boot: the terminal fills the whole viewport like a maximized
    terminal app, then shrinks + docks to its natural in-flow rect. The inline
@@ -2233,7 +2247,7 @@ p.code-comment {
   }
 
   .term-name-img,
-  .term-name-canvas { height: 26px; }
+  .term-name-canvas { height: 22px; }
 
   .about-section p { font-size: 17px; }
   h1 { font-size: 36px; }

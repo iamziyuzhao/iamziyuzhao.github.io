@@ -301,10 +301,13 @@ const profileStats = [
       const data = octx.getImageData(0, 0, off.width, off.height).data;
 
       // square grid in CSS space (so dot density is identical at any DPR).
-      // ~4 CSS px per cell → ~11 rows of dots tall on desktop: enough to read
-      // the New York serif while clearly reading as a grid of discrete dots.
-      const cellCss = ch <= 30 ? 3.2 : 4;
-      const cell = Math.max(3, Math.round(cellCss * dpr));
+      // The name is now ~34px tall on desktop / ~22px on mobile, so a coarse 4px
+      // cell would leave only ~8 rows — too few to read the New York serif. Use
+      // a finer cell that targets ~11 dot rows at the current height (≈3px at
+      // 34px desktop, ≈2.6px at 22px mobile) so the italic stays legible while
+      // still clearly reading as a grid of discrete dots.
+      const cellCss = ch <= 26 ? 2.6 : 3;
+      const cell = Math.max(2, Math.round(cellCss * dpr));
       const cols = Math.ceil(canvas.width / cell);
       const rows = Math.ceil(canvas.height / cell);
       // dot diameter ~76% of the cell → visible gaps separate the dots
