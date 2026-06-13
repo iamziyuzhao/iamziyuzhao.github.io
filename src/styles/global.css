@@ -1118,10 +1118,12 @@ html.booting .terminal-hero .term-window.boot-full.boot-dock {
     0 2px 10px rgba(24, 14, 10, 0.10);
 }
 
-/* fullscreen body: text stays at normal glyph size, anchored top-left with
-   comfortable padding — do NOT vertically center or scale the session up */
+/* fullscreen body: text stays at normal glyph size, anchored top-left. The
+   padding MUST equal the settled .term-body padding (20px 24px 18px) — any
+   difference makes the terminal content jump the instant the boot classes are
+   stripped at dock-complete (a 2px content "shake" just after it shrinks). */
 html.booting .terminal-hero .term-window.boot-full .term-body {
-  padding: 22px 26px;
+  padding: 20px 24px 18px;
 }
 
 /* skip: any click/keydown during the show lands the COMPLETE settled page in
