@@ -710,9 +710,9 @@ main {
 h1.term-name {
   position: relative;
   margin: 8px 0 6px;
-  /* the New York serif name is the centerpiece; height drives the box and the
-     8.746 aspect ratio sets width. ~46px tall on desktop so the dotted mosaic
-     has enough rows of dots to read the serif shapes. */
+  /* the New York italic serif name is the centerpiece; height drives the box
+     and the 7.388 aspect ratio sets width. ~46px tall on desktop so the dotted
+     mosaic has enough rows of dots to read the serif shapes. */
   line-height: 0;
 }
 
@@ -721,7 +721,7 @@ h1.term-name {
   height: 46px;
   width: auto;
   /* lock aspect so the box never reflows while the canvas overlay is up */
-  aspect-ratio: 2099 / 240;
+  aspect-ratio: 1788 / 242;
 }
 
 /* canvas that paints the dotted New York mosaic (and stays as the final
@@ -736,7 +736,7 @@ h1.term-name {
   display: block;
   height: 46px;
   width: auto;
-  aspect-ratio: 2099 / 240;
+  aspect-ratio: 1788 / 242;
 }
 
 h1.term-name.has-dots .term-name-img {

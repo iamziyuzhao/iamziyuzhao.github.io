@@ -61,7 +61,7 @@ export interface ProjectEntry extends LogoFields {
 }
 
 export const profile: Profile = {
-  name: "Albert (Ziyu) Zhao",
+  name: "Ziyu Zhao (Albert)",
   title: "Machine Learning Systems & AI Infrastructure",
   titleZh: "机器学习系统与 AI 基础设施",
   location: "Pittsburgh, PA",
