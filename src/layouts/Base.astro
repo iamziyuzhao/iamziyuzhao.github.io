@@ -43,11 +43,17 @@ const description =
       // of the page print in top-to-bottom like the terminal is typing it out.
       // Any key/click skips pixel-exactly to the settled page.
       (function () {
-        if (
-          location.pathname !== "/" ||
-          matchMedia("(prefers-reduced-motion: reduce)").matches
-        )
-          return;
+        if (location.pathname !== "/") return;
+        // Always land at the very top of the home page so the boot terminal
+        // measures + positions itself exactly as on first visit. Without this,
+        // refreshing (or returning home) while scrolled down let the browser
+        // RESTORE the old scroll position, and the docking terminal would then
+        // snap/shake back to the top. Disable scroll restoration for home and
+        // force the top — this runs before first paint, and again at measure
+        // time below, so the boot never sees a scrolled page.
+        if ("scrollRestoration" in history) history.scrollRestoration = "manual";
+        window.scrollTo(0, 0);
+        if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
         var html = document.documentElement;
         html.classList.add("booting");
         var card = null;
@@ -112,6 +118,10 @@ const description =
           card = document.querySelector(".terminal-hero .term-window");
           hero = document.querySelector(".terminal-hero");
           if (!card || !html.classList.contains("booting")) return;
+          // safety net: ensure we're at the top before measuring the natural
+          // rect, so the dock target is correct even if the browser briefly
+          // restored a scrolled position before scrollRestoration took effect
+          window.scrollTo(0, 0);
           measure();
           // hold the in-flow space so nothing reflows while the card is fixed
           if (hero) hero.style.minHeight = hero.offsetHeight + "px";
