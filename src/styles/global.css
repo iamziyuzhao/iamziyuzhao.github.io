@@ -888,21 +888,22 @@ html.booting .academic-main > section:not(.terminal-hero) {
 }
 
 /* the section containers reveal instantly (visibility only) so their inner
-   blocks can each print on their own schedule. The masthead / sidebar / footer
-   still fade in as whole units. */
-html.booted .academic-main > section:not(.terminal-hero) {
-  animation: boot-show 0.01s linear both;
-}
-
-/* the masthead / sidebar / footer reveal as container shells — but with NO
-   transform/opacity gate of their own (their inner blocks each print on their
-   own parallel schedule). Keeping them ungated means every inner caret can fire
-   the instant the page boots, so the whole page types AT ONCE rather than the
-   shell fading first. They reveal instantly (visibility only). */
-html.booted .site-header,
+   blocks can stream their tokens in parallel. The sidebar + footer reveal the
+   same way — their text is tokenized too, so the container only needs to become
+   visible; the per-token opacity is JS-driven. */
+html.booted .academic-main > section:not(.terminal-hero),
 html.booted .footer,
 html.booted .profile-card {
   animation: boot-show 0.01s linear both;
+}
+
+/* THE MASTHEAD IS ALWAYS THE PAGE FRAME. It does NOT type or stream — when the
+   terminal un-fullscreens and the page appears, the red bar fades in ONCE as a
+   whole, gentle ~260ms opacity rise that completes just as the content begins
+   streaming. No clip-wipe, no per-letter type-on, no tick on the brand/nav —
+   it reads as always-there, framing the page, never popping in piecemeal. */
+html.booted .site-header {
+  animation: masthead-in 0.26s ease-out both;
 }
 
 @keyframes boot-show {
@@ -910,160 +911,96 @@ html.booted .profile-card {
   to { visibility: visible; }
 }
 
-/* === C. typed cascade ===================================================== */
-
-/* --- mono headings TYPE ON: a left-to-right steps() clip wipe reads as
-   character-stepping (mono glyphs land on the chunk boundaries), with a red
-   block caret that blinks then fades. ---------------------------------------*/
-html.booted body:not([data-lang="zh"]) .academic-main > section:not(.terminal-hero) h2 > span.lang-en,
-html.booted body[data-lang="zh"] .academic-main > section:not(.terminal-hero) h2 > span.lang-zh {
-  display: inline-block;
-  vertical-align: bottom;
-  clip-path: inset(0 100% 0 0);
-  animation: boot-type 0.34s steps(11, end) both;
+@keyframes masthead-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
-/* trailing red BLOCK caret on the heading; blinks a couple times then fades */
-html.booted body:not([data-lang="zh"]) .academic-main > section:not(.terminal-hero) h2 > span.lang-en::after,
-html.booted body[data-lang="zh"] .academic-main > section:not(.terminal-hero) h2 > span.lang-zh::after {
-  content: "▌";
-  margin-left: 0.3ch;
-  color: var(--accent);
-  text-transform: none;
-  animation: boot-caret 0.95s steps(1, end) both;
+/* === C. TOKEN-BY-TOKEN STREAM ============================================
+   The page reveals like an LLM streaming tokens into a terminal: every text
+   block prints its text ONE TOKEN AT A TIME (word-by-word for English, char /
+   small-group for 中文), with a red terminal cursor immediately AFTER the most
+   recently revealed token. The streaming is driven entirely by JS (see the
+   token-stream module in index.astro): at reveal time it walks the visible
+   language's text nodes inside each block, wraps every token in <i class="tok">
+   that RESERVES ITS FINAL LAYOUT SPACE (opacity:0, never display:none), then
+   lifts each token to opacity:1 token-by-token on a rAF schedule.
+
+   ZERO REFLOW: because every token occupies its final position from the first
+   frame, revealing it moves nothing. The cursor is layout-neutral — an
+   absolutely-positioned element pinned to the right edge / baseline of the last
+   revealed token, so it never pushes text or wraps a line. There is NO ::after
+   caret adding inline width (that inline caret is what used to wrap the last
+   word and cause the 203px teardown jolt). The settled DOM renders the <i> spans
+   exactly like the original plain text, so the final layout is pixel-identical.
+
+   CSS only needs to (a) define the token + cursor primitives and (b) hold the
+   blocks visible-but-blank until JS starts. JS owns all the timing. */
+
+/* a wrapped token. <i> is reused purely as a generic inline box, so its default
+   italic is reset — it inherits EVERYTHING from its parent and renders byte-for-
+   byte like the original text, reserving its exact final box. opacity:0 during
+   the stream; .on lifts it in. A tiny transition gives each token a soft fade
+   rather than a hard pop, so the stream reads smooth. The settled DOM keeps the
+   spans but they are inert and fully opaque, identical to plain text. */
+html.booted .tok {
+  font: inherit;
+  font-style: inherit;
+  letter-spacing: inherit;
+  color: inherit;
+  opacity: 0;
+}
+html.booted .tok.on {
+  opacity: 1;
+}
+html.booted body:not(.skip) .tok {
+  transition: opacity 0.09s linear;
 }
 
-/* SIMULTANEOUS reveal: every heading types on at essentially the same moment.
-   The boot script (reveal()) assigns each revealing element a tiny random
-   inline animation-delay (0–0.2s organic jitter) via --bd, so the page reads as
-   many cursors typing in PARALLEL rather than a top-to-bottom wave. The default
-   here (a small shared jitter via --bd, fallback 0s) keeps it parallel even if
-   the JS jitter pass is skipped. */
-html.booted body .academic-main > section:not(.terminal-hero) h2 > span:is(.lang-en, .lang-zh),
-html.booted body .academic-main > section:not(.terminal-hero) h2 > span:is(.lang-en, .lang-zh)::after {
-  animation-delay: var(--bd, 0s);
+/* the per-block streaming cursor: a red terminal block, absolutely positioned by
+   JS at the right edge + baseline of the last revealed token. Layout-neutral
+   (position:absolute, pointer-events:none) so it never nudges or wraps text.
+   It blinks while streaming and is removed by JS the instant the block finishes
+   / the page settles. */
+html.booted .boot-cursor {
+  position: absolute;
+  width: 0.5em;
+  height: 1.02em;
+  background: var(--term-red, #e3554d);
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.95;
+  border-radius: 1px;
+  animation: boot-cursor-blink 0.9s steps(1, end) infinite;
+  /* font-size is set inline by JS from the cursor's host block so the block
+     scales to that block's text size */
 }
 
-@keyframes boot-type {
-  from { clip-path: inset(0 100% 0 0); }
-  to { clip-path: inset(0 0 0 0); }
+@keyframes boot-cursor-blink {
+  0%, 49% { opacity: 0.95; }
+  50%, 100% { opacity: 0; }
 }
 
-@keyframes boot-caret {
-  0% { opacity: 1; }
-  25% { opacity: 0; }
-  50% { opacity: 1; }
-  75% { opacity: 0; }
-  85%, 100% { opacity: 0; }
-}
-
-/* --- OUTPUT BLOCKS TYPE ON the SAME WAY AS THE HEADINGS/NAME: a left-to-right
-   clip wipe (boot-type: clip-path inset(0 100% 0 0) -> inset 0) with a TRAILING
-   red caret that the wipe reveals last, at the RIGHT edge of the text — exactly
-   like a real terminal cursor that sits just after the last typed character.
-   NO leading (left-of-text) cursor anywhere. The blocks are the about
-   paragraphs, each cv/experience/project/news entry, and the shell hints.
-   Multi-line blocks (about paragraphs) scan in as a rectangle, which reads as a
-   terminal scan; the trailing caret ends after the last line. ----------------*/
-html.booted .about-section p,
-html.booted .cv-list > li,
-html.booted .project-list > li,
-html.booted .news-list > li,
-html.booted .section-heading .shell-hint {
-  clip-path: inset(0 100% 0 0);
-  animation: boot-type 0.34s steps(11, end) both;
+/* blocks that host a streaming cursor need a positioning context. Each block we
+   stream is given position:relative by JS only while it carries a cursor; this
+   rule is a CSS backstop so a relative context exists from the first frame and
+   the absolute cursor never escapes to the page. */
+html.booted .is-streaming {
   position: relative;
 }
 
-/* the shell hint is an inline <span>; inline-block lets the clip wipe + the
-   trailing caret reveal as one stepping box, like the headings' spans */
-html.booted .section-heading .shell-hint {
-  display: inline-block;
-  vertical-align: bottom;
-}
-
-/* the fact-strip has no caret — it simply scans in left-to-right with the rest */
-html.booted .fact-strip {
-  clip-path: inset(0 100% 0 0);
-  animation: boot-type 0.3s steps(9, end) both;
-}
-
-/* TRAILING red BLOCK caret ▌ at the END of each plain-block entry (the about
-   paragraphs and project rows are normal blocks, so ::after sits after the last
-   inline content). The wipe reveals it LAST, at the right edge, where it blinks
-   a couple times then fades — cursor AFTER the text, never before. */
-html.booted .about-section p::after,
-html.booted .project-list > li::after {
-  content: "▌";
-  margin-left: 0.3ch;
-  color: var(--accent);
-  font-family: var(--font-mono);
-  animation: boot-caret 0.95s steps(1, end) both;
-  pointer-events: none;
-}
-
-/* the cv/experience <li> is a flex container (logo + a multi-line text span):
-   an ::after on the <li> would become a stray flex item, so the trailing caret
-   hangs off the END of the inner text span instead — it lands after the last
-   meta line, still to the RIGHT of the text. */
-html.booted .cv-list > li .affiliation-row > span:last-child::after {
-  content: "▌";
-  margin-left: 0.3ch;
-  color: var(--accent);
-  font-family: var(--font-mono);
-  animation: boot-caret 0.95s steps(1, end) both;
-  pointer-events: none;
-}
-
-/* TRAILING underscore _ caret for the meta/date-bearing lines (kept as an
-   underscore to read as a shell-prompt cursor). The news <li> is a 3-col grid,
-   so the caret hangs off the END of its last text column rather than the <li>
-   (which would add a stray grid track); the shell hint is a plain inline-block
-   so its ::after trails inline. Both sit at the END/right of the text. */
-html.booted .news-list > li > span:last-child::after,
-html.booted .section-heading .shell-hint::after {
-  content: "_";
-  margin-left: 0.2ch;
-  color: var(--accent);
-  font-family: var(--font-mono);
-  animation: boot-caret 0.95s steps(1, end) both;
-  pointer-events: none;
-}
-
-/* SIMULTANEOUS: every output block (and its trailing caret) starts on the SAME
-   --bd jitter the boot script stamps on it (0–0.2s organic), so all the about
-   paragraphs, every cv/experience/project/news entry, the fact-strip and every
-   shell hint type on together — many cursors at once — instead of a downward
-   wave. The element and its ::after caret share --bd so the caret tracks its own
-   line. The caret is part of the clipped content, so the wipe uncovers it at the
-   right edge as the line finishes — it always trails the text. */
-html.booted .about-section p,
-html.booted .fact-strip,
-html.booted .cv-list > li,
-html.booted .project-list > li,
-html.booted .news-list > li,
-html.booted .section-heading .shell-hint {
-  animation-delay: var(--bd, 0s);
-}
-html.booted .about-section p::after,
-html.booted .project-list > li::after,
-html.booted .cv-list > li .affiliation-row > span:last-child::after,
-html.booted .news-list > li > span:last-child::after,
-html.booted .section-heading .shell-hint::after {
-  animation-delay: var(--bd, 0s);
-}
-
-/* portrait wipe: the clip opens top→bottom, revealing the photo behind the
-   moving scan edge. Ends fully visible (inset 0). */
+/* === PORTRAIT scan reveal ===============================================
+   The portrait reveals PROGRESSIVELY (top→bottom clip wipe) with a thin bright
+   red leading scan edge acting as a cursor, ending fully visible. It animates
+   IN PARALLEL with all the streaming text (same --bd jitter). The image is
+   masked with a clip-path that opens top→bottom; a JS-injected `.portrait-scan`
+   bar (so the existing ::before/::after corner brackets stay intact) slides down
+   with the reveal edge as the bright red scan cursor, then fades at the bottom. */
 @keyframes portrait-scan {
   0% { clip-path: inset(0 0 100% 0); }
   100% { clip-path: inset(0 0 0% 0); }
 }
 
-/* the bright red scan cursor rides the reveal edge from the top of the image
-   to the bottom, fading out as it lands so no residue remains. translateY is
-   in CSS px to match the 186px portrait (154px on mobile — close enough that
-   the edge still reads as it sweeps; it always fades fully at 100%). */
 @keyframes portrait-scanline {
   0% { transform: translateY(0); opacity: 0; }
   10% { opacity: 1; }
@@ -1071,78 +1008,6 @@ html.booted .section-heading .shell-hint::after {
   100% { transform: translateY(186px); opacity: 0; }
 }
 
-/* --- masthead, sidebar + footer also TYPE ON (a left-to-right clip wipe, same
-   as the headings/name/output blocks) so EVERY block of the page participates in
-   the one continuous "terminal types the page" sweep, and EVERY caret TRAILS the
-   text (sits after it, never before). The brand types on led by its own block
-   cursor; nav items + status-bar segments scan in; the sidebar text blocks wipe
-   left-to-right with a TRAILING red caret at the right edge. All carets fade out,
-   so the settled layout is byte-identical to the no-boot render. -------------- */
-
-/* brand types on left-to-right, led by its own .brand::after block cursor —
-   starts with the rest of the page on its own --bd jitter */
-html.booted .brand {
-  clip-path: inset(0 100% 0 0);
-  animation: boot-type 0.3s steps(11, end) both;
-  animation-delay: var(--bd, 0s);
-}
-
-/* nav links + lang toggle wipe in left-to-right in parallel with everything else.
-   No caret of their own (the tmux index `0:`/`1:` is permanent content, not a
-   cursor); the wipe edge itself reads as the cursor sweeping across each item. */
-html.booted .nav-links a,
-html.booted .nav-links .lang-toggle {
-  clip-path: inset(0 100% 0 0);
-  animation: boot-type 0.26s steps(8, end) both;
-  animation-delay: var(--bd, 0s);
-}
-
-/* sidebar text blocks type on left-to-right with a TRAILING red caret */
-html.booted .profile-card .profile-title,
-html.booted .profile-card .profile-detail,
-html.booted .profile-card .profile-links,
-html.booted .profile-card .profile-note {
-  position: relative;
-  clip-path: inset(0 100% 0 0);
-  animation: boot-type 0.3s steps(10, end) both;
-}
-/* the caret hangs off the END of the text (margin-left), so the wipe reveals it
-   last at the RIGHT edge — cursor AFTER the text, never before. (.profile-links
-   is a flex row of link chips; the ::after lands as the last flex item, after
-   the chips.) */
-html.booted .profile-card .profile-title::after,
-html.booted .profile-card .profile-detail::after,
-html.booted .profile-card .profile-links::after,
-html.booted .profile-card .profile-note::after {
-  content: "▌";
-  margin-left: 0.3ch;
-  color: var(--accent);
-  font-family: var(--font-mono);
-  font-size: 12px;
-  animation: boot-caret 0.95s steps(1, end) both;
-  pointer-events: none;
-}
-/* sidebar text blocks all type on in parallel on their own --bd jitter */
-html.booted .profile-card .profile-title,
-html.booted .profile-card .profile-title::after,
-html.booted .profile-card .profile-detail,
-html.booted .profile-card .profile-detail::after,
-html.booted .profile-card .profile-links,
-html.booted .profile-card .profile-links::after,
-html.booted .profile-card .profile-note,
-html.booted .profile-card .profile-note::after {
-  animation-delay: var(--bd, 0s);
-}
-
-/* === PORTRAIT scan reveal ===============================================
-   The portrait reveals PROGRESSIVELY (top→bottom clip wipe) with a thin bright
-   red leading scan edge acting as a cursor, ending fully visible. It animates
-   IN PARALLEL with all the typed text (same --bd jitter, ~0s). The image is
-   masked with a clip-path that opens top→bottom; a JS-injected `.portrait-scan`
-   bar (so the existing ::before/::after corner brackets stay intact) slides down
-   with the reveal edge as the bright red scan cursor, then fades at the bottom.
-   The bar lives inside .portrait-frame, above .portrait (z-index), below the
-   bracket pseudos. */
 html.booted .profile-card .portrait-frame {
   animation: none;            /* not the old whole-unit boot-in fade */
 }
@@ -1165,15 +1030,6 @@ html.booted .profile-card .portrait-frame .portrait-scan {
   pointer-events: none;
   opacity: 0;
   animation: portrait-scanline 0.9s cubic-bezier(0.35, 0, 0.25, 1) both;
-  animation-delay: var(--bd, 0s);
-}
-
-/* status-bar segments type on (left-to-right clip wipe) together with everything
-   else, in parallel. No leading caret — the wipe edge reads as the cursor
-   sweeping each segment. */
-html.booted .footer .sb-seg {
-  clip-path: inset(0 100% 0 0);
-  animation: boot-type 0.24s steps(7, end) both;
   animation-delay: var(--bd, 0s);
 }
 
@@ -1237,11 +1093,12 @@ html.booting .terminal-hero .term-window.boot-full .term-body {
   padding: 22px 26px;
 }
 
-/* skip: any click/keydown during the show zeroes every duration and delay —
-   session fully printed, page fully revealed, carets already faded. The
-   universal-descendant selectors catch the masthead brand/nav, sidebar text,
-   status-bar segments and every per-block caret so nothing is stranded at
-   opacity:0 or mid-clip when the visitor skips. */
+/* skip: any click/keydown during the show lands the COMPLETE settled page in
+   one frame. Every entry animation (terminal session, masthead fade, portrait
+   scan) is zeroed; every streamed token is forced fully opaque with no fade;
+   every streaming cursor is removed. Nothing is left stranded at opacity:0,
+   mid-stream, or mid-clip. The JS settle pass also unwraps state, but these
+   rules guarantee the visual even before/independently of it. */
 html.skip .term-body > *,
 html.skip .term-cmd,
 html.skip .site-header,
@@ -1259,10 +1116,19 @@ html.skip .profile-card *::after,
 html.skip .academic-main > section,
 html.skip .academic-main > section *,
 html.skip .academic-main > section *::before,
-html.skip .academic-main > section *::after,
-html.skip .academic-main > section h2 > span::after {
+html.skip .academic-main > section *::after {
   animation-duration: 0s !important;
   animation-delay: 0s !important;
+}
+
+/* every streamed token fully visible, instantly, with NO fade — and every
+   streaming cursor gone. Works at any skip phase, whether or not JS settled. */
+html.skip .tok {
+  opacity: 1 !important;
+  transition: none !important;
+}
+html.skip .boot-cursor {
+  display: none !important;
 }
 
 /* skip also lands the card itself: no fixed geometry, no dock-in-progress —

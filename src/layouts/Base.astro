@@ -80,6 +80,10 @@ const description =
           clearTimeout(settleTimer);
           clearTimeout(dockTimer);
           clearTimeout(revealTimer);
+          // land every streamed token + drop every streaming cursor in one
+          // frame, BEFORE booted is removed, so nothing is stranded at
+          // opacity:0 and no cursor residue is left behind.
+          if (window.__bootTokens) window.__bootTokens.settle();
           stripGeometry();
           // settled: drop the cascade class too so later language toggles and
           // interactions never re-trigger any boot animation
@@ -135,16 +139,16 @@ const description =
         // BEFORE html.booted is added so the delays are in place on the first
         // animated frame (no element briefly animates at delay:0 then resets).
         var prepareReveal = function () {
-          // selector list = every block/line that types itself in
+          // selector list = every STREAMING block (each gets a cursor + its own
+          // start jitter) plus the portrait frame (whose scan tracks --bd). The
+          // masthead is intentionally absent — it fades in as the page frame, it
+          // does not stream. This list mirrors BLOCK_SEL in the token module so
+          // each block's token stream starts on its own 0–200ms jitter.
           var sel =
-            ".site-header .brand," +
-            ".site-header .nav-links a," +
-            ".site-header .nav-links .lang-toggle," +
-            ".academic-main > section:not(.terminal-hero) h2 > span.lang-en," +
-            ".academic-main > section:not(.terminal-hero) h2 > span.lang-zh," +
-            ".about-section p,.fact-strip," +
-            ".cv-list > li,.project-list > li,.news-list > li," +
+            ".academic-main > section:not(.terminal-hero) h2," +
             ".section-heading .shell-hint," +
+            ".about-section p,.fact-strip > span," +
+            ".cv-list > li,.project-list > li,.news-list > li," +
             ".profile-card .portrait-frame," +
             ".profile-card .profile-title,.profile-card .profile-detail," +
             ".profile-card .profile-links,.profile-card .profile-note," +
@@ -189,10 +193,14 @@ const description =
           html.classList.add("booted");
           html.classList.remove("booting");
           stripGeometry();
-          // the parallel reveal settles in ~1.4–2.2s; give it margin, then stop
+          // begin the token-by-token stream NOW (booted is on, geometry is
+          // stripped, the masthead is fading in as the page frame). Every block
+          // streams its tokens in parallel, each trailed by its own cursor.
+          if (window.__bootTokens) window.__bootTokens.start();
+          // the parallel stream settles in ~1.5–2.5s; give it margin, then stop
           // listening + drop the booted class so the whole boot has settled
           // well within ~7s.
-          settleTimer = setTimeout(teardown, 2600);
+          settleTimer = setTimeout(teardown, 2900);
         };
 
         // shrink + dock: set the fixed inset to the stored natural rect so the
@@ -295,6 +303,276 @@ const description =
       <slot />
     </main>
     <Footer />
+    <script is:inline>
+      // === TOKEN-BY-TOKEN STREAM REVEAL ===================================
+      // The boot reveal streams the page like an LLM printing tokens into a
+      // terminal: every content block reveals its text ONE TOKEN AT A TIME
+      // (word-by-word for English; per-character / 1–2 char groups for 中文),
+      // each with its OWN red terminal cursor that sits immediately AFTER the
+      // last revealed token. Many blocks stream in parallel, so the page reads
+      // as dozens of cursors typing at once, settling in ~1.5–2.5s.
+      //
+      // ZERO REFLOW: at start() we wrap every token of the CURRENTLY VISIBLE
+      // language in <i class="tok"> that reserves its exact final box (opacity:0,
+      // never display:none). Revealing a token only flips opacity → nothing
+      // moves. The cursor is position:absolute, pinned to the right edge of the
+      // last revealed token, so it never pushes text or wraps a line. The other
+      // language's text and all non-streamed nodes are left untouched, so the
+      // settled DOM renders identically to the plain page.
+      //
+      // This module only ACTS when the boot script calls window.__bootTokens
+      // .start(); under no-JS / reduced-motion / blog it is never started and
+      // the page renders as plain text. Exposed API:
+      //   window.__bootTokens.start()  — wrap + begin streaming (called at reveal)
+      //   window.__bootTokens.settle() — finish instantly: every token opaque,
+      //                                  every cursor removed (skip / teardown).
+      (function () {
+        if (location.pathname !== "/") return;
+
+        // ---- which blocks stream (each gets its own cursor) ---------------
+        // ordered, deduplicated DOM query at start() time. The masthead is NOT
+        // here — it fades in as the page frame, it does not stream.
+        var BLOCK_SEL = [
+          ".academic-main > section:not(.terminal-hero) h2",
+          ".section-heading .shell-hint",
+          ".about-section p",
+          ".fact-strip > span",
+          ".cv-list > li",
+          ".project-list > li",
+          ".news-list > li",
+          ".profile-card .profile-title",
+          ".profile-card .profile-detail",
+          ".profile-card .profile-links",
+          ".profile-card .profile-note",
+          ".footer .sb-seg",
+        ].join(",");
+
+        var TOK = "tok";
+        var started = false;
+        var settled = false;
+        var blocks = []; // { el, tokens:[<i>], start, per, cursor, count, done }
+        var rafId = 0;
+
+        // is a node inside a HIDDEN language span? We only tokenize the visible
+        // language's text. A node is hidden if it has a .lang-en/.lang-zh
+        // ancestor for the language that is currently display:none.
+        function hiddenByLang(node, zh) {
+          var p = node.parentNode;
+          while (p && p.nodeType === 1 && p !== document.body) {
+            if (p.classList) {
+              if (zh && p.classList.contains("lang-en")) return true;
+              if (!zh && p.classList.contains("lang-zh")) return true;
+            }
+            p = p.parentNode;
+          }
+          return false;
+        }
+
+        // tokenize a single string into pieces. English: a token is a run of
+        // non-space chars; whitespace is kept as a plain (always-visible) text
+        // segment so spacing/wrapping is identical. 中文 (CJK): each CJK char is
+        // its own token (small 1-char groups), latin runs inside CJK stay whole
+        // words, whitespace stays plain. Returns [{t:'tok'|'ws', s:string}].
+        var CJK = /[㐀-鿿豈-﫿぀-ヿ]/;
+        function pieces(str) {
+          var out = [];
+          var i = 0;
+          var n = str.length;
+          while (i < n) {
+            var c = str[i];
+            if (/\s/.test(c)) {
+              var j = i;
+              while (j < n && /\s/.test(str[j])) j++;
+              out.push({ t: "ws", s: str.slice(i, j) });
+              i = j;
+            } else if (CJK.test(c)) {
+              // one CJK char per token
+              out.push({ t: "tok", s: c });
+              i++;
+            } else {
+              // a run of non-space, non-CJK chars = one word token (stops at a
+              // CJK boundary so mixed 中文/latin streams naturally)
+              var k = i;
+              while (k < n && !/\s/.test(str[k]) && !CJK.test(str[k])) k++;
+              out.push({ t: "tok", s: str.slice(i, k) });
+              i = k;
+            }
+          }
+          return out;
+        }
+
+        // walk a block, wrap each visible-language token in <i class="tok">.
+        // Returns { toks:[<i>], parents:Set } — the ordered token elements and
+        // the set of parent nodes whose text we split (so we can restore them to
+        // byte-identical plain text at settle). Whitespace and the other
+        // language's nodes are left as-is (no reflow, identical render).
+        function wrapBlock(el, zh, parents) {
+          var toks = [];
+          // collect text nodes first (live NodeList would break as we mutate)
+          var walker = document.createTreeWalker(
+            el,
+            NodeFilter.SHOW_TEXT,
+            null
+          );
+          var textNodes = [];
+          var tn;
+          while ((tn = walker.nextNode())) textNodes.push(tn);
+          for (var t = 0; t < textNodes.length; t++) {
+            var node = textNodes[t];
+            var s = node.nodeValue;
+            if (!s || hiddenByLang(node, zh)) continue;
+            // skip pure-whitespace text nodes (no tokens to reveal)
+            if (!/\S/.test(s)) continue;
+            var ps = pieces(s);
+            var frag = document.createDocumentFragment();
+            for (var p = 0; p < ps.length; p++) {
+              if (ps[p].t === "ws") {
+                frag.appendChild(document.createTextNode(ps[p].s));
+              } else {
+                var span = document.createElement("i");
+                span.className = TOK;
+                span.textContent = ps[p].s;
+                frag.appendChild(span);
+                toks.push(span);
+              }
+            }
+            if (parents && node.parentNode) parents.push(node.parentNode);
+            node.parentNode.replaceChild(frag, node);
+          }
+          return toks;
+        }
+
+        // restore a block's tokenized parents to byte-identical plain text:
+        // replace each <i class="tok"> with a text node of its content, then
+        // .normalize() merges the split pieces back into single text nodes — the
+        // settled DOM matches the original plain markup exactly (pixel-identical,
+        // no anti-aliasing seams from per-word inline boxes). Geometry is
+        // unchanged (the tokens already occupied their final boxes), so this
+        // causes no reflow. Safe to call once a block has finished streaming.
+        function unwrapBlock(b) {
+          if (b.unwrapped) return;
+          b.unwrapped = true;
+          var iSpans = b.el.querySelectorAll("i." + TOK);
+          for (var i = 0; i < iSpans.length; i++) {
+            var sp = iSpans[i];
+            sp.parentNode.replaceChild(
+              document.createTextNode(sp.textContent),
+              sp
+            );
+          }
+          for (var p = 0; p < b.parents.length; p++)
+            if (b.parents[p]) b.parents[p].normalize();
+        }
+
+        // place a block's cursor immediately AFTER a token (layout-neutral).
+        function placeCursor(b, tok) {
+          if (!b.cursor || !tok) return;
+          var br = b.el.getBoundingClientRect();
+          var tr = tok.getBoundingClientRect();
+          if (tr.width === 0 && tr.height === 0) return; // not laid out yet
+          var fs = parseFloat(getComputedStyle(tok).fontSize) || 14;
+          b.cursor.style.fontSize = fs + "px";
+          var ch = fs * 1.02;
+          var left = tr.right - br.left + b.el.scrollLeft;
+          var top = tr.bottom - br.top + b.el.scrollTop - ch;
+          b.cursor.style.left = Math.max(0, left) + "px";
+          b.cursor.style.top = top + "px";
+        }
+
+        function finishBlock(b) {
+          if (b.done) return;
+          b.done = true;
+          for (var i = 0; i < b.tokens.length; i++)
+            b.tokens[i].classList.add("on");
+          if (b.cursor && b.cursor.parentNode)
+            b.cursor.parentNode.removeChild(b.cursor);
+          b.cursor = null;
+          b.el.classList.remove("is-streaming");
+          // the block is fully revealed — restore it to byte-identical plain
+          // text so the settled DOM has no per-word inline boxes (pixel-exact).
+          unwrapBlock(b);
+        }
+
+        function start() {
+          if (started || settled) return;
+          started = true;
+          var zh = document.body && document.body.dataset.lang === "zh";
+          var els = document.querySelectorAll(BLOCK_SEL);
+          for (var i = 0; i < els.length; i++) {
+            var el = els[i];
+            var parents = [];
+            var tokens = wrapBlock(el, zh, parents);
+            if (!tokens.length) continue;
+            // start offset = the element's --bd jitter (0–200ms), so all blocks
+            // begin essentially together — parallel, many cursors at once.
+            var bd =
+              parseFloat(el.style.getPropertyValue("--bd")) * 1000 || 0;
+            // per-token cadence 18–42ms, randomized per block for organic feel
+            var per = 18 + Math.random() * 24;
+            el.classList.add("is-streaming");
+            var cursor = document.createElement("i");
+            cursor.className = "boot-cursor";
+            cursor.setAttribute("aria-hidden", "true");
+            el.appendChild(cursor);
+            blocks.push({
+              el: el,
+              tokens: tokens,
+              parents: parents,
+              start: bd,
+              per: per,
+              cursor: cursor,
+              count: 0,
+              done: false,
+              unwrapped: false,
+            });
+          }
+          if (!blocks.length) {
+            settled = true;
+            return;
+          }
+          var t0 = performance.now();
+          var tick = function () {
+            if (settled) return;
+            var now = performance.now() - t0;
+            var allDone = true;
+            for (var b = 0; b < blocks.length; b++) {
+              var bl = blocks[b];
+              if (bl.done) continue;
+              var want = Math.floor((now - bl.start) / bl.per);
+              if (want < 0) want = 0;
+              if (want > bl.tokens.length) want = bl.tokens.length;
+              // reveal newly-due tokens
+              for (var k = bl.count; k < want; k++)
+                bl.tokens[k].classList.add("on");
+              if (want > bl.count) {
+                bl.count = want;
+                placeCursor(bl, bl.tokens[want - 1] || bl.tokens[0]);
+              } else if (bl.count === 0 && now >= bl.start) {
+                // before the first token reveals, keep cursor at block start
+                placeCursor(bl, bl.tokens[0]);
+              }
+              if (bl.count >= bl.tokens.length) finishBlock(bl);
+              else allDone = false;
+            }
+            if (allDone) {
+              settled = true;
+              return;
+            }
+            rafId = requestAnimationFrame(tick);
+          };
+          rafId = requestAnimationFrame(tick);
+        }
+
+        function settle() {
+          if (settled && !blocks.length) return;
+          settled = true;
+          if (rafId) cancelAnimationFrame(rafId);
+          for (var b = 0; b < blocks.length; b++) finishBlock(blocks[b]);
+        }
+
+        window.__bootTokens = { start: start, settle: settle };
+      })();
+    </script>
     <script is:inline>
       const root = document.body;
       const toggle = document.querySelector("[data-lang-toggle]");
