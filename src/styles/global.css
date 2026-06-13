@@ -708,13 +708,50 @@ main {
 .type-17 { width: 17ch; }
 
 h1.term-name {
-  font-family: var(--font-mono);
-  font-size: clamp(22px, 3.4vw, 30px);
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  line-height: 1.25;
-  color: #ffffff;
-  margin: 4px 0 2px;
+  position: relative;
+  margin: 6px 0 4px;
+  /* the New York serif name renders as a pre-trimmed PNG; height drives the
+     box and the 8.746 aspect ratio sets width. ~34px tall on desktop. */
+  line-height: 0;
+}
+
+.term-name-img {
+  display: block;
+  height: 34px;
+  width: auto;
+  /* lock aspect so the box never reflows while the canvas overlay is up */
+  aspect-ratio: 2099 / 240;
+}
+
+/* canvas that paints the pixel-by-pixel reveal, positioned exactly over the
+   img. Absolute so it never adds to the h1 box; the img stays in flow
+   (visibility:hidden) holding the size while the canvas animates above it. */
+.term-name-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: block;
+  height: 34px;
+  width: auto;
+  aspect-ratio: 2099 / 240;
+}
+
+h1.term-name.is-revealing .term-name-img {
+  visibility: hidden;
+}
+
+/* accessible text kept in the DOM for SEO/screen readers, painted nowhere */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 .term-role {
@@ -777,24 +814,26 @@ h1.term-name {
     opacity: 0;
     animation: term-in 0.16s ease-out forwards;
   }
+  /* retimed for the New York pixel-reveal: whoami types, the name line lands,
+     the canvas sweep paints it in (~0.55–1.45s), THEN role/dim/focus/source
+     print. The reveal is always done before "$ source ~/.profile" begins. */
   .term-body > :nth-child(1) { animation-delay: 0.05s; }
-  .term-body > :nth-child(2) { animation-delay: 0.52s; }
-  .term-body > :nth-child(3) { animation-delay: 0.62s; }
-  .term-body > :nth-child(4) { animation-delay: 0.72s; }
-  .term-body > :nth-child(5) { animation-delay: 0.92s; }
-  .term-body > :nth-child(6) { animation-delay: 1.52s; }
-  .term-body > :nth-child(7) { animation-delay: 1.60s; }
-  .term-body > :nth-child(8) { animation-delay: 1.68s; }
-  .term-body > :nth-child(9) { animation-delay: 1.76s; }
-  .term-body > :nth-child(10) { animation-delay: 1.88s; }
-  .term-body > :nth-child(11) { animation-delay: 2.48s; }
-  .term-body > :nth-child(n + 12) { animation-delay: 0s; }
+  .term-body > :nth-child(2) { animation-delay: 0.50s; }
+  .term-body > :nth-child(3) { animation-delay: 1.50s; }
+  .term-body > :nth-child(4) { animation-delay: 1.60s; }
+  .term-body > :nth-child(5) { animation-delay: 1.74s; }
+  .term-body > :nth-child(6) { animation-delay: 2.30s; }
+  .term-body > :nth-child(7) { animation-delay: 2.38s; }
+  .term-body > :nth-child(8) { animation-delay: 2.46s; }
+  .term-body > :nth-child(9) { animation-delay: 2.54s; }
+  .term-body > :nth-child(10) { animation-delay: 2.66s; }
+  .term-body > :nth-child(n + 11) { animation-delay: 0s; }
 
   .type-6 { animation: type-w 0.3s steps(6, end) 0.14s both; }
-  .type-13 { animation: type-w 0.45s steps(13, end) 1.0s both; }
-  .type-17 { animation: type-w 0.5s steps(17, end) 1.98s both; }
+  .type-13 { animation: type-w 0.45s steps(13, end) 1.84s both; }
+  .type-17 { animation: type-w 0.5s steps(17, end) 2.74s both; }
 
-  .term-cursor { animation: cursor-pulse 1.25s ease-in-out 2.5s infinite; }
+  .term-cursor { animation: cursor-pulse 1.25s ease-in-out 3.3s infinite; }
 
   /* once the user clicks into the shell, freeze the entry choreography so
      freshly printed lines appear instantly and never re-run delays */
@@ -820,6 +859,14 @@ h1.term-name {
    booting flips to booted and everything cascades in like terminal output.
    html.skip zeroes the whole choreography for an instant settled state. */
 
+/* the interactive shell's live prompt + input is appended at parse time; keep
+   it out of sight during the boot so a stray "$" caret never floats in the
+   fullscreen terminal. It returns the moment the page settles. */
+html.booting .term-live,
+html.booting .term-input {
+  display: none;
+}
+
 /* hidden but still occupying layout — the terminal must not shift while it
    sits alone on the blank page */
 html.booting .site-header,
@@ -830,10 +877,16 @@ html.booting .academic-main > section:not(.terminal-hero) {
   visibility: hidden;
 }
 
+/* the section containers reveal instantly (visibility only) so their inner
+   blocks can each print on their own schedule. The masthead / sidebar / footer
+   still fade in as whole units. */
+html.booted .academic-main > section:not(.terminal-hero) {
+  animation: boot-show 0.01s linear both;
+}
+
 html.booted .site-header,
 html.booted .footer,
-html.booted .profile-card,
-html.booted .academic-main > section:not(.terminal-hero) {
+html.booted .profile-card {
   animation: boot-in 0.28s ease-out both;
 }
 
@@ -860,57 +913,198 @@ html.booted .footer { animation-delay: 0.44s; }
   }
 }
 
-/* transient red block cursor on section headings as their block lands; the
-   glyph rides the visible lang span and fades out, leaving opacity 0 */
-html.booted .academic-main > section:not(.terminal-hero) h2 > span::after {
-  content: "▌";
-  margin-left: 0.4ch;
-  color: var(--accent);
-  text-transform: none;
-  animation: boot-caret 0.6s ease-out both;
+@keyframes boot-show {
+  from { visibility: hidden; }
+  to { visibility: visible; }
 }
 
-html.booted .academic-main > section:nth-child(2) h2 > span::after { animation-delay: 0.31s; }
-html.booted .academic-main > section:nth-child(3) h2 > span::after { animation-delay: 0.38s; }
-html.booted .academic-main > section:nth-child(4) h2 > span::after { animation-delay: 0.45s; }
-html.booted .academic-main > section:nth-child(5) h2 > span::after { animation-delay: 0.52s; }
+/* === C. typed cascade ===================================================== */
+
+/* --- mono headings TYPE ON: a left-to-right steps() clip wipe reads as
+   character-stepping (mono glyphs land on the chunk boundaries), with a red
+   block caret that blinks then fades. ---------------------------------------*/
+html.booted body:not([data-lang="zh"]) .academic-main > section:not(.terminal-hero) h2 > span.lang-en,
+html.booted body[data-lang="zh"] .academic-main > section:not(.terminal-hero) h2 > span.lang-zh {
+  display: inline-block;
+  vertical-align: bottom;
+  clip-path: inset(0 100% 0 0);
+  animation: boot-type 0.34s steps(11, end) both;
+}
+
+/* trailing red BLOCK caret on the heading; blinks a couple times then fades */
+html.booted body:not([data-lang="zh"]) .academic-main > section:not(.terminal-hero) h2 > span.lang-en::after,
+html.booted body[data-lang="zh"] .academic-main > section:not(.terminal-hero) h2 > span.lang-zh::after {
+  content: "▌";
+  margin-left: 0.3ch;
+  color: var(--accent);
+  text-transform: none;
+  animation: boot-caret 0.95s steps(1, end) both;
+}
+
+/* per-heading delays — specificity matched to the type-on rule (via :is and a
+   body ancestor) and placed later in source so they win the animation-delay.
+   Language-neutral so both EN and ZH headings type on the same downward flow. */
+html.booted body .academic-main > section:nth-child(2):not(.terminal-hero) h2 > span:is(.lang-en, .lang-zh),
+html.booted body .academic-main > section:nth-child(2):not(.terminal-hero) h2 > span:is(.lang-en, .lang-zh)::after { animation-delay: 0.28s; }
+html.booted body .academic-main > section:nth-child(3):not(.terminal-hero) h2 > span:is(.lang-en, .lang-zh),
+html.booted body .academic-main > section:nth-child(3):not(.terminal-hero) h2 > span:is(.lang-en, .lang-zh)::after { animation-delay: 0.42s; }
+html.booted body .academic-main > section:nth-child(4):not(.terminal-hero) h2 > span:is(.lang-en, .lang-zh),
+html.booted body .academic-main > section:nth-child(4):not(.terminal-hero) h2 > span:is(.lang-en, .lang-zh)::after { animation-delay: 0.78s; }
+html.booted body .academic-main > section:nth-child(5):not(.terminal-hero) h2 > span:is(.lang-en, .lang-zh),
+html.booted body .academic-main > section:nth-child(5):not(.terminal-hero) h2 > span:is(.lang-en, .lang-zh)::after { animation-delay: 0.98s; }
+/* education + experience headings live in one section but two cv-blocks */
+html.booted body .academic-main > section:nth-child(3):not(.terminal-hero) .cv-block:nth-child(2) h2 > span:is(.lang-en, .lang-zh),
+html.booted body .academic-main > section:nth-child(3):not(.terminal-hero) .cv-block:nth-child(2) h2 > span:is(.lang-en, .lang-zh)::after { animation-delay: 0.56s; }
+
+@keyframes boot-type {
+  from { clip-path: inset(0 100% 0 0); }
+  to { clip-path: inset(0 0 0 0); }
+}
 
 @keyframes boot-caret {
-  0%, 65% { opacity: 1; }
+  0% { opacity: 1; }
+  25% { opacity: 0; }
+  50% { opacity: 1; }
+  75% { opacity: 0; }
+  85%, 100% { opacity: 0; }
+}
+
+/* --- OUTPUT BLOCKS print top-to-bottom: a fast opacity ramp per block with a
+   brief leading cursor glyph that varies by class. The blocks are the about
+   paragraphs + tiles, each cv/experience/project/news entry, and the shell
+   hints. requestAnimationFrame is not needed — these are short CSS ramps. ----*/
+html.booted .about-section p,
+html.booted .fact-strip,
+html.booted .cv-list > li,
+html.booted .project-list > li,
+html.booted .news-list > li,
+html.booted .section-heading .shell-hint {
+  animation: boot-print 0.08s ease-out both;
+  position: relative;
+}
+
+/* leading cursor: a small block ▌ for entries/cards, underscore _ for the
+   meta/date-bearing news + shell-hint lines. Appears then vanishes <=300ms. */
+html.booted .cv-list > li::before,
+html.booted .project-list > li::before,
+html.booted .about-section p::before {
+  content: "▌";
+  position: absolute;
+  left: -0.95ch;
+  color: var(--accent);
+  font-family: var(--font-mono);
+  animation: boot-tick 0.3s steps(1, end) both;
+  pointer-events: none;
+}
+
+html.booted .news-list > li::before,
+html.booted .section-heading .shell-hint::before {
+  content: "_";
+  position: absolute;
+  left: -0.85ch;
+  bottom: 0;
+  color: var(--accent);
+  font-family: var(--font-mono);
+  animation: boot-tick 0.3s steps(1, end) both;
+  pointer-events: none;
+}
+
+/* per-block stagger within each section: ~60ms apart, flowing downward.
+   Section-level delays are folded in so the whole page settles by ~3.2s. */
+html.booted .about-section p:nth-of-type(1) { animation-delay: 0.34s; }
+html.booted .about-section p:nth-of-type(2) { animation-delay: 0.40s; }
+html.booted .fact-strip { animation-delay: 0.48s; }
+html.booted .about-section p:nth-of-type(1)::before { animation-delay: 0.34s; }
+html.booted .about-section p:nth-of-type(2)::before { animation-delay: 0.40s; }
+
+html.booted .cv-grid .cv-block:nth-child(1) .cv-list > li:nth-child(1) { animation-delay: 0.62s; }
+html.booted .cv-grid .cv-block:nth-child(1) .cv-list > li:nth-child(2) { animation-delay: 0.68s; }
+html.booted .cv-grid .cv-block:nth-child(1) .cv-list > li:nth-child(1)::before { animation-delay: 0.62s; }
+html.booted .cv-grid .cv-block:nth-child(1) .cv-list > li:nth-child(2)::before { animation-delay: 0.68s; }
+html.booted .cv-grid .cv-block:nth-child(2) .cv-list > li:nth-child(1) { animation-delay: 0.78s; }
+html.booted .cv-grid .cv-block:nth-child(2) .cv-list > li:nth-child(2) { animation-delay: 0.84s; }
+html.booted .cv-grid .cv-block:nth-child(2) .cv-list > li:nth-child(3) { animation-delay: 0.90s; }
+html.booted .cv-grid .cv-block:nth-child(2) .cv-list > li:nth-child(4) { animation-delay: 0.96s; }
+html.booted .cv-grid .cv-block:nth-child(2) .cv-list > li:nth-child(n+1)::before { animation-delay: 0.80s; }
+
+html.booted #projects .shell-hint { animation-delay: 0.92s; }
+html.booted .project-list > li:nth-child(1) { animation-delay: 1.00s; }
+html.booted .project-list > li:nth-child(2) { animation-delay: 1.06s; }
+html.booted .project-list > li:nth-child(3) { animation-delay: 1.12s; }
+html.booted .project-list > li:nth-child(4) { animation-delay: 1.18s; }
+html.booted .project-list > li:nth-child(n+1)::before { animation-delay: 1.02s; }
+html.booted #projects .shell-hint::before { animation-delay: 0.92s; }
+
+html.booted .news-list > li:nth-child(1) { animation-delay: 1.20s; }
+html.booted .news-list > li:nth-child(2) { animation-delay: 1.26s; }
+html.booted .news-list > li:nth-child(3) { animation-delay: 1.32s; }
+html.booted .news-list > li:nth-child(4) { animation-delay: 1.38s; }
+html.booted .news-list > li:nth-child(n+1)::before { animation-delay: 1.22s; }
+
+@keyframes boot-print {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes boot-tick {
+  0% { opacity: 1; }
+  70% { opacity: 1; }
   100% { opacity: 0; }
 }
 
-/* --- centered boot: the terminal sits alone mid-viewport, then glides home.
-   The inline boot script measures the card's natural rect on DOMContentLoaded,
-   sets --boot-dx/--boot-dy, and adds .boot-centered — a pure transform, so
-   the layout underneath never moves. Until that class lands the card stays
-   invisible (first paint is a blank page; the card pops in already centered).
-   These classes are only ever added by the boot script, so reduced-motion,
-   no-JS, and blog pages never see any of this. */
+/* --- fullscreen boot: the terminal fills the whole viewport like a maximized
+   terminal app, then shrinks + docks to its natural in-flow rect. The inline
+   boot script measures the card's natural rect on DOMContentLoaded, locks the
+   hero wrapper's min-height to preserve layout, then makes the card
+   position:fixed and adds .boot-full (fullscreen geometry). On the dock it adds
+   .boot-dock, which transitions top/left/width/height/border-radius/box-shadow
+   to the stored natural rect; transitionend strips all inline styles so the
+   card settles in normal flow at the identical spot. These classes are only
+   added by the boot script — reduced-motion, no-JS, and blog never see them. */
 html.booting .terminal-hero .term-window {
+  /* invisible until the fixed fullscreen geometry is applied, so the very
+     first painted frame is the maximized terminal, never the natural card */
   opacity: 0;
 }
 
-html.booting .terminal-hero .term-window.boot-centered,
-html.booting .terminal-hero .term-window.boot-glide {
+html.booting .terminal-hero .term-window.boot-full {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  width: 100dvw;
+  height: 100vh;
+  height: 100dvh;
+  margin: 0;
+  z-index: 60;
+  border-radius: 0;
+  border: 0;
+  box-shadow: none;
   opacity: 1;
+  will-change: top, left, width, height;
 }
 
-.terminal-hero .term-window.boot-centered {
-  transform: translate(var(--boot-dx, 0px), var(--boot-dy, 0px));
-  /* lifted: a deeper shadow than the resting card, relaxed during the glide */
-  box-shadow:
-    0 34px 80px -30px rgba(24, 14, 10, 0.6),
-    0 10px 30px rgba(24, 14, 10, 0.14);
-  will-change: transform;
-}
-
-/* the glide: .boot-glide swaps in for .boot-centered, so transform and shadow
-   transition back to the card's own resting values — the dock */
-.terminal-hero .term-window.boot-glide {
+/* the dock: same fixed positioning, but the script swaps top/left/width/height
+   to the stored natural rect and these transitions carry it home */
+html.booting .terminal-hero .term-window.boot-full.boot-dock {
   transition:
-    transform 0.5s cubic-bezier(0.22, 0.9, 0.26, 1),
-    box-shadow 0.5s cubic-bezier(0.22, 0.9, 0.26, 1);
+    top 0.62s cubic-bezier(0.7, 0, 0.2, 1),
+    left 0.62s cubic-bezier(0.7, 0, 0.2, 1),
+    width 0.62s cubic-bezier(0.7, 0, 0.2, 1),
+    height 0.62s cubic-bezier(0.7, 0, 0.2, 1),
+    border-radius 0.62s cubic-bezier(0.7, 0, 0.2, 1),
+    box-shadow 0.62s cubic-bezier(0.7, 0, 0.2, 1);
+  border: 1px solid var(--term-edge);
+  border-radius: 9px;
+  box-shadow:
+    0 18px 40px -22px rgba(24, 14, 10, 0.55),
+    0 2px 10px rgba(24, 14, 10, 0.10);
+}
+
+/* fullscreen body: text stays at normal glyph size, anchored top-left with
+   comfortable padding — do NOT vertically center or scale the session up */
+html.booting .terminal-hero .term-window.boot-full .term-body {
+  padding: 22px 26px;
 }
 
 /* skip: any click/keydown during the show zeroes every duration and delay —
@@ -926,10 +1120,10 @@ html.skip .academic-main > section h2 > span::after {
   animation-delay: 0s !important;
 }
 
-/* skip also lands the card itself: no transform, no glide-in-progress —
-   the boot script removes the classes too; this is the same-frame guarantee */
+/* skip also lands the card itself: no fixed geometry, no dock-in-progress —
+   the boot script strips the classes + inline styles too; same-frame guarantee */
 html.skip .terminal-hero .term-window {
-  transform: none !important;
+  position: static !important;
   transition: none !important;
 }
 
@@ -1940,7 +2134,8 @@ p.code-comment {
     line-height: 1.7;
   }
 
-  h1.term-name { font-size: 19px; }
+  .term-name-img,
+  .term-name-canvas { height: 22px; }
 
   .about-section p { font-size: 17px; }
   h1 { font-size: 36px; }

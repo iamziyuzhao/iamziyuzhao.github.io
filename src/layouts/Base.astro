@@ -33,6 +33,11 @@ const description =
       // boot sequence — home page only, motion permitting. Runs before first
       // paint so the rest of the page never flashes. Without JS this script
       // never runs, no class is added, and the site renders normally.
+      //
+      // Upgrade: the terminal boots FULLSCREEN (a maximized terminal app), then
+      // shrinks + docks (FLIP on box geometry) to its natural in-flow rect when
+      // "$ source ~/.profile" finishes typing, while the rest of the page prints
+      // in. Any key/click skips pixel-exactly to the settled page.
       (function () {
         if (
           location.pathname !== "/" ||
@@ -42,69 +47,124 @@ const description =
         var html = document.documentElement;
         html.classList.add("booting");
         var card = null;
+        var hero = null;
+        var natural = null; // stored natural rect {top,left,width,height}
         var settleTimer = 0;
-        var glideTimer = 0;
+        var dockTimer = 0;
         var revealTimer = 0;
         var fallback = 0;
         var started = false;
+        var dockEndHandler = null;
+
+        // strip every trace of the boot geometry, leaving the card in normal
+        // flow at its natural spot with no inline styles.
+        var stripGeometry = function () {
+          if (!card) return;
+          card.classList.remove("boot-full", "boot-dock");
+          card.style.cssText = "";
+          if (dockEndHandler) {
+            card.removeEventListener("transitionend", dockEndHandler);
+            dockEndHandler = null;
+          }
+          if (hero) hero.style.removeProperty("min-height");
+        };
+
         var teardown = function () {
           document.removeEventListener("animationend", onType);
           document.removeEventListener("keydown", skip, true);
           document.removeEventListener("pointerdown", skip, true);
           clearTimeout(fallback);
           clearTimeout(settleTimer);
-          clearTimeout(glideTimer);
+          clearTimeout(dockTimer);
           clearTimeout(revealTimer);
-          // leave the card exactly as it renders without the boot show:
-          // no transform, no transition, default shadow
-          if (card) {
-            card.classList.remove("boot-centered", "boot-glide");
-            card.style.removeProperty("--boot-dx");
-            card.style.removeProperty("--boot-dy");
-          }
+          stripGeometry();
+          // settled: drop the cascade class too so later language toggles and
+          // interactions never re-trigger any boot animation
+          html.classList.remove("booted");
         };
-        // FLIP centering: once the DOM is measurable, compute the offset from
-        // the card's natural rect to the viewport center (clamped so a tall
-        // card never slides off-screen) and apply it as a pure transform. The
-        // card stays invisible under html.booting until .boot-centered lands,
-        // so it never flashes at its natural position.
-        var center = function () {
+
+        // measure the card's natural rect, lock the hero height to preserve
+        // layout, then pin the card fullscreen. The card stays invisible under
+        // html.booting until .boot-full lands, so the first painted frame is the
+        // maximized terminal — never the natural card.
+        var fullscreen = function () {
           card = document.querySelector(".terminal-hero .term-window");
+          hero = document.querySelector(".terminal-hero");
           if (!card || !html.classList.contains("booting")) return;
           var r = card.getBoundingClientRect();
-          var dx = Math.max(16, (innerWidth - r.width) / 2) - r.left;
-          var dy = Math.max(16, (innerHeight - r.height) / 2) - r.top;
-          card.style.setProperty("--boot-dx", dx.toFixed(2) + "px");
-          card.style.setProperty("--boot-dy", dy.toFixed(2) + "px");
-          card.classList.add("boot-centered");
+          natural = {
+            top: r.top + scrollY,
+            left: r.left + scrollX,
+            width: r.width,
+            height: r.height,
+          };
+          // hold the in-flow space so nothing reflows while the card is fixed
+          if (hero) hero.style.minHeight = hero.offsetHeight + "px";
+          card.classList.add("boot-full");
         };
+
         var reveal = function () {
           html.classList.remove("booting");
           html.classList.add("booted");
-          // natural reveal settles in <1.2s; then stop listening entirely
-          settleTimer = setTimeout(teardown, 1300);
+          // page cascade settles by ~3.5s; then stop listening + clean up
+          settleTimer = setTimeout(teardown, 3500);
         };
+
+        // shrink + dock: set the fixed inset to the stored natural rect so the
+        // .boot-dock transitions carry the card home, then strip on transitionend.
+        var dock = function () {
+          if (!card || !natural) {
+            reveal();
+            return;
+          }
+          // ensure the fullscreen inset is the committed starting point
+          card.style.top = "0px";
+          card.style.left = "0px";
+          card.style.width = "100vw";
+          card.style.height = "100vh";
+          card.style.borderRadius = "0px";
+          // force a reflow so the transition has a from-state to animate from
+          void card.offsetWidth;
+          card.classList.add("boot-dock");
+          card.style.top = natural.top + "px";
+          card.style.left = natural.left + "px";
+          card.style.width = natural.width + "px";
+          card.style.height = natural.height + "px";
+          card.style.borderRadius = "9px";
+          var settled = false;
+          dockEndHandler = function (e) {
+            if (e.propertyName !== "width" && e.propertyName !== "height") return;
+            if (settled) return;
+            settled = true;
+            stripGeometry();
+          };
+          card.addEventListener("transitionend", dockEndHandler);
+          // safety: strip even if transitionend never fires
+          dockTimer = setTimeout(function () {
+            if (!settled) {
+              settled = true;
+              stripGeometry();
+            }
+          }, 760);
+          // the content cascade starts ~250ms into the shrink (overlap)
+          revealTimer = setTimeout(reveal, 250);
+        };
+
         var boot = function (instant) {
           if (!html.classList.contains("booting")) return;
           if (instant) {
             html.classList.remove("booting");
             html.classList.add("skip", "booted");
+            stripGeometry();
             teardown();
             return;
           }
           if (started) return;
           started = true;
-          // a beat, then the card glides home; the content cascade starts
-          // partway through the glide so the page materializes around it
-          glideTimer = setTimeout(function () {
-            if (card) {
-              card.classList.add("boot-glide");
-              card.classList.remove("boot-centered");
-            }
-            revealTimer = setTimeout(reveal, 270);
-          }, 150);
+          dock();
         };
-        // the typed "source ~/.profile" finishing is the reveal trigger
+
+        // the typed "source ~/.profile" finishing is the dock trigger
         var onType = function (e) {
           if (
             e.animationName === "type-w" &&
@@ -113,6 +173,7 @@ const description =
           )
             boot(false);
         };
+
         // any click/keydown during the show jumps to the settled state
         var skip = function () {
           if (html.classList.contains("booting")) {
@@ -122,16 +183,19 @@ const description =
             teardown();
           }
         };
+
         document.addEventListener("animationend", onType);
         document.addEventListener("keydown", skip, true);
         document.addEventListener("pointerdown", skip, true);
         if (document.readyState === "loading")
-          document.addEventListener("DOMContentLoaded", center, { once: true });
-        else center();
+          document.addEventListener("DOMContentLoaded", fullscreen, {
+            once: true,
+          });
+        else fullscreen();
         // safety net: never strand the visitor on a blank page
         fallback = setTimeout(function () {
           boot(true);
-        }, 5000);
+        }, 6000);
       })();
     </script>
   </head>
