@@ -3,6 +3,7 @@ import Base from "../../layouts/Base.astro";
 
 interface PostModule {
   url: string;
+  rawContent?: () => string;
   frontmatter: {
     title: string;
     titleZh?: string;
@@ -20,12 +21,15 @@ const posts = (Object.values(import.meta.glob("./[!_]*.md", { eager: true })) as
   (a, b) => new Date(b.frontmatter.date ?? 0).valueOf() - new Date(a.frontmatter.date ?? 0).valueOf(),
 );
 
-const dateLabel = (d?: string) =>
-  d ? new Date(d).toLocaleDateString("en-US", { month: "long", year: "numeric" }) : "";
+const isoDate = (d?: string) => (d ? new Date(d).toISOString().slice(0, 10) : "");
+const readMinutes = (post: PostModule) => {
+  const words = typeof post.rawContent === "function" ? post.rawContent().trim().split(/\s+/).length : 0;
+  return words ? Math.max(1, Math.round(words / 200)) : null;
+};
 ---
 
 <Base title="Blog | Albert Zhao">
-  <section class="prose">
+  <section class="prose blog-head">
     <div class="term-path" aria-hidden="true"><span class="tp-cmd">$ ls&nbsp;</span>~/blog/</div>
     <h1><span class="lang-en">Blog</span><span class="lang-zh">博客</span></h1>
     <p class="muted">
@@ -34,37 +38,47 @@ const dateLabel = (d?: string) =>
     </p>
   </section>
 
-  <section class="section">
-    {posts.map((post) => (
-      <article class="item">
-        <div>
-          <h2>
-            <a href={`${post.url}/`}>
-              {post.frontmatter.titleZh ? (
-                <>
-                  <span class="lang-en">{post.frontmatter.title}</span>
-                  <span class="lang-zh">{post.frontmatter.titleZh}</span>
-                </>
-              ) : (
-                post.frontmatter.title
+  <section class="section ls-section">
+    <div class="ls-total" aria-hidden="true">total {posts.length}</div>
+    <ul class="ls-list">
+      {posts.map((post) => {
+        const mins = readMinutes(post);
+        return (
+          <li>
+            <div class="ls-row">
+              <time class="ls-date" datetime={isoDate(post.frontmatter.date)}>{isoDate(post.frontmatter.date)}</time>
+              {(post.frontmatter.category || post.frontmatter.categoryZh) && (
+                <span class="ls-cat">
+                  <span class="lang-en">{post.frontmatter.category}</span>
+                  <span class="lang-zh">{post.frontmatter.categoryZh ?? post.frontmatter.category}</span>
+                </span>
               )}
-            </a>
-          </h2>
-          {(post.frontmatter.category || post.frontmatter.categoryZh) && (
-            <div class="meta">
-              <span class="lang-en">{post.frontmatter.category}</span>
-              <span class="lang-zh">{post.frontmatter.categoryZh ?? post.frontmatter.category}</span>
+              <a class="ls-title" href={`${post.url}/`}>
+                {post.frontmatter.titleZh ? (
+                  <>
+                    <span class="lang-en">{post.frontmatter.title}</span>
+                    <span class="lang-zh">{post.frontmatter.titleZh}</span>
+                  </>
+                ) : (
+                  post.frontmatter.title
+                )}
+              </a>
+              {mins && (
+                <span class="ls-read">
+                  <span class="lang-en">{mins} min</span>
+                  <span class="lang-zh">{mins} 分钟</span>
+                </span>
+              )}
             </div>
-          )}
-          {(post.frontmatter.description || post.frontmatter.descriptionZh) && (
-            <p>
-              <span class="lang-en">{post.frontmatter.description}</span>
-              <span class="lang-zh">{post.frontmatter.descriptionZh ?? post.frontmatter.description}</span>
-            </p>
-          )}
-        </div>
-        <time>{dateLabel(post.frontmatter.date)}</time>
-      </article>
-    ))}
+            {(post.frontmatter.description || post.frontmatter.descriptionZh) && (
+              <p class="code-comment">
+                <span class="lang-en">{post.frontmatter.description}</span>
+                <span class="lang-zh">{post.frontmatter.descriptionZh ?? post.frontmatter.description}</span>
+              </p>
+            )}
+          </li>
+        );
+      })}
+    </ul>
   </section>
 </Base>

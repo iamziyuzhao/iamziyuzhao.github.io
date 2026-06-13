@@ -4,7 +4,7 @@ import Comments from "../components/Comments.astro";
 
 const { frontmatter, rawContent } = Astro.props;
 const date = frontmatter.date ? new Date(frontmatter.date) : null;
-const dateLabel = date?.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+const dateIso = date?.toISOString().slice(0, 10);
 const words = typeof rawContent === "function" ? rawContent().trim().split(/\s+/).length : 0;
 const readingMinutes = words ? Math.max(1, Math.round(words / 200)) : null;
 const slug = Astro.url.pathname.replace(/\/+$/, "").split("/").pop();
@@ -24,12 +24,24 @@ const slug = Astro.url.pathname.replace(/\/+$/, "").split("/").pop();
       )}
     </h1>
     <div class="meta post-meta">
-      {dateLabel && <time datetime={date.toISOString().slice(0, 10)}>{dateLabel}</time>}
+      {dateIso && (
+        <span class="meta-tok">
+          <span class="tok-tag" aria-hidden="true">@date</span>
+          <time datetime={dateIso}>{dateIso}</time>
+        </span>
+      )}
       {readingMinutes && (
-        <span>
-          {dateLabel && " · "}
-          <span class="lang-en">{readingMinutes} min read</span>
-          <span class="lang-zh">约 {readingMinutes} 分钟</span>
+        <span class="meta-tok">
+          <span class="tok-tag" aria-hidden="true">@read</span>
+          <span class="lang-en">{readingMinutes} min</span>
+          <span class="lang-zh">{readingMinutes} 分钟</span>
+        </span>
+      )}
+      {(frontmatter.category || frontmatter.categoryZh) && (
+        <span class="meta-tok">
+          <span class="tok-tag" aria-hidden="true">@topic</span>
+          <span class="lang-en">{frontmatter.category}</span>
+          <span class="lang-zh">{frontmatter.categoryZh ?? frontmatter.category}</span>
         </span>
       )}
     </div>

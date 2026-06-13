@@ -268,21 +268,16 @@ body[data-lang="zh"] span.lang-zh.block { display: block; }
   margin-right: 0.55ch;
 }
 
-/* block cursor after the brand, gently pulsing (never fully off) */
+/* static block cursor after the brand — the hero terminal owns the only
+   blinking cursor on the page */
 .brand::after {
   content: "";
   display: inline-block;
   width: 0.58ch;
   height: 1.02em;
   margin-left: 0.5ch;
-  background: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.6);
   vertical-align: text-bottom;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .brand::after {
-    animation: cursor-pulse 1.3s ease-in-out infinite;
-  }
 }
 
 @keyframes cursor-pulse {
@@ -359,7 +354,8 @@ main {
   max-width: var(--max);
   margin: 0 auto;
   padding: 42px 24px 88px;
-  counter-reset: sec;
+  /* zero-based section addresses, matching focus.txt's 0-indexing */
+  counter-reset: sec -1;
   flex: 1 0 auto;
 }
 
@@ -432,8 +428,11 @@ main {
 .prose th[align="center"],
 .prose td[align="center"] { text-align: center; }
 
-/* post metadata + lede */
+/* post metadata as mono tokens: "@date 2026-05-19  @read 1 min  @topic …" */
 .prose .post-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 22px;
   color: var(--muted);
   margin-bottom: 34px;
   font-family: var(--font-mono);
@@ -441,9 +440,14 @@ main {
   letter-spacing: 0.02em;
 }
 
-.prose .post-meta::after {
-  content: " ──";
-  color: var(--line-strong);
+.meta-tok {
+  white-space: nowrap;
+}
+
+.tok-tag {
+  color: var(--accent);
+  font-weight: 600;
+  margin-right: 0.7ch;
 }
 
 .post > p:first-of-type {
@@ -466,15 +470,53 @@ main {
   text-align: left;
 }
 
+/* red corner-bracket viewfinder around the portrait: the wrapper's two
+   pseudo-elements each paint two 2px L-brackets (top pair / bottom pair) */
+.portrait-frame {
+  position: relative;
+  width: max-content;
+  max-width: 100%;
+  margin: 0 0 22px auto;
+  padding: 7px;
+}
+
+.portrait-frame::before,
+.portrait-frame::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-repeat: no-repeat;
+}
+
+.portrait-frame::before {
+  background-image:
+    linear-gradient(var(--accent), var(--accent)),
+    linear-gradient(var(--accent), var(--accent)),
+    linear-gradient(var(--accent), var(--accent)),
+    linear-gradient(var(--accent), var(--accent));
+  background-position: left 0 top 0, left 0 top 0, right 0 top 0, right 0 top 0;
+  background-size: 18px 2px, 2px 18px, 18px 2px, 2px 18px;
+}
+
+.portrait-frame::after {
+  background-image:
+    linear-gradient(var(--accent), var(--accent)),
+    linear-gradient(var(--accent), var(--accent)),
+    linear-gradient(var(--accent), var(--accent)),
+    linear-gradient(var(--accent), var(--accent));
+  background-position: left 0 bottom 0, left 0 bottom 0, right 0 bottom 0, right 0 bottom 0;
+  background-size: 18px 2px, 2px 18px, 18px 2px, 2px 18px;
+}
+
 .portrait {
   display: block;
   width: 186px;
   height: 186px;
   max-width: 100%;
-  margin: 0 0 22px auto;
+  margin: 0;
   border: 1px solid var(--line-strong);
   border-radius: var(--radius);
-  padding: 4px;
   object-fit: cover;
   object-position: center 38%;
   background: var(--paper);
@@ -546,34 +588,6 @@ main {
   border-color: rgba(179, 27, 27, 0.5);
   color: var(--accent-deep);
   background: var(--accent-soft);
-}
-
-/* indexed mono list: focus[0]: …, focus[1]: … */
-.profile-facts {
-  display: block;
-  margin-top: 16px;
-  counter-reset: focus -1;
-  text-align: left;
-}
-
-.profile-facts > span {
-  display: block;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  color: var(--ink);
-  padding: 2px 0;
-  font-family: var(--font-mono);
-  font-size: 12px;
-  line-height: 1.5;
-  text-align: left;
-}
-
-.profile-facts > span::before {
-  counter-increment: focus;
-  content: "focus[" counter(focus) "]: ";
-  color: var(--accent);
-  font-weight: 500;
 }
 
 /* ===========================================================================
@@ -652,10 +666,12 @@ main {
 }
 
 .term-body {
-  padding: 22px 24px 24px;
+  position: relative;
+  padding: 20px 24px 18px;
   font-family: var(--font-mono);
   font-size: 13.5px;
   line-height: 1.75;
+  cursor: text;
 }
 
 .term-body > * {
@@ -689,6 +705,20 @@ main {
 
 .type-6 { width: 6ch; }
 .type-13 { width: 13ch; }
+.type-15 { width: 15ch; }
+
+/* the closing command doubles as an in-page link to the projects section */
+a.term-open {
+  color: var(--term-ink);
+  cursor: pointer;
+  text-decoration: none;
+}
+
+a.term-open:hover {
+  color: var(--term-red);
+  text-decoration: underline;
+  text-decoration-color: var(--term-red);
+}
 
 h1.term-name {
   font-family: var(--font-mono);
@@ -722,12 +752,38 @@ h1.term-name {
   display: inline-block;
   width: 0.62em;
   height: 1.05em;
+  margin-left: 0.15ch;
   background: var(--term-red);
   vertical-align: text-bottom;
 }
 
+/* interactive shell (progressive enhancement, wired up in index.astro):
+   the live prompt mirrors a visually hidden input; Escape blurs it */
+.term-input {
+  position: absolute;
+  left: 24px;
+  bottom: 18px;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  /* the entry animation force-fades children to opacity 1 — clip the input
+     away entirely so neither it nor its caret/focus ring ever paints */
+  clip-path: inset(50%);
+}
+
+.term-typed {
+  white-space: pre-wrap;
+  color: var(--term-ink);
+  font-weight: 500;
+}
+
+.term-hidden { display: none; }
+
 /* type-on session: lines land in order, commands type with steps().
-   Everything is fully settled by ~1.9s; reduced-motion sees the final
+   Everything is fully settled by ~2.5s; reduced-motion sees the final
    frame immediately because the animations only exist in this block. */
 @media (prefers-reduced-motion: no-preference) {
   .term-body > * {
@@ -744,11 +800,22 @@ h1.term-name {
   .term-body > :nth-child(8) { animation-delay: 1.68s; }
   .term-body > :nth-child(9) { animation-delay: 1.76s; }
   .term-body > :nth-child(10) { animation-delay: 1.88s; }
+  .term-body > :nth-child(11) { animation-delay: 2.48s; }
+  .term-body > :nth-child(n + 12) { animation-delay: 0s; }
 
   .type-6 { animation: type-w 0.3s steps(6, end) 0.14s both; }
   .type-13 { animation: type-w 0.45s steps(13, end) 1.0s both; }
+  .type-15 { animation: type-w 0.5s steps(15, end) 1.98s both; }
 
-  .term-cursor { animation: cursor-pulse 1.25s ease-in-out 1.95s infinite; }
+  .term-cursor { animation: cursor-pulse 1.25s ease-in-out 2.5s infinite; }
+
+  /* once the user clicks into the shell, freeze the entry choreography so
+     freshly printed lines appear instantly and never re-run delays */
+  .shell-on .term-body > *,
+  .shell-on .term-cmd {
+    animation: none;
+    opacity: 1;
+  }
 }
 
 @keyframes term-in {
@@ -761,13 +828,12 @@ h1.term-name {
 
 /* --- about section under the terminal ----------------------------------- */
 
+/* serif is reserved for page/post H1 titles — the about lede stays sans */
 .about-section p {
   max-width: 660px;
   color: #46403a;
-  font-family: var(--font-serif);
-  font-size: 19px;
-  font-weight: 500;
-  line-height: 1.6;
+  font-size: 17px;
+  line-height: 1.65;
 }
 
 .content-card,
@@ -844,6 +910,75 @@ h1.term-name {
 .date-chip::after {
   content: "]";
   color: rgba(179, 27, 27, 0.55);
+}
+
+/* "// …" technical one-liners under CV roles, project rows, blog rows */
+.code-comment {
+  display: block;
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+.code-comment::before {
+  content: "// ";
+  color: var(--accent);
+}
+
+p.code-comment {
+  max-width: 720px;
+  margin-bottom: 0;
+}
+
+/* compact project rows under "$ ls ~/projects/" */
+.project-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.project-list li {
+  border-top: 1px solid var(--line);
+  padding: 14px 0;
+}
+
+.project-list li:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.project-list li:last-child {
+  padding-bottom: 0;
+}
+
+.project-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+}
+
+.project-title {
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 14.5px;
+  font-weight: 600;
+}
+
+.project-title a {
+  color: var(--accent);
+}
+
+.project-venue {
+  color: var(--faint);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+}
+
+.project-row .date-chip {
+  margin-left: auto;
 }
 
 /* terminal headings: hex address counters (0x01, 0x02, …) in red mono,
@@ -957,6 +1092,8 @@ h1.term-name {
    8. Content lists (cv-list, paper-row, item, news-list, fact-strip, badges)
    =========================================================================== */
 
+/* metric tiles: hairline border, mono small-caps sublabel over a strong
+   value, with a small red corner tick in the top-right */
 .fact-strip {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -966,8 +1103,22 @@ h1.term-name {
 }
 
 .fact-strip > span {
-  border-top: 1px solid var(--line-strong);
-  padding-top: 10px;
+  position: relative;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--paper);
+  padding: 11px 14px 10px;
+}
+
+.fact-strip > span::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 0;
+  height: 0;
+  border-top: 7px solid var(--accent);
+  border-left: 7px solid transparent;
 }
 
 .fact-strip strong,
@@ -978,6 +1129,7 @@ h1.term-name {
 .fact-strip strong {
   color: var(--ink);
   font-size: 15px;
+  margin-top: 3px;
 }
 
 .fact-strip small {
@@ -986,7 +1138,6 @@ h1.term-name {
   font-size: 10.5px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  margin-top: 2px;
 }
 
 .cv-grid {
@@ -1183,12 +1334,22 @@ h1.term-name {
   gap: 12px;
 }
 
+/* log-output framing: faint line numbers before the bracketed years */
 .news-list li {
   display: grid;
-  grid-template-columns: 58px minmax(0, 1fr);
+  grid-template-columns: 22px 58px minmax(0, 1fr);
   gap: 14px;
   color: var(--ink);
   font-size: 14.5px;
+}
+
+.news-list .log-ln {
+  color: var(--faint);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 400;
+  line-height: 2;
+  text-align: right;
 }
 
 .news-list time {
@@ -1219,6 +1380,80 @@ h1.term-name {
 .item:first-child {
   border-top: 0;
   padding-top: 0;
+}
+
+/* blog index rows styled as `ls -l ~/blog/` output:
+   date · #category · title · read time, with a "// description" line */
+.ls-total {
+  color: var(--faint);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  margin-bottom: 12px;
+}
+
+.ls-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.ls-list li {
+  border-top: 1px solid var(--line);
+  padding: 18px 0;
+}
+
+.ls-list li:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.ls-row {
+  display: grid;
+  grid-template-columns: max-content max-content minmax(0, 1fr) max-content;
+  gap: 4px 22px;
+  align-items: baseline;
+}
+
+.ls-date {
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.ls-cat {
+  color: var(--faint);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.ls-cat::before {
+  content: "# ";
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.ls-title {
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.ls-read {
+  color: var(--faint);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.ls-list .code-comment {
+  margin-top: 8px;
+  max-width: 680px;
+}
+
+.ls-section {
+  margin-bottom: 96px;
 }
 
 /* ===========================================================================
@@ -1500,9 +1735,11 @@ h1.term-name {
   border-left: 1px solid var(--term-edge);
 }
 
-.sb-up {
+/* build-time git short hash, tmux-segment style */
+.sb-git {
   color: var(--term-green);
   font-weight: 500;
+  letter-spacing: 0.02em;
 }
 
 /* ===========================================================================
@@ -1558,23 +1795,18 @@ h1.term-name {
     text-align: center;
   }
 
+  .portrait-frame {
+    margin: 0 auto 18px;
+  }
+
   .portrait {
     width: 154px;
     height: 154px;
-    margin: 0 auto 18px;
+    margin: 0;
   }
 
   .profile-links {
     justify-content: center;
-  }
-
-  /* focus[i] rows stay left-aligned inside the centered card */
-  .profile-facts {
-    width: max-content;
-    max-width: 100%;
-    margin-left: auto;
-    margin-right: auto;
-    text-align: left;
   }
 
   /* hero terminal + headings — body copy stays left-aligned on mobile */
@@ -1582,6 +1814,18 @@ h1.term-name {
 
   .term-bar { padding: 8px 12px; }
   .term-size { display: none; }
+
+  /* the window-title meta line flows beside the dots, stays >=11px and may
+     wrap to two lines instead of colliding with the chrome */
+  .term-title {
+    position: static;
+    transform: none;
+    flex: 1 1 auto;
+    text-align: right;
+    white-space: normal;
+    font-size: 11px;
+    line-height: 1.45;
+  }
 
   .term-body {
     padding: 16px 15px 18px;
@@ -1629,12 +1873,36 @@ h1.term-name {
     gap: 8px;
   }
 
+  /* log lines keep their numbers: ln + year on the first row, text below */
   .news-list li {
-    grid-template-columns: 1fr;
-    gap: 2px;
+    grid-template-columns: 22px minmax(0, 1fr);
+    gap: 2px 12px;
+  }
+
+  .news-list li > span:last-child {
+    grid-column: 2;
   }
 
   .item time { text-align: left; }
+
+  /* ls rows restack: meta tokens on one line, then the title, then "//" */
+  .ls-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 16px;
+  }
+
+  .ls-date { order: 1; }
+  .ls-cat { order: 2; }
+  .ls-read { order: 3; }
+
+  .ls-title {
+    order: 4;
+    flex-basis: 100%;
+    font-size: 14.5px;
+  }
+
+  .ls-section { margin-bottom: 72px; }
 
   .fact-strip {
     grid-template-columns: 1fr;
@@ -1805,9 +2073,11 @@ h1.term-name {
   .academic-main > section { margin-bottom: 42px; }
   .academic-main > .terminal-hero { margin-bottom: 42px; }
 
-  /* status bar collapses to its essential segments */
+  /* status bar collapses to its essential segments: mode + host + git hash.
+     desc, utf-8, en|zh and the location cell are hidden on mobile. */
   .footer { margin-top: 44px; font-size: 11.5px; }
   .sb-seg { padding: 10px 11px; }
   .sb-desc,
-  .sb-extra { display: none; }
+  .sb-extra,
+  .sb-loc { display: none; }
 }
