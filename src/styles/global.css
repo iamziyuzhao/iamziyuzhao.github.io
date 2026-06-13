@@ -957,51 +957,86 @@ html.booted body .academic-main > section:not(.terminal-hero) h2 > span:is(.lang
   85%, 100% { opacity: 0; }
 }
 
-/* --- OUTPUT BLOCKS print top-to-bottom: a fast opacity ramp per block with a
-   brief leading cursor glyph that varies by class. The blocks are the about
-   paragraphs + tiles, each cv/experience/project/news entry, and the shell
-   hints. requestAnimationFrame is not needed — these are short CSS ramps. ----*/
+/* --- OUTPUT BLOCKS TYPE ON the SAME WAY AS THE HEADINGS/NAME: a left-to-right
+   clip wipe (boot-type: clip-path inset(0 100% 0 0) -> inset 0) with a TRAILING
+   red caret that the wipe reveals last, at the RIGHT edge of the text — exactly
+   like a real terminal cursor that sits just after the last typed character.
+   NO leading (left-of-text) cursor anywhere. The blocks are the about
+   paragraphs, each cv/experience/project/news entry, and the shell hints.
+   Multi-line blocks (about paragraphs) scan in as a rectangle, which reads as a
+   terminal scan; the trailing caret ends after the last line. ----------------*/
 html.booted .about-section p,
-html.booted .fact-strip,
 html.booted .cv-list > li,
 html.booted .project-list > li,
 html.booted .news-list > li,
 html.booted .section-heading .shell-hint {
-  animation: boot-print 0.08s ease-out both;
+  clip-path: inset(0 100% 0 0);
+  animation: boot-type 0.34s steps(11, end) both;
   position: relative;
 }
 
-/* leading cursor: a small block ▌ for entries/cards, underscore _ for the
-   meta/date-bearing news + shell-hint lines. Appears then vanishes <=300ms. */
-html.booted .cv-list > li::before,
-html.booted .project-list > li::before,
-html.booted .about-section p::before {
+/* the shell hint is an inline <span>; inline-block lets the clip wipe + the
+   trailing caret reveal as one stepping box, like the headings' spans */
+html.booted .section-heading .shell-hint {
+  display: inline-block;
+  vertical-align: bottom;
+}
+
+/* the fact-strip has no caret — it simply scans in left-to-right with the rest */
+html.booted .fact-strip {
+  clip-path: inset(0 100% 0 0);
+  animation: boot-type 0.3s steps(9, end) both;
+}
+
+/* TRAILING red BLOCK caret ▌ at the END of each plain-block entry (the about
+   paragraphs and project rows are normal blocks, so ::after sits after the last
+   inline content). The wipe reveals it LAST, at the right edge, where it blinks
+   a couple times then fades — cursor AFTER the text, never before. */
+html.booted .about-section p::after,
+html.booted .project-list > li::after {
   content: "▌";
-  position: absolute;
-  left: -0.95ch;
+  margin-left: 0.3ch;
   color: var(--accent);
   font-family: var(--font-mono);
-  animation: boot-tick 0.3s steps(1, end) both;
+  animation: boot-caret 0.95s steps(1, end) both;
   pointer-events: none;
 }
 
-html.booted .news-list > li::before,
-html.booted .section-heading .shell-hint::before {
+/* the cv/experience <li> is a flex container (logo + a multi-line text span):
+   an ::after on the <li> would become a stray flex item, so the trailing caret
+   hangs off the END of the inner text span instead — it lands after the last
+   meta line, still to the RIGHT of the text. */
+html.booted .cv-list > li .affiliation-row > span:last-child::after {
+  content: "▌";
+  margin-left: 0.3ch;
+  color: var(--accent);
+  font-family: var(--font-mono);
+  animation: boot-caret 0.95s steps(1, end) both;
+  pointer-events: none;
+}
+
+/* TRAILING underscore _ caret for the meta/date-bearing lines (kept as an
+   underscore to read as a shell-prompt cursor). The news <li> is a 3-col grid,
+   so the caret hangs off the END of its last text column rather than the <li>
+   (which would add a stray grid track); the shell hint is a plain inline-block
+   so its ::after trails inline. Both sit at the END/right of the text. */
+html.booted .news-list > li > span:last-child::after,
+html.booted .section-heading .shell-hint::after {
   content: "_";
-  position: absolute;
-  left: -0.85ch;
-  bottom: 0;
+  margin-left: 0.2ch;
   color: var(--accent);
   font-family: var(--font-mono);
-  animation: boot-tick 0.3s steps(1, end) both;
+  animation: boot-caret 0.95s steps(1, end) both;
   pointer-events: none;
 }
 
-/* SIMULTANEOUS: every output block (and its leading caret) starts on the SAME
+/* SIMULTANEOUS: every output block (and its trailing caret) starts on the SAME
    --bd jitter the boot script stamps on it (0–0.2s organic), so all the about
-   paragraphs, every cv/experience/project/news entry and every shell hint print
-   together — many cursors at once — instead of a downward wave. The element and
-   its ::before caret share --bd so the caret tracks its own line. */
+   paragraphs, every cv/experience/project/news entry, the fact-strip and every
+   shell hint type on together — many cursors at once — instead of a downward
+   wave. The element and its ::after caret share --bd so the caret tracks its own
+   line. The caret is part of the clipped content, so the wipe uncovers it at the
+   right edge as the line finishes — it always trails the text. */
 html.booted .about-section p,
 html.booted .fact-strip,
 html.booted .cv-list > li,
@@ -1010,23 +1045,12 @@ html.booted .news-list > li,
 html.booted .section-heading .shell-hint {
   animation-delay: var(--bd, 0s);
 }
-html.booted .about-section p::before,
-html.booted .cv-list > li::before,
-html.booted .project-list > li::before,
-html.booted .news-list > li::before,
-html.booted .section-heading .shell-hint::before {
+html.booted .about-section p::after,
+html.booted .project-list > li::after,
+html.booted .cv-list > li .affiliation-row > span:last-child::after,
+html.booted .news-list > li > span:last-child::after,
+html.booted .section-heading .shell-hint::after {
   animation-delay: var(--bd, 0s);
-}
-
-@keyframes boot-print {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes boot-tick {
-  0% { opacity: 1; }
-  70% { opacity: 1; }
-  100% { opacity: 0; }
 }
 
 /* portrait wipe: the clip opens top→bottom, revealing the photo behind the
@@ -1047,12 +1071,13 @@ html.booted .section-heading .shell-hint::before {
   100% { transform: translateY(186px); opacity: 0; }
 }
 
-/* --- masthead, sidebar + footer also PRINT (not just fade) so EVERY block of
-   the page participates in the one continuous "terminal types the page" sweep.
-   The brand types on with a clip wipe (its existing block cursor is the caret);
-   nav items, sidebar text + status-bar segments tick in with a brief leading
-   caret. All carets are absolutely positioned and fade out, so the settled
-   layout is byte-identical to the no-boot render. ---------------------------- */
+/* --- masthead, sidebar + footer also TYPE ON (a left-to-right clip wipe, same
+   as the headings/name/output blocks) so EVERY block of the page participates in
+   the one continuous "terminal types the page" sweep, and EVERY caret TRAILS the
+   text (sits after it, never before). The brand types on led by its own block
+   cursor; nav items + status-bar segments scan in; the sidebar text blocks wipe
+   left-to-right with a TRAILING red caret at the right edge. All carets fade out,
+   so the settled layout is byte-identical to the no-boot render. -------------- */
 
 /* brand types on left-to-right, led by its own .brand::after block cursor —
    starts with the rest of the page on its own --bd jitter */
@@ -1062,44 +1087,50 @@ html.booted .brand {
   animation-delay: var(--bd, 0s);
 }
 
-/* nav links + lang toggle tick in in parallel with everything else */
+/* nav links + lang toggle wipe in left-to-right in parallel with everything else.
+   No caret of their own (the tmux index `0:`/`1:` is permanent content, not a
+   cursor); the wipe edge itself reads as the cursor sweeping across each item. */
 html.booted .nav-links a,
 html.booted .nav-links .lang-toggle {
-  opacity: 0;
-  animation: boot-print 0.08s ease-out both;
+  clip-path: inset(0 100% 0 0);
+  animation: boot-type 0.26s steps(8, end) both;
   animation-delay: var(--bd, 0s);
 }
 
-/* sidebar text blocks print top-to-bottom with a small leading caret */
+/* sidebar text blocks type on left-to-right with a TRAILING red caret */
 html.booted .profile-card .profile-title,
 html.booted .profile-card .profile-detail,
 html.booted .profile-card .profile-links,
 html.booted .profile-card .profile-note {
   position: relative;
-  opacity: 0;
-  animation: boot-print 0.1s ease-out both;
+  clip-path: inset(0 100% 0 0);
+  animation: boot-type 0.3s steps(10, end) both;
 }
+/* the caret hangs off the END of the text (margin-left), so the wipe reveals it
+   last at the RIGHT edge — cursor AFTER the text, never before. (.profile-links
+   is a flex row of link chips; the ::after lands as the last flex item, after
+   the chips.) */
 html.booted .profile-card .profile-title::after,
 html.booted .profile-card .profile-detail::after,
-html.booted .profile-card .profile-links::after {
+html.booted .profile-card .profile-links::after,
+html.booted .profile-card .profile-note::after {
   content: "▌";
-  position: absolute;
-  left: -0.05ch;
-  bottom: 0;
+  margin-left: 0.3ch;
   color: var(--accent);
   font-family: var(--font-mono);
   font-size: 12px;
-  animation: boot-tick 0.32s steps(1, end) both;
+  animation: boot-caret 0.95s steps(1, end) both;
   pointer-events: none;
 }
-/* sidebar text blocks all print in parallel on their own --bd jitter */
+/* sidebar text blocks all type on in parallel on their own --bd jitter */
 html.booted .profile-card .profile-title,
 html.booted .profile-card .profile-title::after,
 html.booted .profile-card .profile-detail,
 html.booted .profile-card .profile-detail::after,
 html.booted .profile-card .profile-links,
 html.booted .profile-card .profile-links::after,
-html.booted .profile-card .profile-note {
+html.booted .profile-card .profile-note,
+html.booted .profile-card .profile-note::after {
   animation-delay: var(--bd, 0s);
 }
 
@@ -1137,10 +1168,12 @@ html.booted .profile-card .portrait-frame .portrait-scan {
   animation-delay: var(--bd, 0s);
 }
 
-/* status-bar segments print together with everything else, in parallel */
+/* status-bar segments type on (left-to-right clip wipe) together with everything
+   else, in parallel. No leading caret — the wipe edge reads as the cursor
+   sweeping each segment. */
 html.booted .footer .sb-seg {
-  opacity: 0;
-  animation: boot-print 0.07s ease-out both;
+  clip-path: inset(0 100% 0 0);
+  animation: boot-type 0.24s steps(7, end) both;
   animation-delay: var(--bd, 0s);
 }
 
