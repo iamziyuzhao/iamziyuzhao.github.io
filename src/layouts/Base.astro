@@ -128,8 +128,16 @@ const description =
 
         // start the typed page cascade — the dock has fully landed by now.
         var reveal = function () {
-          html.classList.remove("booting");
+          // flip to booted, drop booting, THEN strip the boot geometry — all in
+          // one synchronous frame, in this order. Removing `booting` first takes
+          // the card out from under the `html.booting .term-window { opacity:0 }`
+          // default before its boot-full class is stripped, so the terminal never
+          // blanks in the hand-off from docked-fixed to normal flow (that gap was
+          // the post-dock flash). The card is pinned at the natural rect, so the
+          // fixed->static swap is pixel-seamless.
           html.classList.add("booted");
+          html.classList.remove("booting");
+          stripGeometry();
           // the content reveal finishes ~1.8s in (footer is the last block at
           // ~1.5s + ramp); give it a small margin, then stop listening + drop
           // the booted class so the whole boot has settled by ~7s.
@@ -165,13 +173,11 @@ const description =
             if (settled) return;
             settled = true;
             clearTimeout(dockTimer);
-            // strip inside a rAF so the card lands in-flow on the same frame
-            // the animated target was reached — no measured end-jump
-            requestAnimationFrame(function () {
-              stripGeometry();
-              // a short beat after the dock fully completes, print the page
-              revealTimer = setTimeout(reveal, 120);
-            });
+            // keep the docked card fully visible (boot-full/boot-dock stay on,
+            // pinned at the natural rect) through a short beat; reveal() then
+            // strips the geometry and flips booting->booted in the SAME frame,
+            // so the terminal never goes blank between docking and the cascade.
+            revealTimer = setTimeout(reveal, 120);
           };
           dockEndHandler = function (e) {
             if (e.propertyName !== "width" && e.propertyName !== "height")
