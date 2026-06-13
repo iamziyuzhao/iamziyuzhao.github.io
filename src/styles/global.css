@@ -9,6 +9,29 @@
    =========================================================================== */
 
 /* ===========================================================================
+   0. Fonts — New York (Apple's serif) powers the whole page; the terminal and
+   code keep IBM Plex Mono. Self-hosted, Latin-subset variable woff2 (~66/70KB)
+   with the weight (400–1000) and optical-size (12–256) axes preserved, so body
+   and headings get size-appropriate cuts automatically. New York has no CJK
+   glyphs, so Chinese text falls back to a CJK serif in the stacks below.
+   =========================================================================== */
+
+@font-face {
+  font-family: "New York";
+  src: url("/fonts/NewYork.woff2") format("woff2");
+  font-weight: 400 1000;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "New York";
+  src: url("/fonts/NewYorkItalic.woff2") format("woff2");
+  font-weight: 400 1000;
+  font-style: italic;
+  font-display: swap;
+}
+
+/* ===========================================================================
    1. Design tokens
    =========================================================================== */
 
@@ -41,8 +64,13 @@
   --shadow: none;
   --radius: 3px;
   --max: 1020px;
-  --font-sans: "Atkinson Hyperlegible", Lato, "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --font-serif: "Crimson Pro", Georgia, "Times New Roman", "Songti SC", "Noto Serif SC", serif;
+  /* New York powers all page text (body + headings). Chinese has no New York
+     glyphs, so it falls through to a CJK serif (Songti / Noto Serif SC). Both
+     "sans" and "serif" tokens now resolve to New York — the names are kept so
+     existing rules don't need touching. The terminal + code keep --font-mono. */
+  --font-ny: "New York", "Songti SC", "Noto Serif SC", Georgia, "Times New Roman", serif;
+  --font-sans: var(--font-ny);
+  --font-serif: var(--font-ny);
   --font-mono: "IBM Plex Mono", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
 }
 
@@ -612,6 +640,9 @@ main {
 
 .term-window {
   background: var(--term-bg);
+  /* the whole terminal (title bar + body) stays in the mono "terminal" font
+     even though the rest of the page is New York */
+  font-family: var(--font-mono);
   border: 1px solid var(--term-edge);
   border-radius: 9px;
   box-shadow:
@@ -1294,11 +1325,14 @@ p.code-comment {
 }
 
 /* terminal headings: hex address counters (0x01, 0x02, …) in red mono,
-   mono uppercase titles on a hairline with a short red ink rule */
+   New York serif titles on a hairline with a short red ink rule. The readable
+   title TEXT is New York (var(--font-serif)); only the "0x0n" counter accent
+   below stays mono (it must re-declare --font-mono so it doesn't inherit the
+   serif from the heading element). */
 .cv-block h2,
 .section-heading h2,
 .section > h2 {
-  font-family: var(--font-mono);
+  font-family: var(--font-serif);
   font-size: 15px;
   font-weight: 600;
   letter-spacing: 0.18em;
@@ -1311,6 +1345,7 @@ p.code-comment {
 .section > h2::before {
   counter-increment: sec;
   content: "0x0" counter(sec);
+  font-family: var(--font-mono); /* code-grammar accent stays mono */
   color: var(--accent);
   font-size: 13px;
   font-weight: 600;
