@@ -4,16 +4,16 @@ import LogoMark from "../components/LogoMark.astro";
 import { education, experience, news, newsZh, profile } from "../data/profile";
 
 const focusAreas = [
-  "LLM inference",
-  "GPU kernels",
-  "Agent runtimes",
-  "Evaluation infrastructure",
+  { en: "LLM inference", zh: "LLM 推理" },
+  { en: "GPU kernels", zh: "GPU kernels" },
+  { en: "Agent runtimes", zh: "Agent 运行时" },
+  { en: "Evaluation infrastructure", zh: "评测基础设施" },
 ];
 
 const profileStats = [
-  { label: "Incoming", value: "CMU MSIN" },
-  { label: "Research", value: "Systems for AI" },
-  { label: "Base", value: "Pittsburgh" },
+  { value: "CMU MSIN", valueZh: "CMU MSIN", label: "Incoming", labelZh: "入学" },
+  { value: "Systems for AI", valueZh: "AI 系统", label: "Research", labelZh: "研究方向" },
+  { value: "Pittsburgh", valueZh: "匹兹堡", label: "Base", labelZh: "所在地" },
 ];
 ---
 
@@ -38,7 +38,12 @@ const profileStats = [
         {profile.links.map((link) => <a href={link.href}>{link.label}</a>)}
       </div>
       <div class="profile-facts" aria-label="Research focus areas">
-        {focusAreas.map((area) => <span>{area}</span>)}
+        {focusAreas.map((area) => (
+          <span>
+            <span class="lang-en">{area.en}</span>
+            <span class="lang-zh">{area.zh}</span>
+          </span>
+        ))}
       </div>
       <p class="profile-note">
         <span class="lang-en">Interested in the systems layer below large models: serving, kernels, runtimes, and evaluation infrastructure.</span>
@@ -47,12 +52,39 @@ const profileStats = [
     </aside>
 
     <div class="academic-main">
-      <section class="hero-statement">
-        <div class="eyebrow"><span class="lang-en">Research Profile</span><span class="lang-zh">研究主页</span></div>
-        <h1>
-          <span class="lang-en">About Me</span>
-          <span class="lang-zh">关于我</span>
-        </h1>
+      <section class="terminal-hero" aria-label="Introduction">
+        <div class="term-window">
+          <div class="term-bar">
+            <span class="term-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+            <span class="term-title" aria-hidden="true">albert@cmu:~ — zsh</span>
+            <span class="term-size" aria-hidden="true">80×24</span>
+          </div>
+          <div class="term-body">
+            <p class="term-line"><span class="term-prompt" aria-hidden="true">$</span><span class="term-cmd type-6">whoami</span></p>
+            <h1 class="term-name">Albert (Ziyu) Zhao</h1>
+            <p class="term-out term-role">
+              <span class="lang-en">{profile.title}</span>
+              <span class="lang-zh">{profile.titleZh}</span>
+            </p>
+            <p class="term-out term-dim">
+              <span class="lang-en">incoming M.S. student · Carnegie Mellon University · Pittsburgh, PA</span>
+              <span class="lang-zh">硕士新生 · Carnegie Mellon University · Pittsburgh, PA</span>
+            </p>
+            <p class="term-line"><span class="term-prompt" aria-hidden="true">$</span><span class="term-cmd type-13">cat focus.txt</span></p>
+            {focusAreas.map((area, i) => (
+              <p class="term-out term-focus">
+                <span class="term-idx" aria-hidden="true">{i}:</span>
+                <span class="lang-en">{area.en}</span>
+                <span class="lang-zh">{area.zh}</span>
+              </p>
+            ))}
+            <p class="term-line term-last"><span class="term-prompt" aria-hidden="true">$</span><span class="term-cursor" aria-hidden="true"></span></p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section about-section">
+        <h2><span class="lang-en">About</span><span class="lang-zh">关于</span></h2>
         <p>
           <span class="lang-en">{profile.intro}</span>
           <span class="lang-zh">{profile.introZh}</span>
@@ -64,8 +96,14 @@ const profileStats = [
         <div class="fact-strip" aria-label="Profile summary">
           {profileStats.map((stat) => (
             <span>
-              <strong>{stat.value}</strong>
-              <small>{stat.label}</small>
+              <strong>
+                <span class="lang-en">{stat.value}</span>
+                <span class="lang-zh">{stat.valueZh}</span>
+              </strong>
+              <small>
+                <span class="lang-en">{stat.label}</span>
+                <span class="lang-zh">{stat.labelZh}</span>
+              </small>
             </span>
           ))}
         </div>
@@ -85,7 +123,7 @@ const profileStats = [
                       <span class="lang-en">{item.degree}</span>
                       <span class="lang-zh">{item.degreeZh}</span>
                       <br />
-                      <span>{item.date}</span>
+                      <span class="date-chip">{item.date}</span>
                       <br />
                       <span class="lang-en">{item.meta}</span>
                       <span class="lang-zh">{item.metaZh}</span>
@@ -108,7 +146,7 @@ const profileStats = [
                       <span class="lang-en">{item.role}</span>
                       <span class="lang-zh">{item.roleZh}</span>
                       <br />
-                      <span>{item.date}</span>
+                      <span class="date-chip">{item.date}</span>
                     </span>
                   </div>
                 </li>
@@ -122,6 +160,7 @@ const profileStats = [
       <section class="content-card">
         <div class="section-heading">
           <h2><span class="lang-en">News</span><span class="lang-zh">动态</span></h2>
+          <span class="shell-hint" aria-hidden="true">$ tail -n 4 news.log</span>
         </div>
         <ul class="news-list">
           {news.map((item, index) => (

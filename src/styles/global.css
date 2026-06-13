@@ -1,9 +1,9 @@
 /* ===========================================================================
-   global.css — variant B "systems paper".
-   A systems-conference-paper aesthetic with Cornell-red ink: Crimson Pro
-   display headings with mono section counters (01., 02.), red rules under
-   section headings, mono metadata rows, warm paper-white ground, and
-   dark code blocks for systems posts. Cascade-order-sensitive areas
+   global.css — variant "terminal session".
+   White page ground with dark terminal components in Cornell-red livery:
+   a zsh hero window with a typed-on session, hex section counters (0x01),
+   exit-code date chips, tmux-style status-bar footer, and code blocks that
+   share window chrome with the hero terminal. Cascade-order-sensitive areas
    (the logo system and the mobile media query) preserve the original
    relative rule order — be careful when reordering.
    =========================================================================== */
@@ -27,9 +27,17 @@
   --accent-soft: #f8efec;       /* red-tinted wash */
   --green: #2f6d57;
   --amber: #8a5b16;
-  --code-bg: #211a17;           /* dark warm block for code */
+  --code-bg: #161210;           /* dark warm terminal ground */
   --code-ink: #ece5df;
   --code-line: #3a2d28;
+  --term-bg: #161210;           /* terminal window body */
+  --term-bar: #241c18;          /* terminal title bar */
+  --term-edge: #2e2521;         /* terminal hairlines */
+  --term-ink: #ece5df;          /* terminal foreground */
+  --term-dim: #9c918a;          /* terminal secondary */
+  --term-red: #f0726a;          /* Cornell red, raised for dark ground */
+  --term-green: #7fc89a;        /* ok / uptime green */
+  --term-amber: #d9a036;
   --shadow: none;
   --radius: 3px;
   --max: 1020px;
@@ -51,6 +59,10 @@ body {
   font-family: var(--font-sans);
   font-size: 16px;
   line-height: 1.7;
+  /* status-bar footer hugs the bottom even on short pages */
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 ::selection {
@@ -132,25 +144,49 @@ code {
   font-family: var(--font-mono);
 }
 
+/* code blocks share window chrome with the hero terminal: dark card,
+   title strip with traffic dots (drawn as gradients so markdown needs
+   no extra markup), sticky so it survives horizontal scrolling */
 pre {
-  background: var(--code-bg);
+  background: var(--term-bg) !important; /* beat shiki's inline theme bg */
   color: var(--code-ink);
   font-family: var(--font-mono);
   font-size: 13.5px;
   line-height: 1.7;
   tab-size: 2;
-  border: 1px solid var(--code-line);
-  border-left: 3px solid var(--accent);
-  border-radius: 4px;
-  padding: 18px 20px;
-  margin: 20px 0 24px;
-  overflow-x: auto;
+  border: 1px solid var(--term-edge);
+  border-radius: 8px;
+  padding: 0;
+  margin: 22px 0 26px;
+  overflow: hidden; /* horizontal scrolling lives on the inner <code> */
+}
+
+pre::before {
+  content: "albert@cmu:~ — zsh";
+  display: block;
+  padding: 8px 14px 8px 64px;
+  background-color: var(--term-bar);
+  background-image:
+    radial-gradient(circle 4px at 50% 50%, #e3554d 98%, transparent),
+    radial-gradient(circle 4px at 50% 50%, #d9a036 98%, transparent),
+    radial-gradient(circle 4px at 50% 50%, #4fa36b 98%, transparent);
+  background-size: 9px 9px, 9px 9px, 9px 9px;
+  background-position: 14px 50%, 30px 50%, 46px 50%;
+  background-repeat: no-repeat;
+  border-bottom: 1px solid var(--term-edge);
+  color: var(--term-dim);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  line-height: 1;
 }
 
 pre code {
+  display: block;
+  overflow-x: auto;
   background: transparent;
   border: 0;
-  padding: 0;
+  padding: 14px 18px 18px;
   color: inherit;
   font-size: inherit;
 }
@@ -187,8 +223,18 @@ body[data-lang="zh"] span.lang-zh.block { display: block; }
    =========================================================================== */
 
 .site-header {
-  background: #b31b1b;
+  background-color: #b31b1b;
+  /* faint CRT scanlines over the red */
+  background-image: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.055) 0px,
+    rgba(0, 0, 0, 0.055) 1px,
+    transparent 1px,
+    transparent 3px
+  );
   border-bottom: 1px solid #7f1313;
+  /* dark bezel strip under the red, echoing the terminal chrome */
+  box-shadow: 0 3px 0 0 #211a17;
 }
 
 .nav {
@@ -222,12 +268,43 @@ body[data-lang="zh"] span.lang-zh.block { display: block; }
   margin-right: 0.55ch;
 }
 
+/* block cursor after the brand, gently pulsing (never fully off) */
+.brand::after {
+  content: "";
+  display: inline-block;
+  width: 0.58ch;
+  height: 1.02em;
+  margin-left: 0.5ch;
+  background: rgba(255, 255, 255, 0.85);
+  vertical-align: text-bottom;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .brand::after {
+    animation: cursor-pulse 1.3s ease-in-out infinite;
+  }
+}
+
+@keyframes cursor-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
 .nav-links {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: flex-end;
   gap: 2px;
+  counter-reset: win -1;
+}
+
+/* tmux window indices: 0:home 1:blog */
+.nav-links a::before {
+  counter-increment: win;
+  content: counter(win) ":";
+  color: rgba(255, 255, 255, 0.62);
+  font-weight: 400;
 }
 
 .nav-links a {
@@ -278,10 +355,12 @@ body[data-lang="zh"] span.lang-zh.block { display: block; }
    =========================================================================== */
 
 main {
+  width: 100%;
   max-width: var(--max);
   margin: 0 auto;
-  padding: 38px 24px 88px;
+  padding: 42px 24px 88px;
   counter-reset: sec;
+  flex: 1 0 auto;
 }
 
 .academic-shell {
@@ -356,7 +435,15 @@ main {
 /* post metadata + lede */
 .prose .post-meta {
   color: var(--muted);
-  margin-bottom: 30px;
+  margin-bottom: 34px;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  letter-spacing: 0.02em;
+}
+
+.prose .post-meta::after {
+  content: " ──";
+  color: var(--line-strong);
 }
 
 .post > p:first-of-type {
@@ -469,7 +556,7 @@ main {
   text-align: left;
 }
 
-.profile-facts span {
+.profile-facts > span {
   display: block;
   border: 0;
   border-radius: 0;
@@ -482,7 +569,7 @@ main {
   text-align: left;
 }
 
-.profile-facts span::before {
+.profile-facts > span::before {
   counter-increment: focus;
   content: "focus[" counter(focus) "]: ";
   color: var(--accent);
@@ -493,7 +580,7 @@ main {
    7. Sections, headings, cards — numbered headings, red rules
    =========================================================================== */
 
-.hero-statement,
+.terminal-hero,
 .content-card,
 .prose,
 .section {
@@ -503,23 +590,178 @@ main {
   padding: 0;
 }
 
-.hero-statement {
-  display: block;
-  margin: 0 0 76px;
+/* --- the hero terminal window ------------------------------------------ */
+
+.academic-main > .terminal-hero {
+  margin-bottom: 60px;
 }
 
-.hero-statement .eyebrow {
+.term-window {
+  background: var(--term-bg);
+  border: 1px solid var(--term-edge);
+  border-radius: 9px;
+  box-shadow:
+    0 18px 40px -22px rgba(24, 14, 10, 0.55),
+    0 2px 10px rgba(24, 14, 10, 0.10);
+  overflow: hidden;
+}
+
+.term-bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: var(--term-bar);
+  border-bottom: 1px solid var(--term-edge);
+  padding: 9px 14px;
+}
+
+.term-dots {
+  display: inline-flex;
+  gap: 7px;
+}
+
+.term-dots i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.term-dots i:nth-child(1) { background: #e3554d; }
+.term-dots i:nth-child(2) { background: #d9a036; }
+.term-dots i:nth-child(3) { background: #4fa36b; }
+
+.term-title {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  color: var(--term-dim);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.term-size {
+  color: #6d6159;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.05em;
+}
+
+.term-body {
+  padding: 22px 24px 24px;
+  font-family: var(--font-mono);
+  font-size: 13.5px;
+  line-height: 1.75;
+}
+
+.term-body > * {
+  margin: 0;
+}
+
+.term-line,
+.term-out {
+  color: var(--term-ink);
+}
+
+.term-line + .term-line,
+.term-out + .term-line {
+  margin-top: 16px;
+}
+
+.term-prompt {
+  color: var(--term-red);
+  font-weight: 600;
+  margin-right: 0.7ch;
+}
+
+.term-cmd {
   display: inline-block;
-  margin-bottom: 12px;
+  overflow: hidden;
+  white-space: nowrap;
+  vertical-align: bottom;
+  color: var(--term-ink);
+  font-weight: 500;
 }
 
-.hero-statement h1 {
-  font-size: clamp(36px, 5vw, 46px);
-  line-height: 1.1;
-  margin-bottom: 12px;
+.type-6 { width: 6ch; }
+.type-13 { width: 13ch; }
+
+h1.term-name {
+  font-family: var(--font-mono);
+  font-size: clamp(22px, 3.4vw, 30px);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+  color: #ffffff;
+  margin: 4px 0 2px;
 }
 
-.hero-statement p {
+.term-role {
+  color: var(--term-red);
+  font-weight: 500;
+}
+
+.term-dim {
+  color: var(--term-dim);
+}
+
+.term-focus {
+  color: #e2dad3;
+}
+
+.term-idx {
+  color: var(--term-dim);
+  margin-right: 1ch;
+}
+
+.term-cursor {
+  display: inline-block;
+  width: 0.62em;
+  height: 1.05em;
+  background: var(--term-red);
+  vertical-align: text-bottom;
+}
+
+/* type-on session: lines land in order, commands type with steps().
+   Everything is fully settled by ~1.9s; reduced-motion sees the final
+   frame immediately because the animations only exist in this block. */
+@media (prefers-reduced-motion: no-preference) {
+  .term-body > * {
+    opacity: 0;
+    animation: term-in 0.16s ease-out forwards;
+  }
+  .term-body > :nth-child(1) { animation-delay: 0.05s; }
+  .term-body > :nth-child(2) { animation-delay: 0.52s; }
+  .term-body > :nth-child(3) { animation-delay: 0.62s; }
+  .term-body > :nth-child(4) { animation-delay: 0.72s; }
+  .term-body > :nth-child(5) { animation-delay: 0.92s; }
+  .term-body > :nth-child(6) { animation-delay: 1.52s; }
+  .term-body > :nth-child(7) { animation-delay: 1.60s; }
+  .term-body > :nth-child(8) { animation-delay: 1.68s; }
+  .term-body > :nth-child(9) { animation-delay: 1.76s; }
+  .term-body > :nth-child(10) { animation-delay: 1.88s; }
+
+  .type-6 { animation: type-w 0.3s steps(6, end) 0.14s both; }
+  .type-13 { animation: type-w 0.45s steps(13, end) 1.0s both; }
+
+  .term-cursor { animation: cursor-pulse 1.25s ease-in-out 1.95s infinite; }
+}
+
+@keyframes term-in {
+  to { opacity: 1; }
+}
+
+@keyframes type-w {
+  from { width: 0; }
+}
+
+/* --- about section under the terminal ----------------------------------- */
+
+.about-section p {
   max-width: 660px;
   color: #46403a;
   font-family: var(--font-serif);
@@ -551,22 +793,100 @@ main {
   font-weight: 500;
 }
 
-/* paper-style section numbers: 01., 02., … in red mono */
+/* shell-path eyebrow on blog pages: "$ cat ~/blog/post.md" */
+.term-path {
+  margin-bottom: 16px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--ink);
+}
+
+.term-path .tp-cmd {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.term-path a {
+  color: var(--muted);
+  text-decoration: none;
+}
+
+.term-path a:hover {
+  color: var(--accent-deep);
+  text-decoration: underline;
+}
+
+.term-path .tp-file {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+/* exit-code style date chips on CV rows */
+.date-chip {
+  display: inline-block;
+  margin: 3px 0;
+  border: 1px solid var(--line-strong);
+  border-radius: 3px;
+  background: #faf9f7;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  line-height: 1.6;
+  padding: 0 7px;
+}
+
+.date-chip::before {
+  content: "[";
+  color: rgba(179, 27, 27, 0.55);
+}
+
+.date-chip::after {
+  content: "]";
+  color: rgba(179, 27, 27, 0.55);
+}
+
+/* terminal headings: hex address counters (0x01, 0x02, …) in red mono,
+   mono uppercase titles on a hairline with a short red ink rule */
+.cv-block h2,
+.section-heading h2,
+.section > h2 {
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
 .cv-block h2::before,
 .section-heading h2::before,
-.section > h2::before,
-.prose h2::before {
+.section > h2::before {
   counter-increment: sec;
-  content: counter(sec, decimal-leading-zero) ".";
+  content: "0x0" counter(sec);
   color: var(--accent);
-  font-family: var(--font-mono);
   font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.08em;
-  margin-right: 12px;
+  margin-right: 14px;
+  text-transform: none; /* keep the x lowercase */
 }
 
-/* numbered headings sit on a hairline with a short red ink rule */
+/* blog posts keep markdown's own glyphs: ## in red mono */
+.prose h2 {
+  font-family: var(--font-mono);
+  font-size: 17.5px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.prose h2::before {
+  content: "## ";
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* headings sit on a hairline with a short red ink rule */
 .cv-block h2,
 .section > h2,
 .prose h2 {
@@ -584,7 +904,7 @@ main {
   position: absolute;
   left: 0;
   bottom: -1px;
-  width: 120px;
+  width: 64px;
   height: 2px;
   background: var(--accent);
 }
@@ -625,6 +945,14 @@ main {
   white-space: nowrap;
 }
 
+/* decorative shell hint on the right of a section heading */
+.shell-hint {
+  color: var(--faint);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
 /* ===========================================================================
    8. Content lists (cv-list, paper-row, item, news-list, fact-strip, badges)
    =========================================================================== */
@@ -637,7 +965,7 @@ main {
   margin-top: 26px;
 }
 
-.fact-strip span {
+.fact-strip > span {
   border-top: 1px solid var(--line-strong);
   padding-top: 10px;
 }
@@ -668,7 +996,6 @@ main {
 }
 
 .cv-block h2 {
-  font-size: 25px;
   margin-bottom: 10px;
 }
 
@@ -688,7 +1015,6 @@ main {
   display: flex;
   align-items: flex-start;
   box-sizing: border-box;
-  height: 146px;
   min-height: 146px;
   padding: 18px 0;
 }
@@ -793,6 +1119,18 @@ main {
 .item time {
   text-align: right;
   letter-spacing: 0.04em;
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.item time::before { content: "["; opacity: 0.55; }
+.item time::after { content: "]"; opacity: 0.55; }
+
+/* blog-index categories read as tags: # research notes */
+.item .meta::before {
+  content: "# ";
+  color: var(--accent);
+  font-weight: 600;
 }
 
 .badge-row {
@@ -859,6 +1197,10 @@ main {
   font-weight: 600;
   line-height: 1.8;
 }
+
+/* exit-code brackets around news years */
+.news-list time::before { content: "["; opacity: 0.55; }
+.news-list time::after { content: "]"; opacity: 0.55; }
 
 .list {
   display: grid;
@@ -1103,17 +1445,64 @@ main {
 }
 
 /* ===========================================================================
-   10. Footer
+   10. Footer — tmux/vim status bar
    =========================================================================== */
 
 .footer {
-  max-width: var(--max);
-  margin: 0 auto;
-  padding: 24px 20px 38px;
-  border-top: 1px solid var(--line);
-  color: var(--faint);
+  width: 100%;
+  margin: 64px 0 0;
+  display: flex;
+  align-items: stretch;
+  flex-wrap: wrap;
+  background: var(--term-bg);
+  border-top: 1px solid var(--term-edge);
+  color: var(--term-dim);
   font-family: var(--font-mono);
   font-size: 12px;
+  line-height: 1;
+}
+
+.sb-seg {
+  display: inline-flex;
+  align-items: center;
+  padding: 11px 14px;
+  white-space: nowrap;
+}
+
+.sb-mode {
+  background: var(--accent);
+  color: #ffffff;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.sb-host {
+  color: var(--term-ink);
+  font-weight: 500;
+}
+
+.sb-desc {
+  color: var(--term-dim);
+}
+
+.sb-host + .sb-desc::before {
+  content: "·";
+  margin-right: 14px;
+  color: #57493f;
+}
+
+.sb-spacer {
+  flex: 1 1 auto;
+  min-width: 8px;
+}
+
+.sb-spacer ~ .sb-seg {
+  border-left: 1px solid var(--term-edge);
+}
+
+.sb-up {
+  color: var(--term-green);
+  font-weight: 500;
 }
 
 /* ===========================================================================
@@ -1188,24 +1577,41 @@ main {
     text-align: left;
   }
 
-  /* hero + headings — body copy stays left-aligned on mobile */
-  .hero-statement {
-    margin-bottom: 58px;
-    text-align: left;
+  /* hero terminal + headings — body copy stays left-aligned on mobile */
+  .academic-main > .terminal-hero { margin-bottom: 48px; }
+
+  .term-bar { padding: 8px 12px; }
+  .term-size { display: none; }
+
+  .term-body {
+    padding: 16px 15px 18px;
+    font-size: 12px;
+    line-height: 1.7;
   }
 
-  .hero-statement p { font-size: 17px; }
-  .hero-statement h1 { font-size: 32px; }
+  h1.term-name { font-size: 19px; }
+
+  .about-section p { font-size: 17px; }
   h1 { font-size: 36px; }
-  h2 { font-size: 24px; }
+
+  .cv-block h2,
+  .section-heading h2,
+  .section > h2 {
+    font-size: 13px;
+  }
+
+  .prose h2 { font-size: 16px; }
   .eyebrow { font-size: 11.5px; }
-  .cv-block h2 { font-size: 22px; }
+  .term-path { font-size: 12px; }
 
   .section-heading { flex-wrap: wrap; }
 
   pre {
     font-size: 12.5px;
-    padding: 14px 14px;
+  }
+
+  pre code {
+    padding: 12px 14px 16px;
   }
 
   .prose th { padding: 10px 10px; }
@@ -1387,7 +1793,6 @@ main {
   }
 
   .cv-list li {
-    height: 170px;
     min-height: 170px;
     padding: 16px 0;
   }
@@ -1398,4 +1803,11 @@ main {
   .cv-block .cv-list li:last-child { padding-bottom: 16px; }
 
   .academic-main > section { margin-bottom: 42px; }
+  .academic-main > .terminal-hero { margin-bottom: 42px; }
+
+  /* status bar collapses to its essential segments */
+  .footer { margin-top: 44px; font-size: 11.5px; }
+  .sb-seg { padding: 10px 11px; }
+  .sb-desc,
+  .sb-extra { display: none; }
 }

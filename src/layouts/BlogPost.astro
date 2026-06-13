@@ -7,11 +7,12 @@ const date = frontmatter.date ? new Date(frontmatter.date) : null;
 const dateLabel = date?.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
 const words = typeof rawContent === "function" ? rawContent().trim().split(/\s+/).length : 0;
 const readingMinutes = words ? Math.max(1, Math.round(words / 200)) : null;
+const slug = Astro.url.pathname.replace(/\/+$/, "").split("/").pop();
 ---
 
 <Base title={frontmatter.title} description={frontmatter.description}>
   <article class="prose post">
-    <div class="eyebrow"><span class="lang-en">Blog</span><span class="lang-zh">博客</span></div>
+    <div class="term-path"><span class="tp-cmd" aria-hidden="true">$ cat&nbsp;</span><a href="/blog/">~/blog/</a><span class="tp-file">{slug}.md</span></div>
     <h1>
       {frontmatter.titleZh ? (
         <>
