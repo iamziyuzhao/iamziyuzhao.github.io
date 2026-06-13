@@ -233,6 +233,12 @@ const profileStats = [
     let ctx: CanvasRenderingContext2D | null = null;
     let dots: { cx: number; cy: number; r: number; a: number; t: number }[] = [];
     let dpr = 1;
+    // canvas-pixel cell size + the vertical band the dots occupy (top/bottom),
+    // captured in build() so the block cursor is sized to one cell wide and the
+    // full dot-region height.
+    let cellPx = 2;
+    let dotTop = 0;
+    let dotBottom = 0;
 
     // paint the COMPLETE dotted mosaic (final state) — used at the end of the
     // sweep, on skip, and for the reduced-motion instant render.
@@ -309,6 +315,7 @@ const profileStats = [
       // still clearly reading as a grid of discrete dots.
       const cellCss = ch <= 26 ? 2.6 : 3;
       const cell = Math.max(2, Math.round(cellCss * dpr));
+      cellPx = cell;
       const cols = Math.ceil(canvas.width / cell);
       const rows = Math.ceil(canvas.height / cell);
       // dot diameter ~76% of the cell → visible gaps separate the dots
@@ -331,35 +338,62 @@ const profileStats = [
               // coverage maps to opacity for soft edges, floored so faint
               // edge dots still read
               a: Math.min(1, 0.45 + a * 0.7),
-              // per-cell jitter (a few columns ahead/behind) so it shimmers in
-              t: cx + (Math.random() * 5 - 2.5),
+              // strict column index — NO random jitter. The sweep reveals dots
+              // cleanly left-to-right (a dot reveals when the head passes its
+              // center x), so no dot ever appears to the RIGHT of the block
+              // cursor that trails the sweep head.
+              t: cx,
             });
         }
+      }
+      // vertical band the dots actually occupy (their outer edges), so the block
+      // cursor matches the dot-region height rather than the whole canvas box
+      dotTop = canvas.height;
+      dotBottom = 0;
+      for (const d of dots) {
+        if (d.cy - d.r < dotTop) dotTop = d.cy - d.r;
+        if (d.cy + d.r > dotBottom) dotBottom = d.cy + d.r;
+      }
+      if (dotBottom <= dotTop) {
+        dotTop = 0;
+        dotBottom = canvas.height;
       }
       return true;
     };
 
-    // animated left-to-right type-in of the dots, then settle as the mosaic
+    // animated left-to-right type-in of the dots, with a BLOCK cursor that always
+    // sits just AFTER the rightmost revealed dot (like a terminal typing the
+    // name), then settle as the clean mosaic with no cursor.
     const sweep = () => {
       if (done || html.classList.contains("skip")) return finishMosaic();
       if (!build()) return; // couldn't measure yet
       if (!ctx || !canvas) return finishMosaic();
       const w = canvas.width;
-      let maxT = 0;
-      for (const d of dots) if (d.t > maxT) maxT = d.t;
-      maxT += 3;
+      // the rightmost dot center → the sweep head only needs to travel this far
+      // to reveal every dot; it ends just past it so the cursor rests after the
+      // full name.
+      let lastCx = 0;
+      for (const d of dots) if (d.cx > lastCx) lastCx = d.cx;
       const DUR = 1050; // ms — within the 0.9–1.2s target, before "source"
       const red =
         getComputedStyle(html).getPropertyValue("--term-red").trim() || "#e3554d";
-      const start = performance.now();
-      const tick = (now: number) => {
-        if (done || html.classList.contains("skip")) return finishMosaic();
-        const p = Math.min(1, (now - start) / DUR);
-        const headT = p * maxT; // current sweep column (in cell units)
+      // block cursor geometry: ~2 dot-cells wide (within the 1.6–2.4 target),
+      // spanning the full dot-region height.
+      const cw = Math.max(2, Math.round(cellPx * 2));
+      const cyTop = dotTop;
+      const ch2 = Math.max(cellPx, dotBottom - dotTop);
+      const gap = cellPx * 0.2; // tiny gap so the block is unmistakably AFTER
+
+      // draw the revealed dots up to a given head x, plus (optionally) the block
+      // cursor whose LEFT edge is at/just past the rightmost revealed dot.
+      const drawFrame = (headX: number, showCursor: boolean) => {
         ctx!.clearRect(0, 0, w, canvas!.height);
         ctx!.fillStyle = "#fff";
+        let maxRight = 0; // right edge of the rightmost revealed dot
         for (const d of dots) {
-          if (d.t <= headT) {
+          if (d.cx <= headX) {
+            const right = d.cx + d.r;
+            if (right > maxRight) maxRight = right;
             ctx!.globalAlpha = d.a;
             ctx!.beginPath();
             ctx!.arc(d.cx, d.cy, d.r, 0, Math.PI * 2);
@@ -367,16 +401,46 @@ const profileStats = [
           }
         }
         ctx!.globalAlpha = 1;
-        // red leading column cursor marking the sweep head
-        if (p < 1) {
-          const cellW = maxT > 0 ? w / maxT : w;
-          const bx = Math.min(w - 2, headT * cellW);
+        if (showCursor) {
+          // left edge = past both the sweep head AND every revealed dot's right
+          // edge → the block is never among/over the dots, always to their right
+          let bx = Math.max(headX, maxRight + gap);
+          bx = Math.min(bx, w - cw); // keep the whole block on-canvas
+          if (bx < 0) bx = 0;
           ctx!.fillStyle = red;
-          ctx!.fillRect(bx, 0, Math.max(2, Math.round(2 * dpr)), canvas!.height);
+          ctx!.fillRect(bx, cyTop, cw, ch2);
         }
-        if (p < 1) requestAnimationFrame(tick);
-        else finishMosaic();
       };
+
+      const start = performance.now();
+      const tick = (now: number) => {
+        if (done || html.classList.contains("skip")) return finishMosaic();
+        const p = Math.min(1, (now - start) / DUR);
+        // head travels just past the last dot so the cursor ends after the name
+        const headX = p * (lastCx + cw);
+        drawFrame(headX, true);
+        if (p < 1) requestAnimationFrame(tick);
+        else blinkOut();
+      };
+
+      // at the end the block rests just right of the full name and blinks a
+      // couple of times, then disappears → the settled state is the clean mosaic.
+      const blinkOut = () => {
+        const fullHead = lastCx + cw; // every dot revealed
+        const blinkStart = performance.now();
+        const PERIOD = 320; // ms per on/off cycle
+        const CYCLES = 2; // blink ~twice
+        const blink = (now: number) => {
+          if (done || html.classList.contains("skip")) return finishMosaic();
+          const t = now - blinkStart;
+          if (t >= PERIOD * CYCLES) return finishMosaic();
+          const on = Math.floor(t / (PERIOD / 2)) % 2 === 0;
+          drawFrame(fullHead, on);
+          requestAnimationFrame(blink);
+        };
+        requestAnimationFrame(blink);
+      };
+
       requestAnimationFrame(tick);
     };
 

@@ -278,8 +278,9 @@ body[data-lang="zh"] span.lang-zh.block { display: block; }
 
 .brand {
   color: #ffffff;
-  font-family: var(--font-mono);
-  font-size: 17px;
+  /* readable brand wordmark in New York; the "$" accent below stays mono */
+  font-family: var(--font-serif);
+  font-size: 18px;
   font-weight: 600;
   letter-spacing: 0.01em;
   text-decoration: none;
@@ -291,6 +292,8 @@ body[data-lang="zh"] span.lang-zh.block { display: block; }
 
 .brand::before {
   content: "$";
+  /* terminal-grammar prompt stays mono even though the wordmark is serif */
+  font-family: var(--font-mono);
   color: rgba(255, 255, 255, 0.55);
   font-weight: 500;
   margin-right: 0.55ch;
@@ -322,18 +325,22 @@ body[data-lang="zh"] span.lang-zh.block { display: block; }
   counter-reset: win -1;
 }
 
-/* tmux window indices: 0:home 1:blog */
+/* tmux window indices: 0:home 1:blog — terminal-grammar accent stays mono
+   (re-declares --font-mono so it doesn't inherit the serif nav-link font) */
 .nav-links a::before {
   counter-increment: win;
   content: counter(win) ":";
+  font-family: var(--font-mono);
   color: rgba(255, 255, 255, 0.62);
   font-weight: 400;
+  margin-right: 0.25ch;
 }
 
 .nav-links a {
   color: #ffffff;
-  font-family: var(--font-mono);
-  font-size: 13.5px;
+  /* readable nav labels in New York; the "0:"/"1:" indices above stay mono */
+  font-family: var(--font-serif);
+  font-size: 15px;
   font-weight: 500;
   letter-spacing: 0.01em;
   text-decoration: none;
@@ -358,8 +365,9 @@ body[data-lang="zh"] span.lang-zh.block { display: block; }
   color: #ffffff;
   cursor: pointer;
   padding: 6px 10px;
-  font-family: var(--font-mono);
-  font-size: 13.5px;
+  /* "中文"/"EN" readable label in New York */
+  font-family: var(--font-serif);
+  font-size: 14.5px;
   font-weight: 500;
   line-height: 1;
   display: inline-flex;

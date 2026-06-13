@@ -477,6 +477,9 @@ const description =
         }
 
         // place a block's cursor immediately AFTER a token (layout-neutral).
+        // Its LEFT edge sits a hair past the token's RIGHT edge (a small gap, not
+        // flush) so the block reads as a terminal caret TRAILING the text — never
+        // touching/overlapping the final glyph, never before/inside it.
         function placeCursor(b, tok) {
           if (!b.cursor || !tok) return;
           var br = b.el.getBoundingClientRect();
@@ -485,7 +488,28 @@ const description =
           var fs = parseFloat(getComputedStyle(tok).fontSize) || 14;
           b.cursor.style.fontSize = fs + "px";
           var ch = fs * 1.02;
-          var left = tr.right - br.left + b.el.scrollLeft;
+          var gap = fs * 0.1; // ~1px nudge so the caret clearly trails the glyph
+          var left = tr.right - br.left + b.el.scrollLeft + gap;
+          var top = tr.bottom - br.top + b.el.scrollTop - ch;
+          b.cursor.style.left = Math.max(0, left) + "px";
+          b.cursor.style.top = top + "px";
+        }
+
+        // before a block reveals its FIRST token, rest the cursor at the block's
+        // content start (left edge / first line) — not at the invisible first
+        // token's right edge — so it never appears to float ahead of empty space.
+        function placeCursorAtStart(b) {
+          if (!b.cursor) return;
+          var first = b.tokens[0];
+          if (!first) return;
+          var br = b.el.getBoundingClientRect();
+          var tr = first.getBoundingClientRect();
+          if (tr.width === 0 && tr.height === 0) return; // not laid out yet
+          var fs = parseFloat(getComputedStyle(first).fontSize) || 14;
+          b.cursor.style.fontSize = fs + "px";
+          var ch = fs * 1.02;
+          // left edge of the first token = where typing will begin
+          var left = tr.left - br.left + b.el.scrollLeft;
           var top = tr.bottom - br.top + b.el.scrollTop - ch;
           b.cursor.style.left = Math.max(0, left) + "px";
           b.cursor.style.top = top + "px";
@@ -560,8 +584,10 @@ const description =
                 bl.count = want;
                 placeCursor(bl, bl.tokens[want - 1] || bl.tokens[0]);
               } else if (bl.count === 0 && now >= bl.start) {
-                // before the first token reveals, keep cursor at block start
-                placeCursor(bl, bl.tokens[0]);
+                // before the first token reveals, rest the cursor at the block's
+                // content start (the first token's LEFT edge) so it never floats
+                // ahead of the not-yet-typed first word.
+                placeCursorAtStart(bl);
               }
               if (bl.count >= bl.tokens.length) finishBlock(bl);
               else allDone = false;
