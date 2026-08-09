@@ -4,16 +4,10 @@ import LogoMark from "../components/LogoMark.astro";
 import { education, experience, news, newsZh, profile, projects } from "../data/profile";
 
 const focusAreas = [
-  { en: "LLM inference", zh: "LLM 推理" },
-  { en: "GPU kernels", zh: "GPU kernels" },
-  { en: "Agent runtimes", zh: "Agent 运行时" },
-  { en: "Evaluation infrastructure", zh: "评测基础设施" },
-];
-
-const profileStats = [
-  { value: "CMU MSIN", valueZh: "CMU MSIN", label: "Incoming", labelZh: "入学" },
-  { value: "Systems for AI", valueZh: "AI 系统", label: "Research", labelZh: "研究方向" },
-  { value: "Pittsburgh", valueZh: "匹兹堡", label: "Base", labelZh: "所在地" },
+  { en: "Inference", zh: "推理" },
+  { en: "Post-Train Infra", zh: "后训练基础设施" },
+  { en: "Agent Harness", zh: "Agent Harness" },
+  { en: "Sandbox/Cloud infra", zh: "沙箱 / 云基础设施" },
 ];
 ---
 
@@ -36,13 +30,6 @@ const profileStats = [
         <br />
         Pittsburgh, PA
       </div>
-      <div class="profile-links" aria-label="Profile links">
-        {profile.links.map((link) => <a href={link.href}>{link.label}</a>)}
-      </div>
-      <p class="profile-note">
-        <span class="lang-en">Interested in the systems layer below large models: serving, kernels, runtimes, and evaluation infrastructure.</span>
-        <span class="lang-zh">关注大模型之下的系统层：serving、kernels、runtimes 与评测基础设施。</span>
-      </p>
     </aside>
 
     <div class="academic-main">
@@ -83,27 +70,13 @@ const profileStats = [
       <section class="section about-section">
         <h2><span class="lang-en">About</span><span class="lang-zh">关于</span></h2>
         <p>
-          <span class="lang-en">{profile.intro}</span>
-          <span class="lang-zh">{profile.introZh}</span>
+          <span class="lang-en">I am a first-year Master's student in the Department of Electrical and Computer Engineering at Carnegie Mellon University, advised by <a href="https://tqchen.com/" target="_blank" rel="noreferrer">Prof. Tianqi Chen</a> in the <a href="https://catalyst.cs.cmu.edu/" target="_blank" rel="noreferrer">Catalyst Lab</a> and <a href="https://www.andrew.cmu.edu/user/beidic/" target="_blank" rel="noreferrer">Prof. Beidi Chen</a> in the <a href="https://www.infini-ai-lab.cmu.edu/" target="_blank" rel="noreferrer">Infini AI Lab</a>.</span>
+          <span class="lang-zh">我是卡内基梅隆大学电气与计算机工程系的一年级硕士生，由 <a href="https://catalyst.cs.cmu.edu/" target="_blank" rel="noreferrer">Catalyst Lab</a> 的 <a href="https://tqchen.com/" target="_blank" rel="noreferrer">Tianqi Chen 教授</a>与 <a href="https://www.infini-ai-lab.cmu.edu/" target="_blank" rel="noreferrer">Infini AI Lab</a> 的 <a href="https://www.andrew.cmu.edu/user/beidic/" target="_blank" rel="noreferrer">Beidi Chen 教授</a>共同指导。</span>
         </p>
         <p>
-          <span class="lang-en">{profile.focus}</span>
-          <span class="lang-zh">{profile.focusZh}</span>
+          <span class="lang-en">During my undergraduate studies at the University of Rochester, I built search, recommendation, and sandbox infrastructure at <a href="https://www.haystackteam.com/key-features/universal-search" target="_blank" rel="noreferrer">Haystack</a>, where I was glad to work with the Google Cloud team. Inspired by the power of search and recommendation algorithms, several classmates and I founded the AI company <a href="https://www.realkey.ai/" target="_blank" rel="noreferrer">GetMyHome</a>, where we raised $1.5 million. To seek a deeper, larger-scale understanding of AI research, I joined Tencent Hunyuan as a research engineer, where I contributed key parts of the Agent Harness and evaluation infrastructure used to train and fine-tune the <a href="https://hy.tencent.ai/research/hy3" target="_blank" rel="noreferrer">Hy3 model</a>. I am currently doing efficient inference research, advised by <a href="https://www.mohsaied.com/" target="_blank" rel="noreferrer">Prof. Mohamed Abdelfattah</a> in the <a href="https://www.csl.cornell.edu/faculty/" target="_blank" rel="noreferrer">Computer Systems Lab</a> at Cornell.</span>
+          <span class="lang-zh">本科就读于罗切斯特大学期间，我在 <a href="https://www.haystackteam.com/key-features/universal-search" target="_blank" rel="noreferrer">Haystack</a> 构建搜索 / 推荐 / 沙箱基础设施，并有幸与 Google Cloud 团队合作。受搜索与推荐算法的启发，我与几位同学共同创立了 AI 公司 <a href="https://www.realkey.ai/" target="_blank" rel="noreferrer">GetMyHome</a>，并完成 150 万美元融资。为更深入、更大规模地理解 AI 研究，我加入腾讯混元担任研究工程师，参与构建了用于训练与微调 <a href="https://hy.tencent.ai/research/hy3" target="_blank" rel="noreferrer">Hy3 模型</a>的 Agent Harness 与评测基础设施的核心部分。目前我在康奈尔大学 <a href="https://www.csl.cornell.edu/faculty/" target="_blank" rel="noreferrer">Computer Systems Lab</a>，由 <a href="https://www.mohsaied.com/" target="_blank" rel="noreferrer">Mohamed Abdelfattah 教授</a>指导，从事高效推理研究。</span>
         </p>
-        <div class="fact-strip" aria-label="Profile summary">
-          {profileStats.map((stat) => (
-            <span>
-              <small>
-                <span class="lang-en">{stat.label}</span>
-                <span class="lang-zh">{stat.labelZh}</span>
-              </small>
-              <strong>
-                <span class="lang-en">{stat.value}</span>
-                <span class="lang-zh">{stat.valueZh}</span>
-              </strong>
-            </span>
-          ))}
-        </div>
       </section>
 
       <section class="content-card">
