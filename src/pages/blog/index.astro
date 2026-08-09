@@ -4,6 +4,10 @@ import Base from "../../layouts/Base.astro";
 interface PostModule {
   url: string;
   rawContent?: () => string;
+  // For posts that are Astro pages rather than markdown, read time is given
+  // directly instead of derived from rawContent().
+  readMins?: number;
+  readMinsZh?: number;
   frontmatter: {
     title: string;
     titleZh?: string;
@@ -15,14 +19,38 @@ interface PostModule {
   };
 }
 
-// Files starting with "_" (e.g. _post-template.md) are not routed by Astro
-// and are excluded here too.
-const posts = (Object.values(import.meta.glob("./[!_]*.md", { eager: true })) as PostModule[]).sort(
+// Markdown posts. Files starting with "_" (e.g. _post-template.md) are not
+// routed by Astro and are excluded here too.
+const mdPosts = Object.values(import.meta.glob("./[!_]*.md", { eager: true })) as PostModule[];
+
+// Rich posts authored as Astro pages (bilingual, diagrams, tables) that live
+// at their own route but should still be listed here.
+const extraPosts: PostModule[] = [
+  {
+    url: "/blog/eval-infra-case-study",
+    readMins: 25,
+    readMinsZh: 15,
+    frontmatter: {
+      title: "Harbor, verifiers, and slime: agent-first RL infrastructure",
+      titleZh: "Harbor、verifiers 与 slime：agent-first 的 RL 基础设施",
+      description:
+        "A close read of three systems — Harbor, Prime Intellect's verifiers, and slime — and how agent infrastructure co-evolves with RL post-training infrastructure.",
+      descriptionZh:
+        "细读三个系统——Harbor、Prime Intellect 的 verifiers、slime——以及 agent 基础设施如何与 RL 后训练基础设施共同演进。",
+      category: "Case Study",
+      categoryZh: "案例研究",
+      date: "2026-06-15",
+    },
+  },
+];
+
+const posts = [...mdPosts, ...extraPosts].sort(
   (a, b) => new Date(b.frontmatter.date ?? 0).valueOf() - new Date(a.frontmatter.date ?? 0).valueOf(),
 );
 
 const isoDate = (d?: string) => (d ? new Date(d).toISOString().slice(0, 10) : "");
 const readMinutes = (post: PostModule) => {
+  if (typeof post.readMins === "number") return post.readMins;
   const words = typeof post.rawContent === "function" ? post.rawContent().trim().split(/\s+/).length : 0;
   return words ? Math.max(1, Math.round(words / 200)) : null;
 };
@@ -43,6 +71,7 @@ const readMinutes = (post: PostModule) => {
     <ul class="ls-list">
       {posts.map((post) => {
         const mins = readMinutes(post);
+        const minsZh = post.readMinsZh ?? mins;
         return (
           <li>
             <div class="ls-row">
@@ -66,7 +95,7 @@ const readMinutes = (post: PostModule) => {
               {mins && (
                 <span class="ls-read">
                   <span class="lang-en">{mins} min</span>
-                  <span class="lang-zh">{mins} 分钟</span>
+                  <span class="lang-zh">{minsZh} 分钟</span>
                 </span>
               )}
             </div>

@@ -1,0 +1,645 @@
+<h3>目录</h3>
+<ol class="toc">
+<li><a href="#s1">认识主角——三个系统，一个循环</a></li>
+<li><a href="#s2">Harbor——环境/评测 harness（聚焦 RL 后训练）</a></li>
+<li><a href="#s3">verifiers——RL 环境库（聚焦 RL 后训练）</a></li>
+<li><a href="#s4">smile（slime）——RL trainer（聚焦 v0.3.0 agent-first 更新）</a></li>
+<li><a href="#s5">Agent Infra——如何构建一个优秀的 Agent Infra，以及它如何与 RL Infra 共同迭代</a></li>
+</ol>
+
+<hr>
+<h2 id="s0">0. 写在开头</h2>
+<p>一个优秀的Agent/eval infra必定具备了RL侧的所需要的充分。所以本文将2.harbor以及3.verifiers开始分析并在这两者其中穿插着他们各自对于RL-post train 的feature，给大家一个清晰且宏观的大致思维框架。然后着重分析4去了解smile对于训练agent的解决方案，来告诉大家环境/agent/cli应该如何和RL-infra交互以及优化训练。最后5.针对以上三点我给出了我认为的一个优秀的agent infra应该具备的要素，以及RL-infra在未来可能的两种option。</p>
+
+<!-- ================================================================ -->
+<h2 id="s1">1. 三个系统，一个循环</h2>
+
+<table>
+<tr><th></th><th><b>Harbor</b></th><th><b>verifiers</b></th><th><b>smile / slime</b></th></tr>
+<tr><td><b>一句话</b></td><td>在sandbox里跑agent并打分</td><td>用小型 Python 模块定义 RL 环境并打分</td><td>RL <b>trainer</b>（负责gradient那一步）</td></tr>
+<tr><td><b>在循环中的座位</b></td><td>采样 + 打分</td><td>采样 + 打分</td><td><b>更新</b></td></tr>
+<tr><td><b>渊源</b></td><td>Terminal-Bench 的继任者</td><td>自带 <code>prime</code> CLI + Environments Hub</td><td></td></tr>
+<tr><td><b>核心单元</b></td><td><code>Trial</code>（一次被打分的 rollout）</td><td><code>Environment</code>（<code>load_environment()</code>）</td><td></td></tr>
+<tr><td><b>产出 / 吃进</b></td><td>产出 <code>(reward, token_ids, mask_ids)</code></td><td>产出由 <code>Rubric</code> 打分的 rollout</td><td>吃进 <code>(reward, token_ids, loss_mask)</code></td></tr>
+</table>
+
+<h3><span class="sysdot" style="background:var(--harbor)"></span>Harbor——agent评测 / RL 环境harness</h3>
+
+<p><b>Harbor</b> 这一套harness只回答一个问题：「设定task和agent，告诉我它做得怎么样。」我们可以用六个抽象去表述他——<code>Task</code>（指令 + 文件）、<code>Environment</code>（统一sandbox，本地 Docker 或云厂商）、<code>Agent</code>（被测的脚手架）、<code>Verifier</code>（跑测试 → 产出 reward）、<code>Trial</code>（一次产生一个 reward 的 rollout）、<code>Job</code>（一整批 trial）。Harbor 在循环里的座位是<b>环境 / 评测侧</b>：跑agent、给它打分。它自己的口号替整个 wiki 把话说完了——「a trial is a rollout that produces a reward」（trial 就是一次产生 reward 的 rollout）。</p>
+
+<h3><span class="sysdot" style="background:var(--verif)"></span>verifiers——RL 环境 + 评测库</h3>
+
+<p><b>verifiers</b>是一个把自包含 RL 环境写成小 Python 模块的库。每个环境 = 数据集 + rollout harness + <code>Rubric</code>（一组带weight的奖励函数），通过 <code>SingleTurnEnv</code>、<code>MultiTurnEnv</code>、<code>ToolEnv</code> 等类暴露。这些环境发布到 <b>Environments Hub</b>（2,500+ 开放环境的注册表），用 <code>prime</code> 命令行tool评测，用 <b>prime-rl</b>（Prime Intellect 的异步 RL trainer）训练。verifiers 和 Harbor 坐同一个座位——<b>环境 / 评测侧</b>——而且它明说一个环境对象身兼两职：「环境既可用于强化学习（RL）训练模型，也可用于能力评测、合成数据生成……」在评测和训练之间切换，环境本身一行都不用改。</p>
+
+<h3><span class="sysdot" style="background:var(--slime)"></span>smile = slime——RL 后训练trainer</h3>
+
+<p>v0.3.0 这一版让 slime 变成「agent-first」：新增专门的 <code>slime/agent</code> 模块（sandbox、trajectory merging、rollout 分组、OpenAI/Anthropic adapter）、黑盒 coding-agent RL 示例、全异步训练和delta weight sync。</p>
+
+<h3>统一框架：一个loop，三个part</h3>
+
+<p>每个 RL 训练步都是一个loop，三个part：<b>sample</b>（让agent尝试任务）、<b>score</b>（reward）、<b>update</b>（weight sync）。并用<b>rollout 接口</b> 链接在一起 <code>(reward, token_ids, loss_mask)</code></p>
+
+<pre><code class="language-python"># 这份契约的抽象形态——所有harness「生产」它，所有trainer「消费」它
+rollout = (
+    reward,      # 标量：这次尝试做得多好？
+    token_ids,   # 模型实际采样出的 token（prompt + 回复）
+    loss_mask,   # 逐 token 的 1/0：这个 token 要训练吗？（模型 = 1，环境 = 0）
+)</code></pre>
+
+<div class="mermaid-box">
+<pre class="mermaid">
+flowchart LR
+    subgraph PRODUCE["🟦 sample + score — Harbor / verifiers"]
+        A[任务 / prompt] --&gt; B[agent在sandbox中&lt;br/&gt;尝试任务]
+        B --&gt; C[Verifier / Rubric&lt;br/&gt;给尝试打分]
+    end
+    C --&gt;|"(reward, token_ids, loss_mask)"| D
+    subgraph CONSUME["🟩 update — slime / prime-rl"]
+        D[trainer：GRPO / PPO&lt;br/&gt;在元组上反向传播] --&gt; E[新的策略weight]
+    end
+    E -.-&gt;|"weight同步回&lt;br/&gt;inference server"| B
+</pre>
+</div>
+
+<hr>
+
+<!-- ================================================================ -->
+<h2 id="s2"><span class="sysdot" style="background:var(--harbor)"></span>2. Harbor——环境/评测 harness（聚焦 RL 后训练）</h2>
+
+<p><b>Harbor</b>（<code>harbor-framework/harbor</code>）主要任务是在sandbox里对着Task跑一个agent然后给出 score</p>
+
+<h3>2.1 六个抽象</h3>
+
+<p>Harbor 有以下抽象每个都是可以替换的干净接缝。</p>
+
+<table>
+<tr><th>抽象</th><th>它是什么</th><th>一句话角色</th></tr>
+<tr><td><b>Task</b></td><td><code>instruction.md</code> + <code>task.toml</code> + 一个 <code>environment/</code> 目录 + 测试脚本</td><td>题目 + 它的判分器</td></tr>
+<tr><td><b>Environment</b></td><td>统一的「在container里执行命令」接口</td><td>agent行动所在的env</td></tr>
+<tr><td><b>Agent</b></td><td>脚手架（Terminus-2、Claude Code、OpenHands……）</td><td>试图解题的那个东西</td></tr>
+<tr><td><b>Verifier</b></td><td>跑测试脚本 → 读 reward 文件 → <code>VerifierResult</code></td><td>把一次agent的execution打分成数字</td></tr>
+<tr><td><b>Trial</b></td><td>一个agent对一个任务的完整运行，从开始到判出 reward</td><td>「一次产生 reward 的 rollout」</td></tr>
+<tr><td><b>Job</b></td><td>数据集 × agent × 模型，按一批 Trial 运行</td><td>RL 训练消费的批次单元</td></tr>
+</table>
+
+<div class="mermaid-box">
+<pre class="mermaid">
+flowchart TD
+    Job["🗂️ Job — 数据集 × agent × 模型（一批）"] --&gt; T1["🎯 Trial #1"]
+    Job --&gt; T2["🎯 Trial #2"]
+    Job --&gt; Tn["🎯 Trial #N（并行运行）"]
+    T1 --&gt; Task["📋 Task — instruction.md + task.toml + 测试"]
+    T1 --&gt; Env["📦 Environment — sandbox（Docker / E2B / Modal / …）"]
+    T1 --&gt; Agent["🤖 Agent — 脚手架（Terminus-2、Claude Code…）"]
+    T1 --&gt; Ver["✅ Verifier — 跑测试 → reward 文件 → reward"]
+    Agent --&gt;|"通过 environment.exec() 行动"| Env
+    Ver --&gt;|"读 /logs/verifier/reward.txt"| Env
+</pre>
+</div>
+
+<h3>2.2 Agent 契约：<code>BaseAgent</code>（setup → run）</h3>
+
+<p>每个脚手架都继承 <code>BaseAgent</code> 并实现两个异步方法。<code>setup()</code> 把agent的tool setup进运行中的container；<code>run()</code> 真正尝试任务，并边跑边把发生的事写进一个 context 对象（这样即使超时也能留下部分数据）。<code>SUPPORTS_ATIF</code> 声明它是否输出 Harbor 的 RL-ready trajectory格式（下文详述）。</p>
+
+<pre><code class="language-python">class BaseAgent(ABC):
+    SUPPORTS_ATIF: bool = False          # 是否输出 RL-ready 的 token trajectory？
+
+    @abstractmethod
+    async def setup(self, environment): ...        # 把tool装进container
+
+    @abstractmethod
+    async def run(self, instruction, environment, context):
+        # 驱动任务；过程中把结果写进 `context`
+        ...</code></pre>
+
+<p>agent只通过 <code>environment.exec(...)</code> 跟container对话。值得注意的是因为async它和container跑在不同进程里，这让agent逻辑可以在所有sandbox后端之间无缝迁移。</p>
+
+<h3>2.3 Environment ：一个接口，多种后端sandbox的可能</h3>
+
+<p><code>BaseEnvironment</code> 是一个抽象类——「在container里执行命令」——带 <code>exec</code>、<code>upload_dir</code>/<code>download_dir</code>、<code>start</code>/<code>stop</code> 和一个 <code>capabilities</code> 描述符。<code>exec</code> 是所有人（agent、verifier、oracle）都可以使用的：</p>
+
+<pre><code class="language-python">class BaseEnvironment(ABC):
+    @abstractmethod
+    async def start(self, force_build: bool): ...
+    @abstractmethod
+    async def stop(self, delete: bool): ...
+    @abstractmethod
+    async def exec(self, command, cwd=None, env=None,
+                   timeout_sec=None, user=None) -&gt; ExecResult: ...   # stdout/stderr/return_code</code></pre>
+
+<p><b>cloud sandbox</b>才是重点。Trial 通过一个 <code>EnvironmentFactory</code> 选后端，只有真用到才lazily imports the SDK——本地 <b>Docker</b>，或云端 <b>E2B / Modal / Daytona / Runloop / GKE / Novita / …</b>。一次 coding-agent rollout 几乎全部时间都在等（等 LLM API、等命令、等container启动），所以它是 <b>I/O 密集而非计算密集</b>。</p>
+
+<h3>2.4 Terminus-2：ReAct agentloop harness</h3>
+
+<p>默认 <code>Agent</code> 是 <b>Terminus-2</b>，一个 ReAct 风格脚手架（ReAct = "Reason + Act"：思考、输出动作、读结果、重复）。只给模型<b>一个 tmux</b> 作为tool，因为几乎所有 CLI 程序都靠击键驱动，一个tool就基本覆盖了全部。每轮模型输出 JSON <code>{analysis, plan, commands:[{keystrokes, duration}], task_complete}</code>；</p>
+
+<p>注意Terminus-2 是<b>RL-aware</b> ：True，这就意味着 <code>collect_rollout_details=True</code> 时它逐轮记录 <code>prompt_token_ids</code>、<code>completion_token_ids</code> 和 <code>logprobs</code>来避免token不一致。</p>
+
+<p>从这里我们也可以看出，一个简易的ReAct风格的agent loop已经满足了绝大多数环境的需求。但是对于复杂环境还是得要一个复杂的agent loop/harness</p>
+
+<h3>2.5 Verifier：reward 是一个文件</h3>
+
+<p><b>Verifier</b> 上传一个agent从未见过的测试脚本，在环境里执行，然后读脚本写到 <code>reward.txt</code>（或 <code>reward.json</code>）里的数字：</p>
+
+<pre><code class="language-python">class Verifier(BaseVerifier):
+    async def verify(self) -&gt; VerifierResult:
+        await self.environment.upload_dir(tests_dir, "/tests")   # agent永远看不到这些
+        await self.environment.exec(test_script_command)         # 脚本写出 reward 文件
+        rewards = self._parse_reward_json()  # 或 _parse_reward_text(): {"reward": 1.0}
+        return VerifierResult(rewards=rewards)</code></pre>
+
+<h3>2.6 <code>Trial._run()</code>：rollout 生命周期（run_agent → verify → teardown）</h3>
+
+<p>基类 <code>Trial.run()</code> 是一条严格兜底、容错的流水线：</p>
+
+<p>1. <code>_prepare()</code>启动sandbox、健康检查、安装agent</p>
+
+<p>2. <code>_run()</code>，因为<code>_recover_outputs()</code>的保护，所以即使 trial 被取消也能完成清理，几百个并发时不泄漏sandbox。</p>
+
+<pre><code class="language-python">async def _run(self):
+    await self._run_agent()          # 在超时控制下运行 agent.run()
+    await self._upload_agent_logs()
+    await self._collect_artifacts()  # 把结果快照搬出sandbox
+    # SEPARATE 模式：判分前先拆掉agent环境（用全新的 verifier sandbox）
+    await self._run_verifier()       # 测试脚本 → reward 文件 → VerifierResult
+    # SHARED 模式：在同一container内判分，然后拆除</code></pre>
+
+<div class="mermaid-box">
+<pre class="mermaid">
+flowchart TD
+    P["_prepare()&lt;br/&gt;启动sandbox · 健康检查 · 安装agent"] --&gt; RA["_run_agent()&lt;br/&gt;超时控制下运行 agent.run()"]
+    RA --&gt; UL["_upload_agent_logs() + _collect_artifacts()&lt;br/&gt;把结果快照搬出sandbox"]
+    UL --&gt; RV["_run_verifier()&lt;br/&gt;测试脚本 → reward.txt → VerifierResult"]
+    RV --&gt; DONE(["reward ✅"])
+    RA -.-&gt;|异常 / 超时| REC["_recover_outputs()&lt;br/&gt;抢救部分数据"]
+    UL -.-&gt;|异常| REC
+    RV -.-&gt;|异常| REC
+    REC --&gt; TD
+    DONE --&gt; TD["finally：拆除（shielded）&lt;br/&gt;——永远执行，不泄漏sandbox"]
+</pre>
+</div>
+
+<p>虚线箭头是安全网：<b>任何</b>异常都仍会经过 <code>_recover_outputs()</code>，<code>finally</code> 块里的拆除被 <code>asyncio.shield</code> 保护，任何 trial 都能完成清理</p>
+
+<h3>2.7 ATIF：the trajectory format that makes a trial trainable</h3>
+
+<p>RL trainer要的是 token ID 和 loss mask。<b>ATIF</b>（Agent Trajectory Interchange Format）是 Harbor 的统一 JSON schema（当前 ATIF-v1.7，用 Pydantic 定义）。<code>Trajectory</code> 持有按序的 <code>Step</code> 列表；每步的 <code>Metrics</code> 可存 <code>prompt_token_ids</code>（模型读到的——mask置 0，无gradient）和 <code>completion_token_ids</code>（模型生成的——mask置 1）。存<b>精确整数 ID</b> 绕开了 re-tokenize 所造成的<b>训练 / 推理不一致</b>。</p>
+
+<pre><code class="language-python">Step(step_id=2, source="agent",
+     message="I'll run the tests.",
+     metrics=Metrics(prompt_tokens=520, completion_tokens=80,
+                     completion_token_ids=[1722, 310, 5533]))  # RL 关键字段</code></pre>
+
+<h3>2.8 RL post-train from harbor：rollout 接口</h3>
+
+<p>RL 需要每次尝试的三样东西：<b>reward</b>、<b>token ID</b>、<b>loss mask</b>。Harbor 跑一个 <code>Job</code> 时三样都已经产出：</p>
+
+<pre><code class="language-python">class HarborRolloutInterface(SomeRLFrameworkRolloutInterface):
+    async def run(self, task_ids) -&gt; list[Rollout]:
+        job = Job(config=JobConfig(
+            environment=EnvironmentConfig(type=EnvironmentType.DAYTONA),   # cloud sandbox，rollout 可扩展
+            agents=[AgentConfig(name=AgentName.TERMINUS_2,
+                                model_name="hosted_vllm/&lt;model&gt;",
+                                kwargs={"base_url": "https://&lt;vllm-server&gt;"})],  # ← trainer自己的策略服务器
+            orchestrator=OrchestratorConfig(n_concurrent_trials=32),       # 32 个慢 rollout 并行
+            tasks=task_configs))
+        result = await job.run()
+
+        rollouts = []
+        for tr in result.trial_results:
+            reward    = tr.verifier_result.rewards.get("reward", 0)   # 来自 Verifier
+            token_ids = tr.agent_result.metadata["token_ids"]         # 来自 ATIF
+            mask_ids  = tr.agent_result.metadata["mask_ids"]          # Harbor 对 loss mask的叫法
+            rollouts.append(Rollout(reward=reward, token_ids=token_ids, mask_ids=mask_ids))
+        return rollouts</code></pre>
+
+<p><b>拿到精确 token 的两条路。</b>要么在 vLLM 服务器出口<b>拦截</b> ID（Miles/SkyRL 的路线），要么让<b>agent在结果元数据里带回来</b>（Terminus-2 的 <code>collect_rollout_details</code>）。两条都避免了重新分词漂移。<b>SFT/RL trajectory导出</b>从同一个 ATIF 文件：<code>trajectory.json</code></p>
+
+<hr>
+
+<!-- ================================================================ -->
+<h2 id="s3"><span class="sysdot" style="background:var(--verif)"></span>3. verifiers——RL 环境库（聚焦 RL 后训练）</h2>
+
+<p><b>verifiers</b>（<b>Prime Intellect</b> 出品，导入别名 <code>vf</code>）是一个构建 <b>RL 环境</b>的 Python 库。</p>
+
+<h3>环境是一个自包含的 Python 模块</h3>
+
+<p>用一个 Python 文件，暴露一个函数<b><code>load_environment()</code></b>并返回<b>dataset</b>、<b>harness</b>（the rollout loop that lets the model attempt each prompt）、<b><code>Rubric</code></b>（把尝试折算成 reward 的判分器）的环境对象。最小示例：</p>
+
+<pre><code class="language-python">import verifiers as vf
+
+def load_environment(**kwargs) -&gt; vf.Environment:
+    dataset = load_my_prompts()                  # 行：{"question": ..., "answer": ...}
+
+    def correct_answer(completion, answer, parser, **kw) -&gt; float:
+        return 1.0 if parser.parse_answer(completion) == answer else 0.0
+
+    rubric = vf.Rubric(funcs=[correct_answer], weights=[1.0])
+    return vf.SingleTurnEnv(dataset=dataset, rubric=rubric, parser=vf.Parser())</code></pre>
+
+<p>这个模块就是pi其余生态的最小复用的模块：<code>prime</code> CLI 评测它（<code>prime eval run my-env -m openai/gpt-4.1-mini -n 10</code>），<b>Environments Hub</b> 分发它（<code>prime env push</code>，推到 2,500+ 开放环境的注册表），<b>prime-rl</b> 在它上面训练——评测和 RL 用的是同一个模块</p>
+
+<h3>环境类的层级</h3>
+
+<p>几乎每个环境都继承同一个基础agentloop。<b><code>MultiTurnEnv</code></b> 这个主干逐轮记录 token，遵循「模型说、环境答、重复」的循环直到停止条件触发。你只需要根据不同的 env 填入不同的<code>env_response(messages, state)</code>就可以知道「给定到目前为止的对话，环境回什么？」然后继承 token 记录、停止处理、超时和打分。</p>
+
+<p>以下是上层建筑我们其实可以理解为harness：</p>
+
+<ul>
+<li><b><code>SingleTurnEnv</code></b>——<code>max_turns=1</code> 的 <code>MultiTurnEnv</code>：一问一答（上面的数学 / QA 例子）。</li>
+<li><b><code>ToolEnv</code></b>——把 <code>env_response</code> 实现为「执行模型刚调用的tool」。tool就是一个普通 Python 函数；verifiers 读它的类型注解 + docstring 生成模型瞄准的 JSON schema，逐个执行调用，把结果作为 <code>tool</code> 消息喂回去。模型回复时不再调用tool，回合即结束（一个 <code>@vf.stop</code> 谓词）。</li>
+<li><b><code>StatefulToolEnv</code></b>——加上隐藏注入参数。<code>bash</code> tool需要 <code>sandbox_id</code>，但模型不该看到它；<code>StatefulToolEnv</code> 把它从 schema 里藏起来（<code>add_tool(tool, args_to_skip=["sandbox_id"])</code>），调用时经 <code>update_tool_args()</code> 注入。模型写 <code>{"command": "ls"}</code>；环境在执行前把它变成 <code>{"command": "ls", "sandbox_id": "..."}</code>。</li>
+<li><b><code>SandboxEnv</code> / <code>PythonEnv</code></b>——把真实container句柄穿进tool的 <code>StatefulToolEnv</code>，用于必须隔离的代码执行。</li>
+</ul>
+
+<p>共享agentloop的好处：每个具体环境都逐轮携带 prompt/completion 边界，RL侧因此能正确构造 loss mask（模型的 token 有gradient，tool/环境的 token 没有）。整个阶梯是一条继承链，每一级恰好加一个能力：</p>
+
+<div class="mermaid-box">
+<pre class="mermaid">
+flowchart TD
+    E["Environment — 基类：数据集 + harness + Rubric"] --&gt; MT["MultiTurnEnv&lt;br/&gt;「说/答/重复」的主干；填 env_response()"]
+    MT --&gt; ST["SingleTurnEnv&lt;br/&gt;= max_turns=1 的 MultiTurnEnv（数学 / QA）"]
+    MT --&gt; TE["ToolEnv&lt;br/&gt;env_response =「执行模型调用的tool」"]
+    TE --&gt; STE["StatefulToolEnv&lt;br/&gt;+ 隐藏注入参数（如 sandbox_id）"]
+    STE --&gt; SE["SandboxEnv / PythonEnv&lt;br/&gt;+ 真实container句柄，做隔离代码执行"]
+</pre>
+</div>
+
+<h3>Rubric——把奖励写成带weight、带名字的函数</h3>
+
+<p><b><code>Rubric</code></b> is a list of small reward functions plus a weight per function。<code>reward = Σ score_i · weight_i</code>。每个function都声明自己想要的参数然后<code>Rubric</code> 用 <code>inspect.signature</code> 准确的递上。</p>
+
+<p>weight = <code>0.0</code> 可以让一个function变成指标（只记录、不训练）。crash isolation是build in的：任何奖励函数内部的异常记 <code>0.0</code>，不会杀死 rollout。</p>
+
+<p>For grouped GRPO (Group Relative Policy Optimization)，<code>Rubric.score_group</code> 先算每个 rollout 的 reward 和组均值，再设 <code>state["advantage"] = reward − mean(group)</code></p>
+
+<p>现成rubric：</p>
+
+<ul>
+<li><b><code>MathRubric</code></b>——自动加一个 <code>correct_answer</code> 函数：抽取模型的 <code>\boxed{...}</code> 答案，用 <code>math_verify</code> 库对照标准答案（符号等价，所以 <code>1/2</code> 匹配 <code>0.5</code>）。验证跑在 <code>ProcessPoolExecutor</code> 里，5 秒软超时 / 120 秒硬超时，病态表达式挂不死整个运行。形状：</li>
+</ul>
+
+<pre><code class="language-python">def correct_answer(completion, answer, parser, **kw) -&gt; float:
+    response = parser.parse_answer(completion)        # MaybeThinkParser + extract_boxed_answer
+    return 1.0 if math_verify.verify(answer, response) else 0.0   # 符号等价</code></pre>
+
+<ul>
+<li><b><code>JudgeRubric</code></b>——给无法代码化的东西打分（「这个摘要忠实吗？」）：去问第二个模型。它暴露一个 <code>judge(prompt, completion, answer, state)</code> 方法（默认用便宜的 <code>gpt-4.1-nano</code>，按 rollout 缓存——两个奖励函数都咨询它也只付一次 API 钱）；你写个极小的奖励函数，把它的 <code>"yes"/"no"</code> 裁决映射成 <code>1.0/0.0</code>。</li>
+<li><b><code>RubricGroup</code></b>——把几个完整的 rubric 相加（一个正确性 rubric + 一个独立的安全 rubric）。</li>
+</ul>
+
+<h3>Parser——抽出要判分的答案</h3>
+
+<p><b><code>Parser</code></b> 从模型的原始文本里抽出可判分的答案。</p>
+
+<h3>v1「可组合」模型——让harness跨任务复用</h3>
+
+<p><b>v1</b> 把它们拆成三个可复用的部件，让一个agent脚手架可以驱动很多任务：</p>
+
+<ul>
+<li><b><code>Taskset</code></b>——任务是什么（data、prompts、success rewards）；可复用</li>
+<li><b><code>Harness</code></b>——描述模型怎么尝试任意任务（安装 + 运行命令、从哪里读指令、端点拦截）；可复用</li>
+<li><b><code>Toolset</code></b>——动作空间</li>
+</ul>
+
+<p>在实验性的 <code>ComposableEnv</code> 里，环境就是taskset，harness之间的连接件：</p>
+
+<pre><code class="language-python">class ComposableEnv(CliAgentEnv):
+    def __init__(self, taskset, harness, **kwargs):
+        kwargs["dataset"] = taskset.get_dataset          # taskset 拥有数据……
+        kwargs.setdefault("rubric", taskset.get_rubric())#   ……以及奖励
+        super().__init__(run_command=harness.run_command, **kwargs)  # harness 拥有agent怎么跑
+        # rollout 时：把任务指令写到 harness.instruction_path，
+        #             把 harness.system_prompt 写到 harness.system_prompt_path，
+        #             安装agent、运行它，最后让 rubric 打分</code></pre>
+
+<p><code>Harness</code> 是个普通 dataclass（<code>install_script</code>、<code>run_command</code>、<code>instruction_path</code>、<code>sandbox_spec</code>……）。<code>Taskset</code> 拥有 <code>get_instruction()</code>、<code>get_sandbox_spec()</code>、<code>setup()</code> 和 <code>evaluate()</code>。<code>ComposableEnv</code> 把任务的指令写进 harness 声明的路径，于是一个静态的 <code>run_command</code> 读到的是每个任务各自的指令。结果是一张网格——任意 harness × 任意 taskset，靠config接线：</p>
+
+<div class="mermaid-box">
+<pre class="mermaid">
+flowchart LR
+    subgraph TS["TASKSET——任务是什么"]
+        T1[Harbor taskset]
+        T2[SWE-bench taskset]
+        T3[数学 taskset]
+    end
+    subgraph H["HARNESS——agent怎么尝试任务"]
+        H1[Terminus harness]
+        H2[OpenCode harness]
+        H3[RLM harness]
+    end
+    CE{{"ComposableEnv&lt;br/&gt;= taskset × harness × tool × sandbox"}}
+    T1 --&gt; CE
+    T2 --&gt; CE
+    T3 --&gt; CE
+    H1 --&gt; CE
+    H2 --&gt; CE
+    H3 --&gt; CE
+    CE --&gt;|"每次 rollout 一个被打分的 State"| R["Rubric → reward"]
+</pre>
+</div>
+
+<p><code>Terminus × Harbor</code>、<code>OpenCode × SWE-bench</code>、<code>RLM × 数学</code>——给现有agent接新基准是<b>配置</b>。</p>
+
+<h3>RL Post-train</h3>
+
+<p>以下是 verifiers 作出的优化：</p>
+
+<p>靠拦截的 TITO。那么verifiers 的解决方案是token id 和 loss mask 直接来自 inference（<code>openai_chat_completions_token</code> 客户端），trainer看到的就是模型实际采样出的 token。在 RLM harness 里能看到字面写法：</p>
+
+<pre><code class="language-bash"># 在agent的 run_command 里、sandbox内部：
+export OPENAI_API_KEY="${OPENAI_API_KEY:-intercepted}"   # 占位符：这个调用被「捕获」，而不是被认证
+rlm "$(cat /task/instruction.md)"</code></pre>
+
+<p>因为agent的调用被路由到trainer的inference server，rollout 模型 == training模型，sampling是 on-policy 的，精确的 token id + logprobs 被记录在案。同一个 harness 用 <code>keep_trajectory_step</code> 丢弃 subagent calls（tagged <code>X-RLM-Depth &gt; 0</code>），只让parent agent的轮次驱动policy gradient</p>
+
+<div class="mermaid-box">
+<pre class="mermaid">
+flowchart LR
+    A["sandbox中的 CLI agent&lt;br/&gt;OPENAI_API_KEY='intercepted'"] --&gt;|"POST /v1/chat/completions"| I["interceptor&lt;br/&gt;（trainer的端点）"]
+    I --&gt;|转发| P["policy inference server&lt;br/&gt;(vLLM / SGLang)"]
+    P --&gt;|"回复 + 精确 token_ids + logprobs"| I
+    I --&gt;|"回复（agent毫无察觉）"| A
+    I ==&gt;|"记录 token_ids、logprobs、mask&lt;br/&gt;绝不重新分词"| TR["trajectory → trainer"]
+</pre>
+</div>
+
+<p>关键在interceptor的双重身份：对agent透明（就是个 OpenAI 兼容端点），却悄悄留下策略输出的精确 token 和 logprobs——这是从一个黑盒 CLI agent拿到训练/推理一致gradient的办法。</p>
+
+<p><b>Environments Hub</b> 闭环：任何环境写一次就能推送（<code>prime env push</code>）、被任何人安装（<code>prime env install</code>）、评测（<code>prime eval run</code>）、在 prime-rl 下训练——全用同一个模块，因为跨过接口的契约只有 <code>(reward, token_ids, loss_mask)</code>。</p>
+
+<hr>
+
+<!-- ================================================================ -->
+<h2 id="s4"><span class="sysdot" style="background:var(--slime)"></span>4. smile（slime）——RL trainer（聚焦 v0.3.0 agent-first 更新）</h2>
+
+<h3>v0.3.0 的头条：专门的 <code>slime/agent</code> 模块</h3>
+
+<p><b>v0.3.0</b>（tag <code>v0.3.0</code>，2026-05-31）把它整合进一个可复用的 <code>slime/agent</code> 模块。训练在真实环境中行动的模型（跑 shell 命令、改文件、调tool、跨多轮重试），而不是只输出一段文本。一次agent rollout 不再是一次生成，而是一整个<b>回合（episode）</b>：启动sandbox、几十个模型轮次、跑一遍测试套件——通常 30 秒到几分钟，所以要 32–100 个并行跑。本版本基于 <b>SGLang v0.5.12.post1</b> 和 <b>Megatron commit <code>1dcf0dafa</code></b> 发布。</p>
+
+<h4>5-stage agent rollout loop</h4>
+
+<p>你在一个用 <code>--custom-generate-function-path</code> 注册的<b>自定义 generate 函数</b>里实现这个循环；<code>slime/agent</code> 模块提供可复用的部件。形状如下：</p>
+
+<pre><code class="language-python">async def generate(args, sample, sampling_params):
+    # 阶段 1 —— 打开一个隔离的sandbox会话（每次尝试一个一次性container）
+    async with E2BSandbox(image) as sb:                 # sandbox协议：exec / read_file / write_file
+        # 阶段 2 —— 经协议adapter运行agent的多轮交互
+        adapter = AnthropicAdapter(tokenizer, sglang_url, tool_parser, reasoning_parser)
+        adapter.open_session(session_id, sampling_defaults=sampling_params)
+        run_agent_scaffold(sandbox=sb, base_url=adapter.app)   # agent以为自己在调 Anthropic
+        # 阶段 3 —— 把录下的轮次回收成可训练的 token 片段
+        segments = await adapter.finish_session(session_id)    # list[TokenSegment]
+        # 阶段 4 —— 在「全新clean sandbox」里给这次尝试打分（reward 无法作弊）
+        reward = grade(git_diff(sb), in_clean_sandbox=True)
+        # 阶段 5 —— 给trainer产出 Sample
+        return fan_out_sample_segments(sample, segments, reward, tokenizer)</code></pre>
+
+<p>视觉上，这个循环是两个sandbox、中间用一个 <code>git diff</code> 桥接——agent在脏sandbox里干活，判分却在全新sandbox里进行，所以agent没法篡改自己的测试：</p>
+
+<div class="mermaid-box">
+<pre class="mermaid">
+flowchart LR
+    S1["① 打开dirty sandbox&lt;br/&gt;（一次性container）"] --&gt; S2["② 经 OpenAI/Anthropic adapter&lt;br/&gt;运行agent多轮"]
+    S2 --&gt; S3["③ 回收轮次 →&lt;br/&gt;TokenSegment（merge_turns）"]
+    S2 -.-&gt;|"git diff"| S4
+    S3 --&gt; S5
+    S4["④ 在全新clean sandbox打分&lt;br/&gt;应用 diff + 跑测试 → reward"] --&gt; S5["⑤ fan_out_sample_segments&lt;br/&gt;→ Sample(tokens, reward, loss_mask)"]
+    S5 ==&gt;|"交给 GRPO trainer"| OUT([trainer])
+</pre>
+</div>
+
+<p><b>sandbox</b>（阶段 1）</p>
+
+<ol>
+<li>是个极小的异步 <code>Protocol</code>——<code>exec(cmd) -&gt; (exit_code, stdout, stderr)</code>、<code>read_file</code>、<code>write_file</code>——自带的后端是 <code>E2BSandbox</code>（包装 <code>e2b.AsyncSandbox</code>）。</li>
+<li>每次 RPC 都经过 <code>_rpc_retry</code>并且对瞬态客户端故障（<code>ConnectTimeout</code>、<code>PoolTimeout</code>、<code>SSLError</code>、h2 重置）指数退避重试最多 3 次（因为cloud sandbox在大规模下又慢又抖）。</li>
+<li>因为在独立的clean sandbox（阶段 4）里判分，agent改不了自己的测试环境也就无法作弊。</li>
+</ol>
+
+<h4>OpenAI / Anthropic adapter——伪装的 API 服务器，捕获精确 token</h4>
+
+<p>把 base URL 指向一个<b>伪装成官方 API 的本地adapter</b>。运用现成的脚手架（Claude Code、OpenAI Agents SDK 应用）照常 POST <code>/v1/messages</code>，这样就可以使用现成的脚手架作为 harness</p>
+
+<p>adapter收到请求，用模型的 chat template 把对话渲染成 <code>input_ids</code>，带 <code>return_logprob=True</code> 调 SGLang <code>/generate</code>，再按官方 API 原生的 JSON/SSE 形状回复。</p>
+
+<pre><code class="language-python">env = {
+    "ANTHROPIC_BASE_URL":  adapter_url,   # 指向 slime 的adapter，不是 Anthropic
+    "ANTHROPIC_AUTH_TOKEN": session_id,   # session id 伪装成 Bearer token 偷运进来
+    "ANTHROPIC_MODEL":     "slime-actor",
+}</code></pre>
+
+<p>因为SGLang 生成回复的时候返回的是 <code>(logprob, token_id)</code>，所以adapter留下了<b>精确的sampled token id 和per-token log-probabilities</b>记成一个 <code>TurnRecord</code>（<code>prompt_ids</code>、<code>output_ids</code>、<code>finish_reason</code>、<code>output_log_probs</code>）。</p>
+
+<p><code>session_id</code> 作为 <code>X-SMG-Routing-Key</code> prefix，让同一episode的所有turn都落在同一个 SGLang worker 上且复用它的prefix cache（<code>--router-policy consistent_hashing</code>）。</p>
+
+<h4>trajectory merging——把多轮缝成一条带mask的序列，且不重新re-tokenizer</h4>
+
+<p><b>问题。</b>agent的一个回合不是干净的「一问一答」。第 1 轮是 prompt₁ → output₁；第 2 轮的 prompt 是「prompt₁ + output₁ + tool结果」——<b>每一轮都把前面的内容全部重念一遍</b>，录下来的是一摞互相重叠的片段。而trainer只吃<b>一条扁平的 token 序列 + 一个 0/1 mask</b>（标明哪些 token 要训练）。trajectory merging干的就是这个「拍平」的活。</p>
+
+<p>因为分词器<b>不可往返</b>的特性（比如 "don't" 既能切成 <code>don</code>+<code>'t</code>，也能切成 <code>do</code>+<code>n't</code>——文字一样，id 不同）。id 一错位，事先算好的对数概率就贴到错的 token 上，gradient被悄悄污染。</p>
+
+<p><b><code>merge_turns</code> 的做法</b>逐轮扫过去，已经在序列里的部分<b>跳过</b>，只追加每轮<b>新增</b>的内容，边追加边打标签——环境写的（tool结果）mask 0，模型写的（output）mask 1：</p>
+
+<pre><code class="language-python">def merge_turns(turns):
+    prompt_ids = turns[0].prompt_ids        # 第一轮的 prompt = 这个片段的 prompt
+    response_ids, loss_mask, log_probs = [], [], []
+    for turn in turns[1:]:
+        suffix = turn.prompt_ids[len(prompt_ids):]          # 超出基准 prompt 的全部内容
+        matched = common_prefix_len(response_ids, suffix)   # 我们自己先前的输出有多少原样重现
+        if matched &lt; len(response_ids):                     # 前缀漂移：prompt 在输出中途分叉
+            zero_out_straddling_output_spans(matched)       # 拒绝对无法证实的 token 反传
+            response_ids, loss_mask, log_probs = truncate_to(matched)
+        context_tail = suffix[matched:]                     # 真正新的环境上下文
+        response_ids += context_tail
+        loss_mask    += [0] * len(context_tail)             # mask 0：模型「读」的 token
+        log_probs    += [0.0] * len(context_tail)
+        response_ids += turn.output_ids                     # 模型自己的生成
+        loss_mask    += [1] * len(turn.output_ids)          # mask 1：模型「写」的 token
+        log_probs    += turn.output_log_probs
+    return TokenSegment(prompt_ids, response_ids, loss_mask, log_probs)</code></pre>
+
+<p>两轮的回合拍平之后长这样——<b>只有模型自己写的 token 拿到gradient</b>：</p>
+
+<div class="mermaid-box">
+<pre class="mermaid">
+flowchart TD
+    subgraph REC["adapter录下的两轮（注意：第 2 轮把第 1 轮全部重念了一遍）"]
+        T1["第 1 轮：[ prompt₁ ] → [ output₁ ]"]
+        T2["第 2 轮：[ prompt₁ + output₁ + tool结果 ] → [ output₂ ]"]
+    end
+    REC ==&gt;|"merge_turns 重放：重复的跳过，只追加新内容"| FLAT
+    subgraph FLAT["拍平后的一条序列（trainer吃的就是它）"]
+        direction LR
+        A["prompt₁&lt;br/&gt;『修复 utils.py 的测试』&lt;br/&gt;题目 · 不训练"] --&gt; B["output₁&lt;br/&gt;『我先看看文件…』&lt;br/&gt;mask 1 ✅ 有gradient"]
+        B --&gt; C["tool结果&lt;br/&gt;『文件内容 / 报错』&lt;br/&gt;mask 0 ❌ 环境注入"]
+        C --&gt; D["output₂&lt;br/&gt;『是差一错误，打补丁…』&lt;br/&gt;mask 1 ✅ 有gradient"]
+    end
+</pre>
+</div>
+
+<p><b>安全措施：前缀漂移。</b>如果第 2 轮的 prompt 在 output₁ 的中间就和录音对不上了，对不上的那段就不是可信的训练目标——代码把跨越分叉点的输出的mask和对数概率清零，并截掉缝不上的尾巴。宁可少训一点，也不训错的。最终的不变式：<b>mask 1 ⇔ 真实的模型 token ⇔ 真实的对数概率；其余位置全为 0。</b></p>
+
+<h4>Rollout 分组——给 GRPO 用的 <code>group_ids</code></h4>
+
+<p>GRPO 用一个极其简单的基线替掉了 PPO ：对同一个 prompt 生成若干次尝试，每次跟自己兄弟们的平均比。对一组 <span class="math">n</span> 次尝试、奖励 <span class="math">r<sub>1</sub>,…,r<sub>n</sub></span>，优势在<b>组内</b>标准化：<span class="math">A<sub>i</sub> = (r<sub>i</sub> − mean(<b>r</b>)) / std(<b>r</b>)</span>。为此trainer必须知道哪些样本是兄弟——同一个 prompt 的每次尝试都盖上同一个 <code>group_id</code>。v0.3.0 <b>特意把这个字段从 <code>rollout_ids</code> 改名为 <code>group_ids</code></b>：</p>
+
+<ul>
+<li><b><code>group_id</code></b>——「我属于哪个 prompt 的组？」同一个 prompt 的 <code>n_samples</code> 次不同尝试共享。GRPO 按它分桶。</li>
+<li><b><code>rollout_id</code></b>——「我是哪一条trajectory的片段？」当合并把一个回合切成 <code>subagent</code> / <code>wipe</code> / <code>final</code> 几段时，这些片段共享。</li>
+</ul>
+
+<p>第二个 id 来自 <code>fan_out_sample_segments</code>，阶段 5 的辅助函数。一条trajectory可以扇出成多个训练样本（一个subagent分支、一个压缩前的片段）；它把 reward 均分，并给每个兄弟<b>同一个 <code>rollout_id</code></b>，让按 rollout 求均值的归约器把这条trajectory只数一次：</p>
+
+<pre><code class="language-python">def fan_out_sample_segments(sample, segments, reward, tokenizer, rollout_id=None):
+    k = len(segments)
+    per_segment_reward = reward / max(1, k)                 # 均分 reward
+    shared_rollout_id  = rollout_id or sample.index         # 兄弟共享一个 rollout_id
+    out = []
+    for i, segment in enumerate(segments):
+        sub = sample if i == 0 else copy.copy(sample)
+        write_segment_to_sample(sub, segment, per_segment_reward, tokenizer)
+        sub.rollout_id = shared_rollout_id
+        sub.metadata = {**sub.metadata, "segment_idx": i, "num_segments": k}
+        out.append(sub)
+    return out</code></pre>
+
+<h4><code>coding_agent_rl</code>——黑盒的完整示例</h4>
+
+<p>端到端用 RL 训练一个<b>未经修改的 Claude Code CLI</b>，只换掉model（the env-var redirect above）。</p>
+
+<h4>让慢速agent rollout 变得划算的系统级特性</h4>
+
+<p>agent rollout 又慢又参差——一个 30 秒，另一个 5 分钟。同步训练里 GPU 就在这种参差里空转：要么等最慢的 rollout，要么等weight传完。v0.3.0 用四个特性把这些等待逐个消灭：</p>
+
+<table>
+<tr><th>特性</th><th>消灭的等待</th><th>怎么做到（一句话）</th></tr>
+<tr><td><b>全异步训练</b></td><td>等一批里最慢的 rollout</td><td>后台维持一个永不停的生成「暖池」（<code>AsyncRolloutWorker</code> 始终补满在途任务），trainer只捞已完成的；用 <code>train_async.py</code> 开启。代价是轻度 off-policy，用 <code>--use-tis</code> 矫正</td></tr>
+<tr><td><b>可变全局 batch</b></td><td>给短trajectory填充、把长trajectory截断</td><td>每步消费手头实际有的样本数，不凑整 N</td></tr>
+<tr><td><b>delta weight sync</b></td><td>每步广播 100B+ 完整weight</td><td>字节级 diff 只传改动位置——约 3% 密度，355B 模型约 5 GB（<code>--update-weight-mode delta</code>，走 <code>nccl</code> 或 <code>disk</code> 传输）</td></tr>
+<tr><td><b>Actor-Critic 共置</b></td><td>PPO 的 critic、actor 各占一组 GPU</td><td>PPO 重构后两者共享 GPU。（GRPO 干脆不要 critic——所以它是默认算法）</td></tr>
+</table>
+
+<p>一句话总结：<b>前两个让RL永远有活干，后两个让weight传输和硬件不再白等白占。</b></p>
+
+<hr>
+
+<!-- ================================================================ -->
+<h2 id="s5">5. Agent Infra——如何构建一个优秀的 Agent Infra，以及它如何与 RL Infra 共同迭代</h2>
+
+<h3>5.1 为什么需要 Agent Infra</h3>
+
+<p>在开放世界的复杂任务中，agent能够调用tool、执行命令、观察反馈，并据此迭代行动。无论是修改文件、管理进程，还是操作浏览器，<b>每一次交互都在实质性地改变环境状态</b>——这正是agent补足模型在实时感知与执行能力上短板的方式。这种交互模式的转变，直接催生了对<b>sandbox环境</b>的需求。简单任务或许可以用<b>无状态</b>sandbox应对：每次tool调用都启动一个全新container、执行完立即销毁，天然隔离、易于扩展。但真实的agent任务往往需要<b>有状态</b>sandbox：模型在第 1 轮创建了一个文件，第 2 轮需要读取它；第 3 轮启动了一个服务，第 4 轮需要向它发请求。<b>状态必须在多轮交互之间延续。</b>这带来一连串 Infra 挑战：sandbox的生命周期如何管理？长时间运行的会话如何处理超时和异常？大规模并发时如何高效调度资源？</p>
+
+<p>这些不是假设性问题——本案例研究里的每个系统都在某处给出了回答：Harbor 的 <code>Trial</code> 永远在被 shield 保护的 <code>finally</code> 里拆掉container，几百个并发 trial 也不泄漏sandbox（§2.6）；slime 把每次sandbox RPC 都包进 <code>_rpc_retry</code> 做 3 次指数退避重试，正是因为cloud sandbox在大规模下又慢又抖（§4）；而「有状态的终端」在工程上的标准答案就是一个 tmux 持久会话——恰好是 Terminus-2 暴露的那个唯一tool（§2.4）——而不是一连串彼此独立、无状态的 <code>run_command</code> 调用。</p>
+
+<p>除了sandbox之外，<b>模型与环境之间的交互设计</b>同样是agent场景的关键组成部分。模型通过什么接口与环境交互？tool的<b>动作空间（Action Space）</b>如何定义，才能既表达力强又易于学习？执行结果应该以什么形式反馈给模型——原始的 <code>stdout</code>/<code>stderr</code>，结构化的 JSON，还是经过截断和摘要的文本？这些设计决策会直接影响模型的任务完成能力：好的交互设计能让模型更准确地理解环境状态、更高效地规划下一步行动；糟糕的设计则会导致信息丢失、上下文膨胀，甚至让模型陷入死循环。成熟的agent栈会把这些当作最重要的配置项——tool输出截断上限、观察超时、上下文超限的显式退出状态——Terminus-2 为长回合内置上下文摘要器，也是同一个原因（§2.4）。</p>
+
+<p>这些问题加起来，构成了一个全新的 Infra 层：<b>Agent Infra</b>——一切介于模型和外部世界之间的东西：sandbox环境、tool调用、状态管理、trajectory记录。它是在传统 LLM Infra（推理服务 + 训练）之外需要单独构建的新模块。而它正是把「<b>应用/harness → 数据 → 训练 → 更好的应用/harness</b>」这个闭环接起来的基础设施：让研究者能够在真实环境中运行agent、收集trajectory数据、评估任务完成度，再在结果上训练。Harbor 把这个闭环写得很明白——给agent打分的那个 <code>Job</code>，同时产出 RL rollout 和 SFT trajectory：一次评测运行既给出分数，也给出训练下一代模型的信号（§2.8）。</p>
+
+<div class="mermaid-box">
+<pre class="mermaid">
+flowchart LR
+    APP["🤖 应用&lt;br/&gt;agent在有状态sandbox里&lt;br/&gt;尝试真实任务"] --&gt;|"trajectory + reward"| DATA["📊 数据&lt;br/&gt;ATIF / 精确 token id&lt;br/&gt;/ loss mask"]
+    DATA --&gt;|"RL rollout + SFT trajectory"| TRAIN["🏋️ 训练&lt;br/&gt;GRPO / SFT"]
+    TRAIN --&gt;|"新weight"| MODEL["✨ 更好的模型"]
+    MODEL -.->|"重新部署"| APP
+</pre>
+</div>
+
+<p>那么，如何设计一个完善的 Agent Infra？本节余下部分从 Infra 的视角分析 Harbor 和 verifiers 的特点，提炼一个优秀的 Agent Infra 应该暴露的核心抽象，然后走进 slime agent-first 的 v0.3.0，探寻在新一代 agentic 范式下，RL 框架应该如何与agent层一起迭代。</p>
+
+<h3>5.2 从 Harbor 学到什么：握住基准，握住 agent loop</h3>
+
+<p>Harbor 由发布 <b>Terminal-Bench</b>（2025 年 5 月）的同一个团队构建，是 <b>Terminal-Bench 2.0</b> 的官方运行框架。它的采用逻辑很直白：Terminal-Bench 成了前沿模型的标尺——<a href="https://blog.google/products/gemini/gemini-3/">Gemini 3 报告 TB 2.0 得分 54.2%</a>（2025 年 11 月）、<a href="https://openai.com/index/gpt-5-1-codex-max/">GPT-5.1-Codex-Max 报告 58.1%</a>（2025 年 11 月）、<a href="https://www.anthropic.com/news/claude-opus-4-6">Claude Opus 4.6 宣称「在 agentic 编码评测 Terminal-Bench 2.0 上取得最高分」</a>（2026 年 2 月）、<a href="https://arxiv.org/abs/2512.02556">DeepSeek-V3.2 报告 46.4%</a>（2025 年 12 月）。当数据集成为事实上的行业标尺，拥有它的运行框架自然继承它的用户：<b>对很多用户来说，选择 Harbor 就是在选择 Terminal-Bench 的准确性和便捷性。</b>Harbor 自己 README 的快速上手命令就是 <code>harbor run --dataset terminal-bench@2.0 --agent claude-code --model anthropic/claude-opus-4-1 --n-concurrent 4</code>。</p>
+
+<p>细看这份公信力从哪来，三项投入很突出。(1) <b>数据集的上下游构建</b>：基准 <b>adapter</b> 把现有评测套件（SWE-Bench、AIME、BFCL……）导入 Harbor 格式，并用<b>对齐实验（parity experiment）</b>——对原版与适配版做统计重叠检验——来验证；外加注册表（<code>harbor datasets list</code>、<code>harbor publish</code>）和每个任务用 oracle 标准解做正确性自检。(2) <b>白盒 agent loop</b>：Terminus-2 只暴露一个 tmux tool，每轮记录成 ATIF，开 <code>collect_rollout_details=True</code> 后逐轮捕获 <code>prompt_token_ids</code> / <code>completion_token_ids</code> / <code>logprobs</code>（§2.4）——Anthropic 在 Claude Sonnet 4.5 的评测方法里甚至写明「所有报告分数均使用默认 agent 框架（Terminus 2）」。(3) <b>tool的个性化处理</b>：每个脚手架保留自己的 <code>AgentConfig</code> kwargs（解析器、<code>api_base</code>、摘要旋钮），ATIF 把每个agent的原生动作如实记录成 <code>ToolCall</code>——Terminus-2 的击键被记为 <code>function_name="bash_command", arguments={keystrokes, duration}</code>——而不是强行统一成一套tool。</p>
+
+<p>代价侧也是真实的：编写一个任务意味着写<b>至少 4 个必需件</b>——<code>task.toml</code>、<code>instruction.md</code>、<code>environment/</code>（Dockerfile 或 compose）、<code>tests/test.sh</code>（必须写出 reward 文件）——加上推荐的 <code>solution/solve.sh</code>，实践中约 5 件；使用 Harbor 还要学一族子命令（带 <code>-d/-p/-a/-m/-e/-n</code> 的 <code>harbor run</code>，以及 <code>harbor datasets list</code>、<code>harbor view</code>、<code>harbor trial start</code>、<code>harbor publish</code>）。</p>
+
+<blockquote class="lead"><p><b>总结一（来自 Harbor）。</b>在 Harbor 的引力真正来源处投入：<b>数据集上下游构建</b>（adapter + 对齐验证 + 注册表）、<b>第一方白盒 agent loop</b>（全程插桩、RL-ready）、<b>tool的个性化处理</b>（如实记录原生动作，不要拍平成统一tool集）。</p></blockquote>
+
+<h3>5.3 从 verifiers 学到什么：一个文件、一行命令、一份契约</h3>
+
+<p>verifiers 把打包方式整个倒了过来。环境是一个<b>自包含的 Python 模块</b>——三个文件（暴露 <code>load_environment()</code> 的 <code>my_env.py</code>、<code>pyproject.toml</code>、README），用 <code>prime env init my-env</code> 脚手架生成，一行命令端到端跑通：<code>prime eval run my-env -m openai/gpt-4.1-mini -n 10</code>（还会自动安装）。对比第一天的上手体验：Harbor 要求你编写 4–5 个任务件、学习好几个子命令；verifiers 只要求一个文件里的一个函数和一条命令。<b>用户喜欢一行命令就能跑起来的东西</b>——抽象层把底层实现差异完全屏蔽掉了。</p>
+
+<p>这份单一契约也正是它能异构地规模化的原因：<b>Environments Hub</b> 上有 2,500+ 个环境，横跨数学、编码、游戏、搜索、tool调用、多模态，全部暴露同一个 <code>load_environment()</code> 入口；<b>prime-rl</b> 的三个并发进程（inference server / 编排器 / FSDP trainer）能在其中任何一个上训练；自家的证明是 <b>INTELLECT-2</b>（32B，经全球分布式 RL 训练）和 <b>INTELLECT-3</b>（100B+ MoE）。两个来自源文档的诚实注脚：v1 的 Taskset/Harness 迁移在那 2,500+ 个环境上仍是进行中状态；公开的规模化证据是架构性的（三进程设计、重要性采样矫正），而非已发表的吞吐数字。</p>
+
+<blockquote class="lead"><p><b>总结二（来自 verifiers）。</b>把环境做成<b>一个文件、一条命令</b>的单元，让用户完全不用碰底层实现；把入口标准化成一份契约，让成千上万的异构环境和任意trainer自由组合；再加一个注册表，生态就成了飞轮。</p></blockquote>
+
+<h3>5.4 综合——优秀 Agent Infra 的五个性质</h3>
+
+<table>
+<tr><th>性质</th><th>今天谁做到了</th><th>我们拿走什么</th></tr>
+<tr><td><b>环境稳定、干净</b>——环境和底层实现由我们统一管理</td><td>Harbor 给每个任务钉死container镜像；slime 在全新clean sandbox里判分，reward 无法作弊（§4）</td><td>干净的镜像/环境是可信 reward 的前提——必须端到端握在自己手里</td></tr>
+<tr><td><b>结构上可移植（structural portable）</b></td><td>verifiers 把 Harbor 的任务和 agent harness整体搬走（<code>HarborTaskset</code>、<code>terminus-harbor</code>、<code>opencode-harbor</code>，§3）；Miles 实现了 Harbor 的 rollout 接口（swe-agent-v2）</td><td>任务包和 agent loop 应该以「数据 + 薄类」的形式跨栈移植，而不是重写</td></tr>
+<tr><td><b>Async and lazily imports</b></td><td>prime-rl 的三进程解耦（§3）；slime 的全异步暖池（§4）；Miles 用 partial rollout + 过采样对付长尾trajectory；lazily imports来应对密集I/O from harbor</td><td>agent rollout 又慢又参差——Infra 绝不能让trainer等最慢的那个</td></tr>
+<tr><td><b>易用（easy to use）</b></td><td>verifiers 的一文件/一命令体验；Harbor 的一个 flag 换sandbox后端（<code>-e daytona</code>）</td><td>复杂性住在抽象线以下，永远不要漏到上面</td></tr>
+<tr><td><b>Token 级忠实——绝不重新分词</b></td><td>Harbor 用 ATIF 存精确 id（§2.7）；verifiers 用拦截做 TITO（§3）；slime 用伪装adapter + trajectory merging（§4）</td><td>token id 在生成那一刻当场记录、之后只搬运不重建——这是gradient不被悄悄污染的前提</td></tr>
+</table>
+
+<p>这五个性质里，第五个是唯一一个三个系统<b>各自重新发明了一遍</b>的——同一条铁律（绝不重新分词），三个系统在三个不同的层面执行：</p>
+
+<table>
+<tr><th>系统</th><th>在哪一层解决</th><th>具体方案</th></tr>
+<tr><td><b>Harbor</b></td><td><b>记录与交接格式层</b></td><td>白盒agent自己记：Terminus-2 开 <code>collect_rollout_details=True</code>，逐轮记下 token id + logprobs，存进标准化的 ATIF（<code>trajectory.json</code>）；trainer直接从结果元数据里拿（§2.7–2.8）</td></tr>
+<tr><td><b>verifiers</b></td><td><b>API 端点层（拦截）</b></td><td>TITO：token id 和 loss mask直接来自inference server；对黑盒 CLI agent，把每次 LLM 调用逼回trainer自己的端点——interceptor对agent透明，却当场留下精确 token id + logprobs（<code>OPENAI_API_KEY="intercepted"</code>，§3）</td></tr>
+<tr><td><b>slime</b></td><td><b>引擎原生接口 + 多轮合并层</b></td><td>伪装adapter直连 SGLang <code>/generate</code>（<code>return_logprob=True</code>），拿到 (logprob, token_id) 对；再用 <code>merge_turns</code> <b>重放对齐</b>把整个回合拍平——对不上的 token 宁可清零也不猜（前缀漂移保护，§4）</td></tr>
+</table>
+
+<p>三个角度互补：Harbor 信任<b>白盒agent自己上报</b>，verifiers 在<b>传输路径上拦截</b>（黑盒也适用），slime <b>从引擎拿原始数据、并保证多轮拼接之后依然忠实</b>（Harbor 文档自己也承认拦截路线——§2.8 的「两条路」）。无论走哪条路，铁律只有一条：<b>token id 在生成那一刻被记录；之后的每个环节只搬运它，绝不重建它。</b></p>
+
+<h3>5.5 三个核心抽象：Task / Agent loop / Tool</h3>
+
+<p>剥掉本案例研究里每个系统的品牌外衣，剩下的都是同样三个抽象，架在第四个底座（sandbox/运行时）之上：</p>
+
+<ul>
+<li><p><b>Task</b> ↔ 基准（benchmark）。它定义任务描述、初始状态、成功条件——且结果必须<b>可验证</b>对错。在 Harbor 里是任务目录（<code>instruction.md</code> + <code>task.toml</code> + <code>environment/</code> + 写出 <code>reward.txt</code> 的测试）；在 verifiers 里是数据集 + <code>Rubric</code>；两边的主心骨都是 RLVR 的「真实测试过了吗」。</p></li>
+<li><p><b>Agent loop</b> ↔ 产品侧的 Agent 实现。它封装行为逻辑——LLM 调用、tool选择、多轮交互。我们倾向<b>白盒复刻而非黑盒调用</b>，理由有三：(1) 现有产品面向用户会做<b>兜底处理</b>，这是好的用户体验，但在评测里会掩盖模型的真实能力；(2) 黑盒<b>没有缝隙插入自定义指标和 reward</b>；(3) 复刻成本通常不高——一个带tool注册表、重试和截断旋钮的插桩 ReAct 循环，正是 Terminus-2 已经是的东西，而 mini-swe-agent 这类极简脚手架只有百行左右的量级。黑盒封装（Claude Code、Gemini CLI、Codex）在追求广度和速度时仍然有用——但它在能力测量和 reward 插入上的代价是真实的，§5.7 会用 slime 自己的例子具体展示。</p></li>
+<li><p><b>Tool</b> ↔ agent可调用的原子操作——RL 的<b>动作空间（Action Space）</b>。不同 Agent 产品的tool设计各有特色：Terminus-2 的单个 tmux 窗格、Claude Code 的文件/编辑tool、verifiers <code>ToolEnv</code> 的「tool就是一个 Python 函数」（外加 <code>StatefulToolEnv</code> 的隐藏注入参数）。Tool 抽象应该<b>保留每个 Agent 原有的tool定义，而非强制统一</b>——Infra 的职责是如实记录它们（像 ATIF 用原生 <code>ToolCall</code> 形状那样），而不是拍平它们。</p></li>
+</ul>
+
+<div class="mermaid-box">
+<pre class="mermaid">
+flowchart TD
+    T["📋 Task — 基准&lt;br/&gt;描述 · 初始状态 · 可验证的成功条件"] --&gt; RT
+    AL["🤖 Agent loop — 白盒复刻的&lt;br/&gt;产品侧行为逻辑"] --&gt; RT
+    TO["🔧 Tool — 动作空间&lt;br/&gt;保留各 Agent 原生tool定义"] --&gt; RT
+    RT["📦 sandbox / 运行时&lt;br/&gt;有状态 · 干净 · 大规模并发"] --&gt; OUT["trajectory（精确 token id）+ reward"]
+    OUT --&gt; RL["RL / SFT 训练数据"]
+</pre>
+</div>
+
+<h3>5.6 把sandbox层握在自己手里</h3>
+
+<p>Prime Intellect 给出的启示是垂直整合：算力市场 + <b>Sandboxes</b> + Environments Hub + verifiers + prime-rl + Lab/Evaluations + 自家的 INTELLECT 模型——明确定位为「自我改进agent的开放栈」（§3）。如果我们也想要属于自己的 RL-to-Env 生态，<b>建立自己的sandbox Infra</b> 是值得，因为在 agentic RL 里sandbox位于每次 rollout 的关键路径上：slime 的 <code>coding_agent_rl</code> 每次尝试要启动<b>两个</b>sandbox（干活 + 干净判分），再乘上每个 issue 的 <code>--n-samples-per-prompt 8</code>；每次 RPC 都要过 <code>_rpc_retry</code>，规模一大瞬态sandbox故障就是家常便饭（§4）。<b>sandbox的启动成功率和启动延迟会在整条流水线上成倍放大</b>——这正是 RL 后训练效率真正能大幅提升的部分。</p>
+
+<p>而风险是低的，因为sandbox是上一代互联网验证过的成熟基础设施。优化一个已被验证的底座是工程问题，不是研究问题。再加上结构可移植性的agent infra设计可以迅速移植其他agent infra的benchmark。例如verifiers 用一个薄薄的 <code>Taskset</code> 类就把 Harbor 的 Terminal-Bench 任务和 agent harness搬走了</p>
+
+<h3>5.7 RL Infra × Agent Infra 的有机迭代——以 slime v0.3.0 为例</h3>
+
+<p>站在RL-infra的座位上，通往环境有两条路线：<b>路线① 自建</b>——trainer自带的 agent 模块自己启动sandbox、自己判分；<b>路线② 第三方 harness</b>——对着 Harbor 或 verifiers 实现 rollout 接口。</p>
+
+<div class="mermaid-box">
+<pre class="mermaid">
+flowchart LR
+    TR["RL trainer"] --&gt;|"路线① 自建环境"| SELF["trainer自带 agent 模块&lt;br/&gt;slime/agent + E2B（slime 全部 7 个示例）"]
+    TR --&gt;|"路线② 第三方 harness"| HARN["Harbor / verifiers&lt;br/&gt;（Miles · SkyRL · prime-rl · Tinker 走这条）"]
+</pre>
+</div>
+
+<p>既然路线②存在，路线①为什么重要？因为<b>有些能力只有在环境侧和trainer侧被一起设计时才存在</b>——v0.3.0 就是这类协同设计的一份目录：</p>
+
+<table>
+<tr><th>协同设计</th><th>Agent Infra 侧</th><th>RL Infra 侧</th><th>为什么第三方 harness 很难做到</th></tr>
+<tr><td><b>前缀缓存亲和</b></td><td>adapter把 <code>session_id</code> 作为 <code>X-SMG-Routing-Key</code> 头转发</td><td>SGLang <code>--router-policy consistent_hashing</code> 把一个回合的所有轮次钉在同一个 worker 上，复用前缀缓存</td><td>需要同时拥有adapter和路由器——trainer无关的 harness 两个都控制不了</td></tr>
+<tr><td><b>精确 token 捕获（TITO）</b></td><td>adapter自己渲染 chat template，把 <code>input_ids</code> POST 给 <code>/generate</code></td><td><code>return_logprob=True</code> 返回 (logprob, token_id) 对——GRPO 训练在可证实被采样的 token 上</td><td>通用 OpenAI 兼容端点返回的是文本，不是你引擎的 token id</td></tr>
+<tr><td><b>压缩与subagent</b></td><td>adapter识别 Claude Code 的 <code>wipe</code> 压缩和 <code>Task</code>/<code>Agent</code> 派发，切分trajectory片段</td><td><b>可变全局 batch</b> + <code>rollout_id</code> 扇出在同一个版本里长出来，专门消费这些片段</td><td>agent 侧的行为逼出了trainer侧的特性——这是共同进化，不是简单集成</td></tr>
+<tr><td><b>长尾 rollout</b></td><td>回合 30 秒到几分钟不等，极不均匀</td><td><code>AsyncRolloutWorker</code> 让 <code>sglang_server_concurrency</code> 个生成始终在途</td><td>需要trainer内部跨 rollout 边界的排队机制</td></tr>
+<tr><td><b>不稳定的sandbox</b></td><td>每次sandbox RPC 都过 <code>_rpc_retry</code>（3 次指数退避）</td><td>rollout 在 E2B 瞬态故障下存活，而不是丢样本</td><td>可靠性住在trainer自己的 agent 模块里</td></tr>
+<tr><td><b>解耦的机群</b></td><td>rollout 机器横向扩展，甚至跨数据中心</td><td><b>delta weight sync</b>只传约 3% 的字节（355B 模型约 5 GB）</td><td>trainer的weight传输因为环境的横向扩展而改变</td></tr>
+</table>
+
+<p><code>coding_agent_rl</code> 唯一的软肋是它训练的是一个<b>黑盒</b>agent。黑盒agent产品的兜底处理可能掩盖模型真实能力；没有缝隙插入逐步指标或 reward——奖励只能挂在最后（git diff → 测试），无法进入循环内部。</p>
+
+<p>这正是本节标题承诺的有机迭代：agent 层暴露需求（trajectory片段、会话亲和、sandbox抖动、机群横向扩展）→ RL 层长出特性（可变 batch、路由策略、重试、增量同步）→ 反过来又让更丰富的 agent 任务变得划算。两层都无法孤立设计；<b>同时坐在两个座位上的团队迭代最快。</b></p>

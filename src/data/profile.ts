@@ -140,16 +140,16 @@ export const experience: ExperienceEntry[] = [
       { src: "/logos/provided/trimmed/tencent-trim.png", wide: true, href: "https://www.tencent.com/en-us/" },
       { src: "/logos/provided/trimmed/tencent-hunyuan-trim.png", wide: true, href: "https://hunyuan.tencent.com/research?page=1" },
     ],
-    role: "AI Infrastructure Engineer Intern",
-    roleZh: "AI 基础设施工程实习生",
+    role: "Research Engineer Intern",
+    roleZh: "研究工程实习生",
     date: "Jan 2026 - Apr 2026",
     detail:
-      "Agent execution runtime, Nix-based runtime injection, checkpoint/restore acceleration, and reliable async RPC for large-scale evaluation infrastructure.",
+      "Agent Harness, Runtime, Eval infra and Sandbox infra.",
     detailZh:
-      "参与 agent execution runtime、基于 Nix 的运行时注入、checkpoint/restore 启动加速，以及大规模评测基础设施中的可靠异步 RPC。",
+      "Agent Harness、Runtime、Eval infra 与 Sandbox infra。",
   },
   {
-    org: "GetMyHome",
+    org: "RealKey",
     logo: "/logos/provided/getmyhome.svg",
     logoHref: "https://www.realkey.ai/",
     role: "Machine Learning Engineer Intern",
@@ -209,8 +209,8 @@ export const projects: ProjectEntry[] = [
     title: "HomeGPT",
     logo: "/logos/provided/getmyhome.svg",
     logoHref: "https://www.realkey.ai/",
-    venue: "GetMyHome",
-    venueZh: "GetMyHome",
+    venue: "RealKey",
+    venueZh: "RealKey",
     date: "2024 - 2025",
     summary:
       "Co-developed an LLM multi-agent platform for real estate workflows, including price-estimation agents and retrieval infrastructure.",

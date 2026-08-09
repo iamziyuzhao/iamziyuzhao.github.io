@@ -1,0 +1,645 @@
+<h3>Contents</h3>
+<ol class="toc">
+<li><a href="#s1">Meet the cast — three systems, one loop</a></li>
+<li><a href="#s2">Harbor — the environment/eval harness (focus: RL post-training)</a></li>
+<li><a href="#s3">verifiers — the RL-environment library (focus: RL post-training)</a></li>
+<li><a href="#s4">smile (slime) — the RL trainer (focus: the v0.3.0 agent-first update)</a></li>
+<li><a href="#s5">Agent Infra — what it takes to build a good one, and how it co-evolves with RL infra</a></li>
+</ol>
+
+<hr>
+<h2 id="s0">0. Introduction</h2>
+<p>A good agent/evaluation infrastructure must provide what RL needs. This article begins with Harbor in Section 2 and verifiers in Section 3. Along the way, it explains their RL post-training features and gives a clear, high-level framework. Section 4 then examines smile's approach to agent training and shows how environments, agents, and CLIs should interact with RL infrastructure to improve training. Finally, Section 5 draws on all three systems to identify the key elements of good agent infrastructure and two possible directions for future RL infrastructure.</p>
+
+<!-- ================================================================ -->
+<h2 id="s1">1. Three systems, one loop</h2>
+
+<table>
+<tr><th></th><th><b>Harbor</b></th><th><b>verifiers</b></th><th><b>smile / slime</b></th></tr>
+<tr><td><b>One sentence</b></td><td>runs an agent in a sandbox and grades it</td><td>defines and grades RL environments with small Python modules</td><td>RL <b>trainer</b> (the gradient step)</td></tr>
+<tr><td><b>Role in the loop</b></td><td>sample + score</td><td>sample + score</td><td><b>update</b></td></tr>
+<tr><td><b>Background</b></td><td>successor to Terminal-Bench</td><td>includes the <code>prime</code> CLI + Environments Hub</td><td></td></tr>
+<tr><td><b>Core unit</b></td><td><code>Trial</code> (a graded rollout)</td><td><code>Environment</code> (<code>load_environment()</code>)</td><td></td></tr>
+<tr><td><b>Output / input</b></td><td>outputs <code>(reward, token_ids, mask_ids)</code></td><td>outputs a rollout scored by a <code>Rubric</code></td><td>takes in <code>(reward, token_ids, loss_mask)</code></td></tr>
+</table>
+
+<h3><span class="sysdot" style="background:var(--harbor)"></span>Harbor — the agent-eval / RL-environment harness</h3>
+
+<p><b>Harbor</b> is the harness that answers one question: "Set up a task and an agent, and tell me how well it did." We can describe it with six abstractions — <code>Task</code> (the instruction + files), <code>Environment</code> (a standard sandbox, using local Docker or a cloud provider), <code>Agent</code> (the scaffold being tested), <code>Verifier</code> (runs tests → produces a reward), <code>Trial</code> (one rollout that produces one reward), and <code>Job</code> (a whole batch of trials). Harbor's role is on <b>the environment/evaluation side</b>: it runs the agent and grades it. Its slogan sums up the whole wiki: "a trial is a rollout that produces a reward."</p>
+
+<h3><span class="sysdot" style="background:var(--verif)"></span>verifiers — the RL-environment + eval library</h3>
+
+<p><b>verifiers</b> is a library for writing self-contained RL environments as small Python modules. Each environment = dataset + rollout harness + <code>Rubric</code> (a set of weighted reward functions), exposed through classes like <code>SingleTurnEnv</code>, <code>MultiTurnEnv</code>, and <code>ToolEnv</code>. These environments are published to the <b>Environments Hub</b> (a registry of 2,500+ open environments), evaluated with the <code>prime</code> command-line tool, and used for training with <b>prime-rl</b> (Prime Intellect's asynchronous RL trainer). verifiers has the same role as Harbor — <b>the environment/evaluation side</b> — and clearly states that one environment object serves both purposes: "Environments can be used for training models with reinforcement learning (RL), evaluating capabilities, generating synthetic data..." You do not need to change the environment when switching between evaluation and training.</p>
+
+<h3><span class="sysdot" style="background:var(--slime)"></span>smile = slime — the RL post-training trainer</h3>
+
+<p>v0.3.0 is the release that made slime "agent-first": it added a dedicated <code>slime/agent</code> module (sandboxes, trajectory merging, rollout grouping, and OpenAI/Anthropic adapters), a black-box coding-agent RL example, fully asynchronous training, and delta weight sync.</p>
+
+<h3>The unifying frame: one loop, three parts</h3>
+
+<p>Every RL training step is one loop with three parts: <b>sample</b> (let the agent attempt the task), <b>score</b> (produce a reward), and <b>update</b> (sync the weights). The parts are linked by the <b>rollout interface</b>: <code>(reward, token_ids, loss_mask)</code>.</p>
+
+<pre><code class="language-python"># the contract, in the abstract — every harness PRODUCES this, every trainer CONSUMES it
+rollout = (
+    reward,      # scalar: how good was this attempt?
+    token_ids,   # the exact tokens the model sampled (prompt + response)
+    loss_mask,   # per-token 1/0: train on this token? (model = 1, environment = 0)
+)</code></pre>
+
+<div class="mermaid-box">
+<pre class="mermaid">
+flowchart LR
+    subgraph PRODUCE["🟦 sample + score — Harbor / verifiers"]
+        A[Task / prompt] --&gt; B[agent attempts it&lt;br/&gt;in a sandbox]
+        B --&gt; C[Verifier / Rubric&lt;br/&gt;grades the attempt]
+    end
+    C --&gt;|"(reward, token_ids, loss_mask)"| D
+    subgraph CONSUME["🟩 update — slime / prime-rl"]
+        D[trainer: GRPO / PPO&lt;br/&gt;backprop on the tuple] --&gt; E[New policy weights]
+    end
+    E -.-&gt;|"weights sync back to the&lt;br/&gt;inference server"| B
+</pre>
+</div>
+
+<hr>
+
+<!-- ================================================================ -->
+<h2 id="s2"><span class="sysdot" style="background:var(--harbor)"></span>2. Harbor — the environment/eval harness (focus: RL post-training)</h2>
+
+<p><b>Harbor</b> (<code>harbor-framework/harbor</code>) mainly runs an agent on a Task in a sandbox and then gives it a score.</p>
+
+<h3>2.1 The six abstractions</h3>
+
+<p>Harbor has the following abstractions. Each can be replaced independently.</p>
+
+<table>
+<tr><th>Abstraction</th><th>What it is</th><th>One-line role</th></tr>
+<tr><td><b>Task</b></td><td><code>instruction.md</code> + <code>task.toml</code> + an <code>environment/</code> directory + a test script</td><td>the prompt + its grader</td></tr>
+<tr><td><b>Environment</b></td><td>a standard "run commands in a container" interface</td><td>the environment where the agent acts</td></tr>
+<tr><td><b>Agent</b></td><td>a scaffold (Terminus-2, Claude Code, OpenHands, …)</td><td>the thing that tries to solve the task</td></tr>
+<tr><td><b>Verifier</b></td><td>runs the test script → reads a reward file → <code>VerifierResult</code></td><td>turns one agent run into a numeric score</td></tr>
+<tr><td><b>Trial</b></td><td>one complete run of an agent on one task, from start until a reward is assigned</td><td>"a rollout that produces a reward"</td></tr>
+<tr><td><b>Job</b></td><td>dataset × agent × model, run as a batch of Trials</td><td>the batch used for RL training</td></tr>
+</table>
+
+<div class="mermaid-box">
+<pre class="mermaid">
+flowchart TD
+    Job["🗂️ Job — dataset × agent × model (a batch)"] --&gt; T1["🎯 Trial #1"]
+    Job --&gt; T2["🎯 Trial #2"]
+    Job --&gt; Tn["🎯 Trial #N (run in parallel)"]
+    T1 --&gt; Task["📋 Task — instruction.md + task.toml + tests"]
+    T1 --&gt; Env["📦 Environment — the sandbox (Docker / E2B / Modal / …)"]
+    T1 --&gt; Agent["🤖 Agent — the scaffold (Terminus-2, Claude Code, …)"]
+    T1 --&gt; Ver["✅ Verifier — runs tests → reward file → reward"]
+    Agent --&gt;|"acts via environment.exec()"| Env
+    Ver --&gt;|"reads /logs/verifier/reward.txt"| Env
+</pre>
+</div>
+
+<h3>2.2 The Agent contract: <code>BaseAgent</code> (setup → run)</h3>
+
+<p>Every scaffold subclasses <code>BaseAgent</code> and implements two asynchronous methods. <code>setup()</code> installs the agent's tools in the running container. <code>run()</code> attempts the task and records what happens in a context object as it runs, so a timeout still leaves partial data. <code>SUPPORTS_ATIF</code> states whether the agent outputs Harbor's RL-ready trajectory format (explained below).</p>
+
+<pre><code class="language-python">class BaseAgent(ABC):
+    SUPPORTS_ATIF: bool = False          # does it emit RL-ready token traces?
+
+    @abstractmethod
+    async def setup(self, environment): ...        # install tools into the container
+
+    @abstractmethod
+    async def run(self, instruction, environment, context):
+        # drive the task; write results into `context` as you go
+        ...</code></pre>
+
+<p>The agent communicates with the container only through <code>environment.exec(...)</code>. Because the interface is asynchronous, the agent and container can run in separate processes. This lets the same agent logic work with any sandbox backend.</p>
+
+<h3>2.3 Environment: one interface, many sandbox backends</h3>
+
+<p><code>BaseEnvironment</code> is a single abstract class — "run commands in a container" — with <code>exec</code>, <code>upload_dir</code>/<code>download_dir</code>, <code>start</code>/<code>stop</code>, and a <code>capabilities</code> descriptor. <code>exec</code> is the method everyone (agent, verifier, oracle) can use:</p>
+
+<pre><code class="language-python">class BaseEnvironment(ABC):
+    @abstractmethod
+    async def start(self, force_build: bool): ...
+    @abstractmethod
+    async def stop(self, delete: bool): ...
+    @abstractmethod
+    async def exec(self, command, cwd=None, env=None,
+                   timeout_sec=None, user=None) -&gt; ExecResult: ...   # stdout/stderr/return_code</code></pre>
+
+<p><b>Cloud sandboxes</b> are the key here. A Trial picks a backend through an <code>EnvironmentFactory</code>, which imports the SDK only when it is needed — local <b>Docker</b>, or cloud <b>E2B / Modal / Daytona / Runloop / GKE / Novita / …</b>. A coding-agent rollout spends nearly all its time waiting for the LLM API, commands, or containers to start, so it is <b>I/O-bound, not compute-bound</b>.</p>
+
+<h3>2.4 Terminus-2: the ReAct agent-loop harness</h3>
+
+<p>The default <code>Agent</code> is <b>Terminus-2</b>, a ReAct-style scaffold (ReAct = "Reason + Act": think, produce an action, read the result, and repeat). The model gets <b>only one tool: a tmux-based terminal</b>. Because nearly every CLI program can be controlled with keystrokes, this one tool covers most needs. On each turn, the model outputs JSON: <code>{analysis, plan, commands:[{keystrokes, duration}], task_complete}</code>.</p>
+
+<p>Terminus-2 is also <b>RL-aware</b>. With <code>collect_rollout_details=True</code>, it records per-turn <code>prompt_token_ids</code>, <code>completion_token_ids</code>, and <code>logprobs</code> to prevent token mismatches.</p>
+
+<p>A simple ReAct-style agent loop meets the needs of most environments. Complex environments, however, still need a more capable agent loop or harness.</p>
+
+<h3>2.5 The Verifier: the reward is a file</h3>
+
+<p>A <b>Verifier</b> uploads a test script the agent never saw, runs it inside the environment, and reads the number the script wrote to <code>reward.txt</code> (or <code>reward.json</code>):</p>
+
+<pre><code class="language-python">class Verifier(BaseVerifier):
+    async def verify(self) -&gt; VerifierResult:
+        await self.environment.upload_dir(tests_dir, "/tests")   # agent never sees these
+        await self.environment.exec(test_script_command)         # script writes a reward file
+        rewards = self._parse_reward_json()  # or _parse_reward_text(): {"reward": 1.0}
+        return VerifierResult(rewards=rewards)</code></pre>
+
+<h3>2.6 <code>Trial._run()</code>: the rollout lifecycle (run_agent → verify → teardown)</h3>
+
+<p>The base <code>Trial.run()</code> is a carefully protected, fault-tolerant pipeline:</p>
+
+<p>1. <code>_prepare()</code> starts the sandbox, checks its health, and installs the agent.</p>
+
+<p>2. <code>_run()</code> runs with <code>_recover_outputs()</code> as a safety net. Even if a Trial is canceled, cleanup still finishes, so hundreds of concurrent Trials do not leak sandboxes.</p>
+
+<pre><code class="language-python">async def _run(self):
+    await self._run_agent()          # agent.run() under a timeout
+    await self._upload_agent_logs()
+    await self._collect_artifacts()  # snapshot results out of the sandbox
+    # SEPARATE mode tears down the agent env before grading (fresh verifier sandbox)
+    await self._run_verifier()       # test script → reward file → VerifierResult
+    # SHARED mode grades in the same container, then tears down</code></pre>
+
+<div class="mermaid-box">
+<pre class="mermaid">
+flowchart TD
+    P["_prepare()&lt;br/&gt;boot sandbox · healthcheck · install agent"] --&gt; RA["_run_agent()&lt;br/&gt;agent.run() under a timeout"]
+    RA --&gt; UL["_upload_agent_logs() + _collect_artifacts()&lt;br/&gt;snapshot results out of the sandbox"]
+    UL --&gt; RV["_run_verifier()&lt;br/&gt;test script → reward.txt → VerifierResult"]
+    RV --&gt; DONE(["reward ✅"])
+    RA -.-&gt;|exception / timeout| REC["_recover_outputs()&lt;br/&gt;salvage partial data"]
+    UL -.-&gt;|exception| REC
+    RV -.-&gt;|exception| REC
+    REC --&gt; TD
+    DONE --&gt; TD["finally: teardown (shielded)&lt;br/&gt;— always runs, no leaked sandboxes"]
+</pre>
+</div>
+
+<p>The dashed arrows are the safety net: <b>any</b> exception still routes through <code>_recover_outputs()</code>, and teardown in the <code>finally</code> block is protected by <code>asyncio.shield</code>, so every Trial finishes cleanup.</p>
+
+<h3>2.7 ATIF: the trajectory format that makes a trial trainable</h3>
+
+<p>An RL trainer needs token IDs and a loss mask. <b>ATIF</b> (Agent Trajectory Interchange Format) is Harbor's unified JSON schema (currently ATIF-v1.7, defined with Pydantic). <code>Trajectory</code> holds an ordered list of <code>Step</code>s. Each Step's <code>Metrics</code> can store <code>prompt_token_ids</code> (what the model read — mask 0, no gradient) and <code>completion_token_ids</code> (what it generated — mask 1). Storing <b>exact integer IDs</b> avoids the <b>training/inference mismatch</b> caused by re-tokenization.</p>
+
+<pre><code class="language-python">Step(step_id=2, source="agent",
+     message="I'll run the tests.",
+     metrics=Metrics(prompt_tokens=520, completion_tokens=80,
+                     completion_token_ids=[1722, 310, 5533]))  # the RL-critical field</code></pre>
+
+<h3>2.8 RL post-training from Harbor: the rollout interface</h3>
+
+<p>RL needs three things per attempt: a <b>reward</b>, the <b>token IDs</b>, and a <b>loss mask</b>. Harbor already produces all three when it runs a <code>Job</code>:</p>
+
+<pre><code class="language-python">class HarborRolloutInterface(SomeRLFrameworkRolloutInterface):
+    async def run(self, task_ids) -&gt; list[Rollout]:
+        job = Job(config=JobConfig(
+            environment=EnvironmentConfig(type=EnvironmentType.DAYTONA),   # cloud sandbox; lets rollouts scale
+            agents=[AgentConfig(name=AgentName.TERMINUS_2,
+                                model_name="hosted_vllm/&lt;model&gt;",
+                                kwargs={"base_url": "https://&lt;vllm-server&gt;"})],  # the trainer's own policy server
+            orchestrator=OrchestratorConfig(n_concurrent_trials=32),       # 32 slow rollouts in parallel
+            tasks=task_configs))
+        result = await job.run()
+
+        rollouts = []
+        for tr in result.trial_results:
+            reward    = tr.verifier_result.rewards.get("reward", 0)   # from the Verifier
+            token_ids = tr.agent_result.metadata["token_ids"]         # from ATIF
+            mask_ids  = tr.agent_result.metadata["mask_ids"]          # Harbor's name for the loss mask
+            rollouts.append(Rollout(reward=reward, token_ids=token_ids, mask_ids=mask_ids))
+        return rollouts</code></pre>
+
+<p><b>Two ways to get the exact tokens.</b> Either <b>intercept</b> the IDs as they leave the vLLM server (the approach used by Miles/SkyRL), or have the <b>agent return them</b> in the result metadata (Terminus-2's <code>collect_rollout_details</code>). Both approaches avoid re-tokenization drift. <b>SFT and RL trajectories</b> are exported from the same ATIF file: <code>trajectory.json</code>.</p>
+
+<hr>
+
+<!-- ================================================================ -->
+<h2 id="s3"><span class="sysdot" style="background:var(--verif)"></span>3. verifiers — the RL-environment library (focus: RL post-training)</h2>
+
+<p><b>verifiers</b> (by <b>Prime Intellect</b>, import alias <code>vf</code>) is a Python library for building <b>RL environments</b>.</p>
+
+<h3>An environment is a self-contained Python module</h3>
+
+<p>One Python file exposes one function <b><code>load_environment()</code></b> and returns an environment object made of a <b>dataset</b>, a <b>harness</b> (the rollout loop that lets the model attempt each prompt), and a <b><code>Rubric</code></b> (the grader that turns an attempt into a reward). A minimal example:</p>
+
+<pre><code class="language-python">import verifiers as vf
+
+def load_environment(**kwargs) -&gt; vf.Environment:
+    dataset = load_my_prompts()                  # rows: {"question": ..., "answer": ...}
+
+    def correct_answer(completion, answer, parser, **kw) -&gt; float:
+        return 1.0 if parser.parse_answer(completion) == answer else 0.0
+
+    rubric = vf.Rubric(funcs=[correct_answer], weights=[1.0])
+    return vf.SingleTurnEnv(dataset=dataset, rubric=rubric, parser=vf.Parser())</code></pre>
+
+<p>This module is the smallest reusable unit in the rest of the Prime Intellect ecosystem. The <code>prime</code> CLI evaluates it (<code>prime eval run my-env -m openai/gpt-4.1-mini -n 10</code>), the <b>Environments Hub</b> distributes it (<code>prime env push</code>, into a registry of 2,500+ open environments), and <b>prime-rl</b> trains on it. Evaluation and RL use the same module.</p>
+
+<h3>The environment class hierarchy</h3>
+
+<p>Almost every environment inherits the same base agent loop. The <b><code>MultiTurnEnv</code></b> base class records tokens one turn at a time and repeats this loop until a stop condition is met: "The model speaks, and the environment responds." For each environment, you only implement <code>env_response(messages, state)</code> to answer one question: "Given the conversation so far, what should the environment return?" Token recording, stop handling, timeouts, and scoring are inherited.</p>
+
+<p>The higher-level classes act as harnesses:</p>
+
+<ul>
+<li><b><code>SingleTurnEnv</code></b> — <code>MultiTurnEnv</code> with <code>max_turns=1</code>: one question, one answer (the math/QA case above).</li>
+<li><b><code>ToolEnv</code></b> — implements <code>env_response</code> as "run the tools the model just called." A tool is a normal Python function. verifiers reads its type hints and docstring to build the JSON schema shown to the model, runs each call, and returns the results as <code>tool</code> messages. The episode ends when the model replies without calling a tool (a <code>@vf.stop</code> predicate).</li>
+<li><b><code>StatefulToolEnv</code></b> — adds hidden, injected arguments. A <code>bash</code> tool needs a <code>sandbox_id</code>, but the model shouldn't see it; <code>StatefulToolEnv</code> hides it from the schema (<code>add_tool(tool, args_to_skip=["sandbox_id"])</code>) and injects it at call time via <code>update_tool_args()</code>. The model writes <code>{"command": "ls"}</code>; the env turns it into <code>{"command": "ls", "sandbox_id": "..."}</code> before execution.</li>
+<li><b><code>SandboxEnv</code> / <code>PythonEnv</code></b> — <code>StatefulToolEnv</code>s that pass a real container handle to the tool, for code execution that must be isolated.</li>
+</ul>
+
+<p>The shared agent loop provides an important benefit: every environment keeps the prompt/completion boundary for each turn. The RL system can therefore build the loss mask correctly (model tokens receive gradients; tool and environment tokens do not). The full hierarchy is one inheritance chain, and each level adds exactly one capability:</p>
+
+<div class="mermaid-box">
+<pre class="mermaid">
+flowchart TD
+    E["Environment — base: dataset + harness + Rubric"] --&gt; MT["MultiTurnEnv&lt;br/&gt;the speak/answer/repeat trunk; fill in env_response()"]
+    MT --&gt; ST["SingleTurnEnv&lt;br/&gt;= MultiTurnEnv with max_turns=1 (math / QA)"]
+    MT --&gt; TE["ToolEnv&lt;br/&gt;env_response = 'run the tools the model called'"]
+    TE --&gt; STE["StatefulToolEnv&lt;br/&gt;+ hidden injected args (e.g. sandbox_id)"]
+    STE --&gt; SE["SandboxEnv / PythonEnv&lt;br/&gt;+ a real container handle for isolated code exec"]
+</pre>
+</div>
+
+<h3>Rubric — rewards as weighted, named functions</h3>
+
+<p>A <b><code>Rubric</code></b> is a list of small reward functions, with a weight for each function. <code>reward = Σ score_i · weight_i</code>. Each function declares only the arguments it needs, and the <code>Rubric</code> passes exactly those arguments by using <code>inspect.signature</code>.</p>
+
+<p>A weight of <code>0.0</code> turns a function into a metric (logged, not trained on). Crash isolation is built in: an exception inside any reward function scores <code>0.0</code> rather than killing the rollout.</p>
+
+<p>For grouped GRPO (Group Relative Policy Optimization), <code>Rubric.score_group</code> computes each rollout's reward and the group mean, then sets <code>state["advantage"] = reward − mean(group)</code>.</p>
+
+<p>Ready-made rubrics:</p>
+
+<ul>
+<li><b><code>MathRubric</code></b> — automatically adds a <code>correct_answer</code> function. It extracts the model's <code>\boxed{...}</code> answer and checks it against the reference answer with the <code>math_verify</code> library (using symbolic equivalence, so <code>1/2</code> matches <code>0.5</code>). Verification runs in a <code>ProcessPoolExecutor</code> with a 5-second soft timeout and a 120-second hard timeout, so a difficult expression cannot freeze the whole run. It has this form:</li>
+</ul>
+
+<pre><code class="language-python">def correct_answer(completion, answer, parser, **kw) -&gt; float:
+    response = parser.parse_answer(completion)        # MaybeThinkParser + extract_boxed_answer
+    return 1.0 if math_verify.verify(answer, response) else 0.0   # symbolic equivalence</code></pre>
+
+<ul>
+<li><b><code>JudgeRubric</code></b> — grades things that cannot easily be checked with code ("Is this summary faithful?") by asking a second model. It provides a <code>judge(prompt, completion, answer, state)</code> method. By default, it uses the inexpensive <code>gpt-4.1-nano</code> and caches the result for each rollout, so if two reward functions use it, only one API call is made. You write a small reward function that maps its <code>"yes"/"no"</code> decision to <code>1.0/0.0</code>.</li>
+<li><b><code>RubricGroup</code></b> — sums several complete rubrics (a correctness rubric + a separate safety rubric).</li>
+</ul>
+
+<h3>Parser — extracting the answer to grade</h3>
+
+<p>A <b><code>Parser</code></b> pulls the gradable answer out of the model's raw text.</p>
+
+<h3>The v1 "Composable" model — reuse the harness across tasks</h3>
+
+<p><b>v1</b> separates the system into three reusable parts, so one agent scaffold can handle many tasks:</p>
+
+<ul>
+<li><b><code>Taskset</code></b> — what the task is (data, prompts, success rewards); reusable</li>
+<li><b><code>Harness</code></b> — describes how a model attempts an arbitrary task (install + run command, where it reads the instruction, endpoint interception); reusable</li>
+<li><b><code>Toolset</code></b> — the action space</li>
+</ul>
+
+<p>In the experimental <code>ComposableEnv</code>, the environment connects the taskset and the harness:</p>
+
+<pre><code class="language-python">class ComposableEnv(CliAgentEnv):
+    def __init__(self, taskset, harness, **kwargs):
+        kwargs["dataset"] = taskset.get_dataset          # taskset owns the data...
+        kwargs.setdefault("rubric", taskset.get_rubric())#   ...and the reward
+        super().__init__(run_command=harness.run_command, **kwargs)  # harness owns how the agent runs
+        # at rollout time: write task instruction -&gt; harness.instruction_path,
+        #                  write harness.system_prompt -&gt; harness.system_prompt_path,
+        #                  install agent, run it, then let the rubric score</code></pre>
+
+<p><code>Harness</code> is a plain dataclass (<code>install_script</code>, <code>run_command</code>, <code>instruction_path</code>, <code>sandbox_spec</code>, …). <code>Taskset</code> owns <code>get_instruction()</code>, <code>get_sandbox_spec()</code>, <code>setup()</code>, and <code>evaluate()</code>. <code>ComposableEnv</code> writes the task's instruction into the path the harness declares, so a static <code>run_command</code> reads a per-task instruction. The result is a grid — any harness × any taskset, wired by config:</p>
+
+<div class="mermaid-box">
+<pre class="mermaid">
+flowchart LR
+    subgraph TS["TASKSETS — what the task is"]
+        T1[Harbor taskset]
+        T2[SWE-bench taskset]
+        T3[Math taskset]
+    end
+    subgraph H["HARNESSES — how an agent attempts a task"]
+        H1[Terminus harness]
+        H2[OpenCode harness]
+        H3[RLM harness]
+    end
+    CE{{"ComposableEnv&lt;br/&gt;= taskset × harness × tool × sandbox"}}
+    T1 --&gt; CE
+    T2 --&gt; CE
+    T3 --&gt; CE
+    H1 --&gt; CE
+    H2 --&gt; CE
+    H3 --&gt; CE
+    CE --&gt;|"one scored State per rollout"| R["Rubric → reward"]
+</pre>
+</div>
+
+<p><code>Terminus × Harbor</code>, <code>OpenCode × SWE-bench</code>, <code>RLM × Math</code> — connecting a new benchmark to an existing agent <b>only requires configuration</b>.</p>
+
+<h3>RL post-training</h3>
+
+<p>Here are the optimizations verifiers made:</p>
+
+<p>verifiers uses interception for TITO: token IDs and the loss mask come directly from inference (through the <code>openai_chat_completions_token</code> client), so the trainer sees the exact tokens the model sampled. The RLM harness shows this directly:</p>
+
+<pre><code class="language-bash"># from the agent's run_command, inside the sandbox:
+export OPENAI_API_KEY="${OPENAI_API_KEY:-intercepted}"   # placeholder: the call is captured, not authenticated
+rlm "$(cat /task/instruction.md)"</code></pre>
+
+<p>Because the agent's calls are routed to the trainer's inference server, the rollout model is the training model, sampling is on-policy, and the exact token IDs and log probabilities are recorded. The same harness uses <code>keep_trajectory_step</code> to remove subagent calls (tagged <code>X-RLM-Depth &gt; 0</code>), so only the parent agent's turns drive the policy gradient.</p>
+
+<div class="mermaid-box">
+<pre class="mermaid">
+flowchart LR
+    A["CLI agent in sandbox&lt;br/&gt;OPENAI_API_KEY='intercepted'"] --&gt;|"POST /v1/chat/completions"| I["interceptor&lt;br/&gt;(trainer's endpoint)"]
+    I --&gt;|forwards| P["policy inference server&lt;br/&gt;(vLLM / SGLang)"]
+    P --&gt;|"reply + exact token_ids + logprobs"| I
+    I --&gt;|"reply (agent none the wiser)"| A
+    I ==&gt;|"records token_ids, logprobs, mask&lt;br/&gt;NO re-tokenization"| TR["trajectory → trainer"]
+</pre>
+</div>
+
+<p>The interceptor has two roles. To the agent, it looks like a normal OpenAI-compatible endpoint. At the same time, it records the exact tokens and log probabilities produced by the policy. This makes it possible to get gradients that are consistent between training and inference from a black-box CLI agent.</p>
+
+<p><b>The Environments Hub</b> closes the loop: once an environment is written, it can be pushed (<code>prime env push</code>), installed by anyone (<code>prime env install</code>), evaluated (<code>prime eval run</code>), and trained with prime-rl — all using the same module, because the only interface contract is <code>(reward, token_ids, loss_mask)</code>.</p>
+
+<hr>
+
+<!-- ================================================================ -->
+<h2 id="s4"><span class="sysdot" style="background:var(--slime)"></span>4. smile (slime) — the RL trainer (focus: the v0.3.0 agent-first update)</h2>
+
+<h3>The v0.3.0 headline: a dedicated <code>slime/agent</code> module</h3>
+
+<p><b>v0.3.0</b> (tag <code>v0.3.0</code>, 2026-05-31) brings these features together in one reusable <code>slime/agent</code> module. It trains models that act in real environments — running shell commands, editing files, calling tools, and retrying over many turns — instead of producing one block of text. An agent rollout is no longer a single generation. It is a complete <b>episode</b>: start a sandbox, run dozens of model turns, and execute a test suite. An episode often takes 30 seconds to several minutes, so 32–100 episodes run in parallel. This version is based on <b>SGLang v0.5.12.post1</b> and <b>Megatron commit <code>1dcf0dafa</code></b>.</p>
+
+<h4>The 5-stage agent rollout loop</h4>
+
+<p>You implement this loop in a function registered with <code>--custom-generate-function-path</code> — a <b>custom generate function</b>. The <code>slime/agent</code> module provides the reusable parts. It looks like this:</p>
+
+<pre><code class="language-python">async def generate(args, sample, sampling_params):
+    # STAGE 1 — open an isolated sandbox session (one throwaway container per attempt)
+    async with E2BSandbox(image) as sb:                 # Sandbox Protocol: exec / read_file / write_file
+        # STAGE 2 — run the agent's many turns through a protocol adapter
+        adapter = AnthropicAdapter(tokenizer, sglang_url, tool_parser, reasoning_parser)
+        adapter.open_session(session_id, sampling_defaults=sampling_params)
+        run_agent_scaffold(sandbox=sb, base_url=adapter.app)   # agent thinks it calls Anthropic
+        # STAGE 3 — collect recorded turns into trainable token segments
+        segments = await adapter.finish_session(session_id)    # list[TokenSegment]
+        # STAGE 4 — score the attempt in a FRESH clean sandbox (the reward cannot be gamed)
+        reward = grade(git_diff(sb), in_clean_sandbox=True)
+        # STAGE 5 — emit a Sample for the trainer
+        return fan_out_sample_segments(sample, segments, reward, tokenizer)</code></pre>
+
+<p>Visually, the loop uses two sandboxes connected by a <code>git diff</code>. The agent works in a dirty sandbox, but grading happens in a fresh one, so the agent cannot modify its own tests:</p>
+
+<div class="mermaid-box">
+<pre class="mermaid">
+flowchart LR
+    S1["① open dirty sandbox&lt;br/&gt;(one throwaway container)"] --&gt; S2["② run agent's many turns&lt;br/&gt;via OpenAI/Anthropic adapter"]
+    S2 --&gt; S3["③ collect turns →&lt;br/&gt;TokenSegment (merge_turns)"]
+    S2 -.-&gt;|"git diff"| S4
+    S3 --&gt; S5
+    S4["④ score in a FRESH clean sandbox&lt;br/&gt;apply diff + run tests → reward"] --&gt; S5["⑤ fan_out_sample_segments&lt;br/&gt;→ Sample(tokens, reward, loss_mask)"]
+    S5 ==&gt;|"to GRPO trainer"| OUT([trainer])
+</pre>
+</div>
+
+<p><b>The sandbox</b> (stage 1):</p>
+
+<ol>
+<li>It is a minimal asynchronous <code>Protocol</code>: <code>exec(cmd) -&gt; (exit_code, stdout, stderr)</code>, <code>read_file</code>, and <code>write_file</code>. The included backend is <code>E2BSandbox</code>, which wraps <code>e2b.AsyncSandbox</code>.</li>
+<li>Every RPC goes through <code>_rpc_retry</code>. It retries temporary client failures (<code>ConnectTimeout</code>, <code>PoolTimeout</code>, <code>SSLError</code>, and h2 resets) up to three times with exponential backoff, because cloud sandboxes can be slow and unreliable at scale.</li>
+<li>Grading happens in a separate clean sandbox (stage 4). The agent cannot change its own test environment, so it cannot cheat.</li>
+</ol>
+
+<h4>OpenAI / Anthropic adapter — a fake API server that captures exact tokens</h4>
+
+<p>Point the base URL to a <b>local adapter that acts like the real API</b>. Existing scaffolds, such as Claude Code or an OpenAI Agents SDK application, send requests to <code>/v1/messages</code> just as they normally would. This allows existing scaffolds to serve as the harness.</p>
+
+<p>The adapter receives the request, uses the model's chat template to turn the conversation into <code>input_ids</code>, calls SGLang <code>/generate</code> with <code>return_logprob=True</code>, and responds in the API's normal JSON/SSE format.</p>
+
+<pre><code class="language-python">env = {
+    "ANTHROPIC_BASE_URL":  adapter_url,   # points at slime's adapter, not Anthropic
+    "ANTHROPIC_AUTH_TOKEN": session_id,   # session id passed as the Bearer token
+    "ANTHROPIC_MODEL":     "slime-actor",
+}</code></pre>
+
+<p>Because SGLang returns <code>(logprob, token_id)</code> pairs as it generates, the adapter keeps the <b>exact sampled token ids and per-token log-probabilities</b>, recorded as a <code>TurnRecord</code> (<code>prompt_ids</code>, <code>output_ids</code>, <code>finish_reason</code>, <code>output_log_probs</code>).</p>
+
+<p>The <code>session_id</code> is forwarded as the <code>X-SMG-Routing-Key</code> prefix, so all turns of one episode land on the same SGLang worker and reuse its prefix cache (<code>--router-policy consistent_hashing</code>).</p>
+
+<h4>Trajectory merging — stitch many turns into one masked sequence, without re-tokenizing</h4>
+
+<p><b>The problem.</b> An agent's episode is not a simple question and answer. Turn 1 is prompt₁ → output₁. Turn 2's prompt is "prompt₁ + output₁ + a tool result." <b>Every turn re-reads everything that came before</b>, so the recording contains overlapping pieces. The trainer, however, uses <b>one flat token sequence plus a 0/1 mask</b> that shows which tokens to train on. Trajectory merging creates this flat sequence.</p>
+
+<p>Because tokenizers are <b>not round-trip safe</b> (e.g. "don't" can split as <code>don</code>+<code>'t</code> or <code>do</code>+<code>n't</code> — same text, different ids), once the ids shift, the precomputed log-probs attach to the wrong tokens and the gradient is silently corrupted.</p>
+
+<p><b>What <code>merge_turns</code> does:</b> walk the turns in order; <b>skip</b> whatever is already in the sequence, append only each turn's <b>new</b> content, labeling as it goes — environment-written tokens (tool results) get mask 0, model-written tokens (outputs) get mask 1:</p>
+
+<pre><code class="language-python">def merge_turns(turns):
+    prompt_ids = turns[0].prompt_ids        # first turn's prompt = segment prompt
+    response_ids, loss_mask, log_probs = [], [], []
+    for turn in turns[1:]:
+        suffix = turn.prompt_ids[len(prompt_ids):]          # everything beyond the base prompt
+        matched = common_prefix_len(response_ids, suffix)   # how much is our own prior output reappearing
+        if matched &lt; len(response_ids):                     # PREFIX DRIFT: prompt diverged mid-output
+            zero_out_straddling_output_spans(matched)       # do not backprop tokens that cannot be verified
+            response_ids, loss_mask, log_probs = truncate_to(matched)
+        context_tail = suffix[matched:]                     # genuinely-new environment context
+        response_ids += context_tail
+        loss_mask    += [0] * len(context_tail)             # mask 0: tokens the model READ
+        log_probs    += [0.0] * len(context_tail)
+        response_ids += turn.output_ids                     # the model's own generation
+        loss_mask    += [1] * len(turn.output_ids)          # mask 1: tokens the model WROTE
+        log_probs    += turn.output_log_probs
+    return TokenSegment(prompt_ids, response_ids, loss_mask, log_probs)</code></pre>
+
+<p>A two-turn episode is flattened like this — <b>only the model's own tokens receive gradients</b>:</p>
+
+<div class="mermaid-box">
+<pre class="mermaid">
+flowchart TD
+    subgraph REC["What the adapter recorded (note: turn 2 re-reads all of turn 1)"]
+        T1["Turn 1: [ prompt₁ ] → [ output₁ ]"]
+        T2["Turn 2: [ prompt₁ + output₁ + tool result ] → [ output₂ ]"]
+    end
+    REC ==&gt;|"merge_turns replays: skip repeats, append only what's new"| FLAT
+    subgraph FLAT["The flat sequence the trainer uses"]
+        direction LR
+        A["prompt₁&lt;br/&gt;'Fix the tests in utils.py'&lt;br/&gt;the task · no training"] --&gt; B["output₁&lt;br/&gt;'I'll look at the file…'&lt;br/&gt;mask 1 ✅ receives gradient"]
+        B --&gt; C["tool result&lt;br/&gt;'file contents / error message'&lt;br/&gt;mask 0 ❌ injected"]
+        C --&gt; D["output₂&lt;br/&gt;'It is an off-by-one error; applying a patch…'&lt;br/&gt;mask 1 ✅ receives gradient"]
+    end
+</pre>
+</div>
+
+<p><b>Safety measure: prefix drift.</b> If turn 2's prompt stops matching the recording inside output₁, the mismatched section is not a trustworthy training target. The code sets the mask and log probabilities to zero for any output that crosses the point of difference, then removes the tail it cannot join correctly. It is better to train on less data than on incorrect data. The final rule is: <b>mask 1 ⇔ a real model token ⇔ a real log probability; all other positions are 0.</b></p>
+
+<h4>Rollout grouping — <code>group_ids</code> for GRPO</h4>
+
+<p>GRPO replaces PPO with a very simple baseline: for one prompt, generate several attempts and compare each one with the average of the group. For a group of <span class="math">n</span> attempts with rewards <span class="math">r<sub>1</sub>,…,r<sub>n</sub></span>, the advantage is standardized <b>within the group</b>: <span class="math">A<sub>i</sub> = (r<sub>i</sub> − mean(<b>r</b>)) / std(<b>r</b>)</span>. The trainer must therefore know which samples belong together, so every attempt for the same prompt receives the same <code>group_id</code>. v0.3.0 <b>deliberately renamed this field from <code>rollout_ids</code> to <code>group_ids</code></b>:</p>
+
+<ul>
+<li><b><code>group_id</code></b> — "Which prompt's group do I belong to?" The <code>n_samples</code> different attempts for one prompt share this ID. GRPO uses this field to group samples.</li>
+<li><b><code>rollout_id</code></b> — "which single trajectory am I a fragment of?" Shared across the segments of one attempt when merging splits an episode into <code>subagent</code> / <code>wipe</code> / <code>final</code> pieces.</li>
+</ul>
+
+<p>That second id comes from <code>fan_out_sample_segments</code>, the stage-5 helper. One trajectory can fan out into several training samples (a subagent branch, a pre-compaction segment); it splits the reward uniformly and gives every sibling the <b>same <code>rollout_id</code></b> so a per-rollout-mean reducer counts the trajectory exactly once:</p>
+
+<pre><code class="language-python">def fan_out_sample_segments(sample, segments, reward, tokenizer, rollout_id=None):
+    k = len(segments)
+    per_segment_reward = reward / max(1, k)                 # split reward uniformly
+    shared_rollout_id  = rollout_id or sample.index         # siblings share one rollout_id
+    out = []
+    for i, segment in enumerate(segments):
+        sub = sample if i == 0 else copy.copy(sample)
+        write_segment_to_sample(sub, segment, per_segment_reward, tokenizer)
+        sub.rollout_id = shared_rollout_id
+        sub.metadata = {**sub.metadata, "segment_idx": i, "num_segments": k}
+        out.append(sub)
+    return out</code></pre>
+
+<h4><code>coding_agent_rl</code> — the complete black-box example</h4>
+
+<p>Train an <b>unmodified Claude Code CLI</b> end-to-end with RL, swapping only the model (the env-var redirect above).</p>
+
+<h4>The systems-level features that make slow agent rollouts affordable</h4>
+
+<p>Agent rollouts are slow and highly uneven — one may take 30 seconds, while another takes 5 minutes. In synchronous training, this leaves GPUs idle while they wait for the slowest rollout or for weights to transfer. v0.3.0 uses four features to remove these waits one by one:</p>
+
+<table>
+<tr><th>Feature</th><th>The wait it removes</th><th>How (one sentence)</th></tr>
+<tr><td><b>Fully asynchronous training</b></td><td>waiting for the slowest rollout in a batch</td><td>a background generation "warm pool" runs continuously (<code>AsyncRolloutWorker</code> keeps tasks in flight); the trainer collects only completed work. Enable it with <code>train_async.py</code>. The tradeoff is mildly off-policy training; <code>--use-tis</code> corrects for this</td></tr>
+<tr><td><b>Variable global batch size</b></td><td>padding short / truncating long trajectories</td><td>each step uses however many samples are actually available; it does not wait to fill a fixed batch of N</td></tr>
+<tr><td><b>Delta weight sync</b></td><td>broadcasting a full 100B+ checkpoint every step</td><td>a bytewise diff ships only the changed positions — ~3% density, ~5 GB for a 355B model (<code>--update-weight-mode delta</code>, transported via <code>nccl</code> or <code>disk</code>)</td></tr>
+<tr><td><b>Actor-critic colocation</b></td><td>using separate GPU groups for PPO's critic and actor</td><td>the PPO refactor lets them share GPUs. (GRPO skips the critic entirely — which is why it is the default)</td></tr>
+</table>
+
+<p>In short: <b>the first two keep the RL system supplied with work; the last two reduce weight-transfer time and idle hardware.</b></p>
+
+<hr>
+
+<!-- ================================================================ -->
+<h2 id="s5">5. Agent Infra — what it takes to build a good one, and how it co-evolves with RL infra</h2>
+
+<h3>5.1 Why Agent Infra exists</h3>
+
+<p>In complex, open-world tasks, an agent calls tools, runs commands, observes feedback, and changes its next action based on what it sees. Whether it edits files, manages processes, or controls a browser, <b>every interaction changes the environment's state</b>. This helps overcome a model's limited real-time awareness and ability to act. This new interaction pattern creates a need for <b>sandboxes</b>. Simple tasks may use a <b>stateless</b> sandbox: start a fresh container for each tool call, run the call, and then destroy the container. This is naturally isolated and easy to scale. Real agent tasks, however, often need a <b>stateful</b> sandbox. The model may create a file in turn 1 and read it in turn 2, then start a service in turn 3 and call it in turn 4. <b>State must continue across turns.</b> This creates several infrastructure challenges: How should the sandbox lifecycle be managed? How should long-running sessions handle timeouts and errors? How should resources be scheduled efficiently at large scale?</p>
+
+<p>These are real engineering questions, and every system in this case study answers them somewhere. Harbor's <code>Trial</code> always removes the container in a protected <code>finally</code> block, so hundreds of concurrent Trials do not leak sandboxes (§2.6). slime wraps every sandbox RPC in <code>_rpc_retry</code>, with up to three retries and exponential backoff, because cloud sandboxes can be slow and unreliable at scale (§4). In practice, a "stateful terminal" means a persistent tmux session — the one tool exposed by Terminus-2 (§2.4) — instead of a series of separate, stateless <code>run_command</code> calls.</p>
+
+<p>Beyond the sandbox, the <b>design of the interaction between the model and environment</b> is just as important. What interface does the model use? How should the tool <b>Action Space</b> be defined so it is both powerful and easy to learn? How should results be returned — as raw <code>stdout</code>/<code>stderr</code>, structured JSON, or shortened and summarized text? These choices directly affect how well the model completes tasks. Good interaction design helps the model understand the environment and plan its next step. Poor design loses information, makes the context too large, or traps the model in a loop. Mature agent systems treat tool-output limits, observation timeouts, and explicit exits for context overflow as key settings. Terminus-2 includes a context summarizer for long episodes for the same reason (§2.4).</p>
+
+<p>Together, these problems create a new infrastructure layer: <b>Agent Infra</b> — everything between the model and the outside world, including sandboxes, tool calls, state management, and trajectory recording. It must be built in addition to traditional LLM infrastructure for inference and training. Agent Infra closes the loop "<b>application/harness → data → training → better application/harness</b>": run agents in real environments, collect trajectories, grade the results, and train on them. Harbor makes this loop clear. The same <code>Job</code> that grades an agent also produces RL rollouts and SFT trajectories, so one evaluation run provides both a score and a training signal for the next model (§2.8).</p>
+
+<div class="mermaid-box">
+<pre class="mermaid">
+flowchart LR
+    APP["🤖 Application&lt;br/&gt;agent attempts real tasks&lt;br/&gt;in stateful sandboxes"] --&gt;|"trajectories + rewards"| DATA["📊 Data&lt;br/&gt;ATIF / exact token ids&lt;br/&gt;/ loss masks"]
+    DATA --&gt;|"RL rollouts + SFT trajectories"| TRAIN["🏋️ Training&lt;br/&gt;GRPO / SFT"]
+    TRAIN --&gt;|"new weights"| MODEL["✨ Better model"]
+    MODEL -.->|"redeploy"| APP
+</pre>
+</div>
+
+<p>How do we design a complete Agent Infra? The rest of this section examines Harbor and verifiers from an infrastructure perspective, identifies the core abstractions a good Agent Infra should provide, and then uses slime's agent-first v0.3.0 to show how an RL framework can evolve together with the agent layer.</p>
+
+<h3>5.2 What Harbor teaches: own the benchmark, own the agent loop</h3>
+
+<p>Harbor was built by the same team that released <b>Terminal-Bench</b> in May 2025, and it is the official harness for <b>Terminal-Bench 2.0</b>. The reason for its adoption is clear: Terminal-Bench became a standard benchmark for leading models. <a href="https://blog.google/products/gemini/gemini-3/">Gemini 3 reports 54.2%</a> on TB 2.0 (Nov 2025), <a href="https://openai.com/index/gpt-5-1-codex-max/">GPT-5.1-Codex-Max reports 58.1%</a> (Nov 2025), <a href="https://www.anthropic.com/news/claude-opus-4-6">Claude Opus 4.6 claims "the highest score on the agentic coding evaluation Terminal-Bench 2.0"</a> (Feb 2026), and <a href="https://arxiv.org/abs/2512.02556">DeepSeek-V3.2 reports 46.4%</a> (Dec 2025). When a dataset becomes the de facto industry standard, its official harness naturally attracts the same users. <b>For many users, choosing Harbor means choosing the accuracy and convenience of Terminal-Bench.</b> Harbor's README uses this quick-start command: <code>harbor run --dataset terminal-bench@2.0 --agent claude-code --model anthropic/claude-opus-4-1 --n-concurrent 4</code>.</p>
+
+<p>Three investments explain this credibility. (1) <b>End-to-end dataset infrastructure</b>: benchmark <b>adapters</b> import existing suites such as SWE-Bench, AIME, and BFCL into Harbor. They are validated with <b>parity experiments</b> — statistical overlap tests between the original and adapted versions. Harbor also provides a registry (<code>harbor datasets list</code>, <code>harbor publish</code>) and uses oracle solutions to check each task. (2) <b>A white-box agent loop</b>: Terminus-2 exposes one tmux tool, records every turn as ATIF, and uses <code>collect_rollout_details=True</code> to capture <code>prompt_token_ids</code>, <code>completion_token_ids</code>, and <code>logprobs</code> on every turn (§2.4). Anthropic's Claude Sonnet 4.5 evaluation method even states that "all scores reported use the default agent framework (Terminus 2)." (3) <b>Tool handling for each agent</b>: every scaffold keeps its own <code>AgentConfig</code> settings, such as the parser, <code>api_base</code>, and summarization controls. ATIF records each agent's original actions as <code>ToolCall</code>s — Terminus-2's keystrokes become <code>function_name="bash_command", arguments={keystrokes, duration}</code> — instead of forcing every agent into one toolset.</p>
+
+<p>There is also a real cost. Creating a task requires <b>at least four pieces</b>: <code>task.toml</code>, <code>instruction.md</code>, <code>environment/</code> (a Dockerfile or Compose file), and <code>tests/test.sh</code> (which must write the reward file). A recommended <code>solution/solve.sh</code> brings the practical total to about five pieces. Harbor users must also learn several commands: <code>harbor run</code> with <code>-d/-p/-a/-m/-e/-n</code>, plus <code>harbor datasets list</code>, <code>harbor view</code>, <code>harbor trial start</code>, and <code>harbor publish</code>.</p>
+
+<blockquote class="lead"><p><b>Lesson 1 (from Harbor).</b> Invest in what makes Harbor attractive: <b>end-to-end dataset infrastructure</b> (adapters + parity validation + a registry), <b>a first-party white-box agent loop</b> (fully instrumented and RL-ready), and <b>tool handling for each agent</b> (record original actions accurately instead of flattening them into one toolset).</p></blockquote>
+
+<h3>5.3 What verifiers teaches: one file, one command, one contract</h3>
+
+<p>verifiers uses a different packaging model. An environment is a <b>self-contained Python module</b> with three files: <code>my_env.py</code>, which exposes <code>load_environment()</code>; <code>pyproject.toml</code>; and a README. <code>prime env init my-env</code> creates this structure, and one command runs it from start to finish: <code>prime eval run my-env -m openai/gpt-4.1-mini -n 10</code>. The command even installs the environment automatically. Compare the first-time experience: Harbor asks users to create 4–5 task files and learn several commands, while verifiers asks for one function in one file and one command. <b>Users like tools that run with a single command.</b> The abstraction completely hides differences in the underlying implementation.</p>
+
+<p>The single contract also lets verifiers support many different environments at scale. The <b>Environments Hub</b> hosts more than 2,500 environments across math, coding, games, search, tool use, and multimodal tasks. Every environment exposes the same <code>load_environment()</code> entry point. The three concurrent <b>prime-rl</b> processes — inference server, orchestrator, and FSDP trainer — can train on any of them. Prime Intellect's own examples are <b>INTELLECT-2</b> (32B, trained with globally distributed RL) and <b>INTELLECT-3</b> (100B+ MoE). The sources also give two important limits: migration to the v1 Taskset/Harness model is still in progress across those 2,500+ environments, and the public evidence for scaling is architectural — the three-process design and importance-sampling correction — rather than published throughput numbers.</p>
+
+<blockquote class="lead"><p><b>Lesson 2 (from verifiers).</b> Make the environment a <b>one-file, one-command unit</b> so users never need to work with the underlying implementation. Standardize one entry-point contract so thousands of different environments can work with any trainer. Add a registry, and the ecosystem becomes self-reinforcing.</p></blockquote>
+
+<h3>5.4 Synthesis — the five properties of a good Agent Infra</h3>
+
+<table>
+<tr><th>Property</th><th>Who demonstrates it today</th><th>What we take</th></tr>
+<tr><td><b>Stable, clean environments</b> — environment and underlying implementation managed by us</td><td>Harbor pins a container image per task; slime grades in a fresh clean sandbox so rewards can't be gamed (§4)</td><td>clean images/envs are the precondition of trustworthy rewards — own them end to end</td></tr>
+<tr><td><b>Structurally portable</b></td><td>verifiers lifted Harbor's tasks and agent harnesses wholesale (<code>HarborTaskset</code>, <code>terminus-harbor</code>, <code>opencode-harbor</code>, §3); Miles implements Harbor's rollout interface (swe-agent-v2)</td><td>task bundles and agent loops should port across stacks as data + thin classes, not rewrites</td></tr>
+<tr><td><b>Asynchronous execution and lazy imports</b></td><td>prime-rl's three separate processes (§3); slime's fully asynchronous warm pool (§4); Miles' partial rollouts + oversampling for long-tail trajectories; Harbor's lazy imports for I/O-heavy work</td><td>agent rollouts are slow and uneven — the infrastructure should not make the trainer wait for the slowest one</td></tr>
+<tr><td><b>Easy to use</b></td><td>verifiers' one-file/one-command UX; Harbor's one-flag backend swap (<code>-e daytona</code>)</td><td>complexity lives below the abstraction line, never above it</td></tr>
+<tr><td><b>Token-level fidelity — never re-tokenize</b></td><td>Harbor stores exact IDs in ATIF (§2.7); verifiers uses interception for TITO (§3); slime uses an API-compatible adapter + trajectory merging (§4)</td><td>IDs are captured when they are generated, then only moved and never rebuilt — a requirement for avoiding silent gradient corruption</td></tr>
+</table>
+
+<p>Of these five properties, the fifth is the only one that all three systems <b>independently reinvented</b>. They enforce the same strict rule — never re-tokenize — at three different layers:</p>
+
+<table>
+<tr><th>System</th><th>Where it is solved</th><th>Mechanism</th></tr>
+<tr><td><b>Harbor</b></td><td><b>recording &amp; hand-off format</b></td><td>the white-box agent records its own ids: Terminus-2 with <code>collect_rollout_details=True</code> captures per-turn token ids + logprobs into standardized ATIF (<code>trajectory.json</code>); the trainer reads them straight from result metadata (§2.7–2.8)</td></tr>
+<tr><td><b>verifiers</b></td><td><b>API-endpoint layer (interception)</b></td><td>TITO: token ids and the loss mask come straight from the inference server; for black-box CLI agents, every LLM call is forced back through the trainer's own endpoint — the interceptor is transparent to the agent yet records exact token ids + logprobs on the spot (<code>OPENAI_API_KEY="intercepted"</code>, §3)</td></tr>
+<tr><td><b>slime</b></td><td><b>engine-native interface + multi-turn merging</b></td><td>the impersonating adapter calls SGLang <code>/generate</code> directly (<code>return_logprob=True</code>) to get (logprob, token_id) pairs; <code>merge_turns</code> then <b>replays and aligns</b> the whole episode — tokens that can't be aligned are zeroed, never guessed (prefix-drift protection, §4)</td></tr>
+</table>
+
+<p>The three approaches complement each other. Harbor trusts the <b>white-box agent to report its data</b>. verifiers <b>intercepts API calls</b>, which also works for black-box agents. slime <b>takes raw data from the engine and preserves that fidelity through multi-turn merging</b>. Harbor's own documentation also recognizes the interception approach in §2.8's "two ways." Whichever approach is used, the rule is the same: <b>token IDs are captured when they are generated; every later step only moves them and never rebuilds them.</b></p>
+
+<h3>5.5 The three core abstractions: Task / Agent loop / Tool</h3>
+
+<p>Remove the product names, and every system in this case study has the same three abstractions. They rest on a fourth base layer: the sandbox/runtime.</p>
+
+<ul>
+<li><p><b>Task</b> ↔ the benchmark. It defines the task description, initial state, and success conditions — and the result must be <b>verifiably right or wrong</b>. In Harbor, this is the task directory: <code>instruction.md</code> + <code>task.toml</code> + <code>environment/</code> + tests that write <code>reward.txt</code>. In verifiers, it is the dataset + <code>Rubric</code>. Both are built around RLVR's main question: "Did the real tests pass?"</p></li>
+<li><p><b>Agent loop</b> ↔ the Agent implementation used by the product. It contains the behavior logic: LLM calls, tool selection, and multi-turn interaction. We prefer <b>white-box reimplementation over black-box use</b> for three reasons. (1) Production agents include user-facing <b>fallback handling</b>. This improves the user experience but can hide the model's real ability during an evaluation. (2) A black box provides <b>no place to add custom metrics or rewards</b> inside the loop. (3) Reimplementation is often not very expensive. An instrumented ReAct loop with a tool registry, retries, and output limits is exactly what Terminus-2 provides, and simple scaffolds such as mini-swe-agent are only about a hundred lines long. Black-box wrappers for Claude Code, Gemini CLI, or Codex are still useful for speed and broad coverage. However, they make capability measurement and reward insertion harder, as §5.7 shows with slime's example.</p></li>
+<li><p><b>Tool</b> ↔ an individual action the agent can call — the RL <b>Action Space</b>. Agent products use different tool designs: Terminus-2 has one tmux pane, Claude Code has file and editing tools, and a tool in verifiers <code>ToolEnv</code> is a normal Python function. <code>StatefulToolEnv</code> can also inject hidden arguments. The Tool abstraction should <b>keep each agent's original tool definitions instead of forcing them into one design</b>. The infrastructure should record them accurately, as ATIF does with native <code>ToolCall</code> structures, rather than flattening them.</p></li>
+</ul>
+
+<div class="mermaid-box">
+<pre class="mermaid">
+flowchart TD
+    T["📋 Task — the benchmark&lt;br/&gt;description · initial state · verifiable success"] --&gt; RT
+    AL["🤖 Agent loop — white-box replica of the&lt;br/&gt;product agent's behavior logic"] --&gt; RT
+    TO["🔧 Tool — the Action Space&lt;br/&gt;keep each agent's native tool definitions"] --&gt; RT
+    RT["📦 Sandbox / Runtime&lt;br/&gt;stateful · clean · massively concurrent"] --&gt; OUT["Trajectory (exact token ids) + reward"]
+    OUT --&gt; RL["RL / SFT training data"]
+</pre>
+</div>
+
+<h3>5.6 Owning the sandbox layer</h3>
+
+<p>Prime Intellect demonstrates vertical integration: a compute marketplace + <b>Sandboxes</b> + Environments Hub + verifiers + prime-rl + Lab/Evaluations + its own INTELLECT models. It describes this as "the open stack for self-improving agents" (§3). If we want our own RL-to-Environment ecosystem, <b>building our own sandbox infrastructure</b> is worthwhile because every agentic RL rollout depends on the sandbox. slime's <code>coding_agent_rl</code> starts <b>two</b> sandboxes for every attempt — one for work and one for clean grading — and runs eight attempts per issue with <code>--n-samples-per-prompt 8</code>. Every RPC goes through <code>_rpc_retry</code>, because temporary sandbox failures are common at scale (§4). <b>The effects of sandbox startup success and latency are multiplied across the whole pipeline</b>. This is where RL post-training throughput can improve substantially.</p>
+
+<p>The risk is low because sandboxing is mature infrastructure, already proven by the previous generation of internet systems. Improving a proven foundation is an engineering problem, not a research problem. With a structurally portable Agent Infra design, we can also move benchmarks from other Agent Infra systems quickly. For example, verifiers moved Harbor's Terminal-Bench tasks and agent harness with one thin <code>Taskset</code> class.</p>
+
+<h3>5.7 RL Infra × Agent Infra co-evolution — slime v0.3.0 as a case study</h3>
+
+<p>From the RL infrastructure perspective, there are two ways to reach an environment. <b>Route ①: build it internally</b> — the trainer's own agent module starts sandboxes and grades attempts. <b>Route ②: use a third-party harness</b> — implement the rollout interface for Harbor or verifiers.</p>
+
+<div class="mermaid-box">
+<pre class="mermaid">
+flowchart LR
+    TR["RL trainer"] --&gt;|"route ① self-built env"| SELF["trainer's own agent module&lt;br/&gt;slime/agent + E2B (all 7 slime examples)"]
+    TR --&gt;|"route ② third-party harness"| HARN["Harbor / verifiers&lt;br/&gt;(Miles · SkyRL · prime-rl · Tinker take this route)"]
+</pre>
+</div>
+
+<p>Why does route ① matter when route ② exists? Because <b>some capabilities are only possible when the environment and trainer are designed together</b>. v0.3.0 provides a list of these co-designs:</p>
+
+<table>
+<tr><th>Co-design</th><th>Agent-infra side</th><th>RL-infra side</th><th>Why a third-party harness can't easily do it</th></tr>
+<tr><td><b>Prefix-cache affinity</b></td><td>adapter forwards <code>session_id</code> as the <code>X-SMG-Routing-Key</code> header</td><td>SGLang <code>--router-policy consistent_hashing</code> pins all turns of one episode to one worker, reusing its prefix cache</td><td>requires owning both the adapter and the router — a trainer-agnostic harness controls neither</td></tr>
+<tr><td><b>Exact-token capture (TITO)</b></td><td>adapter renders the chat template itself and POSTs <code>input_ids</code> to <code>/generate</code></td><td><code>return_logprob=True</code> returns (logprob, token_id) pairs — GRPO trains on provably-sampled tokens</td><td>a generic OpenAI-compatible endpoint returns text, not your engine's token ids</td></tr>
+<tr><td><b>Compaction &amp; subagents</b></td><td>adapter detects Claude Code's <code>wipe</code> compaction and <code>Task</code>/<code>Agent</code> dispatch, splitting trajectory segments</td><td><b>variable global batch size</b> + <code>rollout_id</code> fan-out were added in the same release to process those segments</td><td>an agent-side behavior required a trainer-side feature — this is co-evolution, not simple integration</td></tr>
+<tr><td><b>Long-tail rollouts</b></td><td>episodes run 30 s – several minutes, wildly uneven</td><td><code>AsyncRolloutWorker</code> keeps <code>sglang_server_concurrency</code> generations always in flight</td><td>needs trainer-internal queueing across rollout boundaries</td></tr>
+<tr><td><b>Unreliable sandboxes</b></td><td>every sandbox RPC goes through <code>_rpc_retry</code> (up to three retries with exponential backoff)</td><td>rollouts survive temporary E2B failures instead of dropping samples</td><td>reliability is handled inside the trainer's own agent module</td></tr>
+<tr><td><b>Disaggregated fleets</b></td><td>rollout machines scale out, even cross-datacenter</td><td><b>delta weight sync</b> ships ~3% of bytes (~5 GB for a 355B model)</td><td>the trainer's weight transport changed because environments scaled out</td></tr>
+</table>
+
+<p>The only weakness of <code>coding_agent_rl</code> is that it trains a <b>black-box</b> agent. A black-box agent product's fallback handling can hide the model's real ability, and there is no place to add per-step metrics or rewards. The reward can only be assigned at the very end (git diff → tests), never inside the loop.</p>
+
+<p>This is the co-evolution described above: the agent layer reveals needs (trajectory segments, session affinity, sandbox failures, and larger machine fleets) → the RL layer adds features (variable batch size, routing policies, retries, and delta sync) → those features make more complex agent tasks practical. Neither layer can be designed alone. <b>Teams that control both layers can iterate fastest.</b></p>

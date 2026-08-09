@@ -1,0 +1,167 @@
+---
+import Base from "../../layouts/Base.astro";
+import Comments from "../../components/Comments.astro";
+import enBody from "../../data/case-study/en.html?raw";
+import zhBody from "../../data/case-study/zh.html?raw";
+
+const title = "Harbor, verifiers, and slime: agent-first RL infrastructure";
+const titleZh = "Harbor、verifiers 与 slime：agent-first 的 RL 基础设施";
+const description =
+  "A close read of three systems — Harbor, Prime Intellect's verifiers, and slime — and how agent infrastructure co-evolves with RL post-training infrastructure.";
+const dateIso = "2026-06-15";
+const slug = "eval-infra-case-study";
+---
+
+<Base title={title} description={description}>
+  <article class="prose post">
+    <div class="term-path">
+      <span class="tp-cmd" aria-hidden="true">$ cat&nbsp;</span><a href="/blog/">~/blog/</a><span class="tp-file">{slug}.md</span>
+    </div>
+    <h1>
+      <span class="lang-en">{title}</span>
+      <span class="lang-zh">{titleZh}</span>
+    </h1>
+    <div class="meta post-meta">
+      <span class="meta-tok">
+        <span class="tok-tag" aria-hidden="true">@date</span>
+        <time datetime={dateIso}>{dateIso}</time>
+      </span>
+      <span class="meta-tok">
+        <span class="tok-tag" aria-hidden="true">@read</span>
+        <span class="lang-en">~25 min</span>
+        <span class="lang-zh">~15 分钟</span>
+      </span>
+      <span class="meta-tok">
+        <span class="tok-tag" aria-hidden="true">@topic</span>
+        <span class="lang-en">Case Study</span>
+        <span class="lang-zh">案例研究</span>
+      </span>
+    </div>
+
+    <div class="cs lang-en" set:html={enBody}></div>
+    <div class="cs lang-zh" set:html={zhBody}></div>
+
+    <Comments />
+  </article>
+</Base>
+
+<style is:global>
+  /* Case study body — inherits the site's .prose styles; only the custom
+     classes from the source doc are re-themed here to match the site. */
+  .cs {
+    --sys-harbor: #2f6f9f;
+    --sys-verif: #3f7d55;
+    --sys-slime: #b4551f;
+  }
+  .cs ol.toc {
+    font-size: 0.95em;
+  }
+  .cs .sysdot {
+    display: inline-block;
+    width: 0.55em;
+    height: 0.55em;
+    border-radius: 50%;
+    margin-right: 0.4em;
+    vertical-align: 0.08em;
+  }
+  /* The source sets the dot colour inline via --harbor/--verif/--slime;
+     alias those to site-tuned values so the dots still render. */
+  .cs {
+    --harbor: var(--sys-harbor);
+    --verif: var(--sys-verif);
+    --slime: var(--sys-slime);
+  }
+  .cs blockquote.lead {
+    border-left-color: var(--accent);
+    background: var(--accent-soft);
+    color: var(--fg, inherit);
+    border-radius: 0 8px 8px 0;
+  }
+  .cs .mermaid-box {
+    border: 1px solid var(--rule, #e7ded4);
+    border-radius: 10px;
+    padding: 14px 10px;
+    margin: 1.5em 0;
+    overflow-x: auto;
+    background: #fff;
+  }
+  /* Diagrams are not code blocks: undo the site's terminal-window <pre> chrome
+     (dark background is forced with !important; a fake titlebar via ::before). */
+  .cs pre.mermaid {
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+    display: flex;
+    justify-content: center;
+    font-size: 14px;
+  }
+  .cs pre.mermaid::before {
+    content: none !important;
+    display: none !important;
+  }
+  /* Ensure diagram labels have CJK glyphs (mermaid's default fonts don't). */
+  .cs pre.mermaid foreignObject,
+  .cs pre.mermaid foreignObject div,
+  .cs pre.mermaid .nodeLabel,
+  .cs pre.mermaid .edgeLabel,
+  .cs pre.mermaid text {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC",
+      "Segoe UI", Arial, sans-serif !important;
+  }
+  .cs .math {
+    font-style: normal;
+    font-family: var(--font-ny, Georgia, "Times New Roman", serif);
+  }
+  /* Keep wide tables scrollable on small screens. */
+  .cs table {
+    display: block;
+    overflow-x: auto;
+    max-width: 100%;
+  }
+</style>
+
+<script is:inline type="module">
+  import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+  const CJK_FONT =
+    '-apple-system, "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", "Segoe UI", Arial, sans-serif';
+  mermaid.initialize({
+    startOnLoad: false,
+    theme: "neutral",
+    securityLevel: "loose",
+    fontFamily: CJK_FONT,
+    flowchart: { htmlLabels: true, curve: "basis" },
+  });
+
+  // mermaid measures htmlLabels from live layout, so diagrams must be rendered
+  // in-place while VISIBLE — inside a display:none block they collapse (0×0) and
+  // edge routing produces NaN coordinates. So render only the visible language's
+  // diagrams; the site's language switch flips body[data-lang], and we render the
+  // other language the first time it is toggled into view. Each diagram is only
+  // rendered once (data-processed guard), so toggling back and forth is cheap.
+  const renderVisible = () => {
+    const nodes = [...document.querySelectorAll(".cs pre.mermaid")].filter(
+      (n) => n.getAttribute("data-processed") !== "true" && n.offsetParent !== null,
+    );
+    if (nodes.length) {
+      mermaid.run({ nodes, suppressErrors: true }).catch(() => {
+        /* leave any un-rendered diagram as its source text */
+      });
+    }
+  };
+
+  const start = () => {
+    renderVisible();
+    new MutationObserver(renderVisible).observe(document.body, {
+      attributes: true,
+      attributeFilter: ["data-lang"],
+    });
+  };
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", start);
+  } else {
+    start();
+  }
+</script>
