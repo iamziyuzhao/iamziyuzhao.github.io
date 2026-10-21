@@ -15,7 +15,7 @@
   --border: #e9ecef;
   --shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   --shadow-hover: 0 6px 20px rgba(0, 0, 0, 0.1);
-  --max-width: 880px;
+  --max-width: 980px;
   --font: "Lato", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
 }
@@ -31,7 +31,7 @@
 body {
   margin: 0;
   font-family: var(--font);
-  font-size: 15px;
+  font-size: 17px;
   line-height: 1.7;
   color: var(--text);
   background: var(--bg);
@@ -79,7 +79,7 @@ img {
   padding-bottom: 1rem;
   margin-bottom: 2.5rem;
   border-bottom: 1px solid var(--border);
-  font-size: 14px;
+  font-size: 15.5px;
   font-weight: 700;
 }
 
@@ -88,7 +88,7 @@ img {
 }
 
 .nav .brand {
-  font-size: 1.1rem;
+  font-size: 1.2rem;
   color: var(--text);
 }
 
@@ -102,7 +102,7 @@ img {
   display: flex;
   align-items: center;
   gap: 3rem;
-  padding-bottom: 2.5rem;
+  padding-bottom: 3rem;
   margin-bottom: 1rem;
 }
 
@@ -112,39 +112,39 @@ img {
 }
 
 .profile-info h1 {
-  font-size: 2.1rem;
+  font-size: 2.7rem;
   font-weight: 700;
   line-height: 1.3;
   margin: 0 0 1rem;
 }
 
 .profile-info .headline {
-  margin: -0.6rem 0 1rem;
-  font-size: 14.5px;
+  margin: -0.6rem 0 1.1rem;
+  font-size: 16.5px;
   line-height: 1.6;
   color: var(--muted);
 }
 
 .nickname {
-  font-size: 1.4rem;
+  font-size: 1.7rem;
   font-weight: 400;
   color: var(--muted);
   margin-left: 0.15rem;
 }
 
 .profile-info p {
-  margin: 0 0 0.65rem;
+  margin: 0 0 0.8rem;
 }
 
 .profile-photo {
   flex-shrink: 0;
-  width: 200px;
+  width: 240px;
 }
 
 .profile-photo img {
   display: block;
-  width: 200px;
-  height: 200px;
+  width: 240px;
+  height: 240px;
   border-radius: 50%;
   object-fit: cover;
   box-shadow: 0 0 0 4px var(--bg), 0 0 0 5.5px var(--border), var(--shadow);
@@ -166,10 +166,10 @@ img {
 .social-links a {
   display: inline-flex;
   align-items: center;
-  padding: 0.35rem 1rem;
+  padding: 0.45rem 1.2rem;
   border: 1.5px solid var(--border);
-  border-radius: 20px;
-  font-size: 13.5px;
+  border-radius: 24px;
+  font-size: 15.5px;
   font-weight: 700;
   letter-spacing: 0.01em;
   color: var(--muted);
@@ -186,17 +186,17 @@ img {
 /* ========== Sections ========== */
 
 section {
-  margin-bottom: 2.5rem;
+  margin-bottom: 3rem;
 }
 
 .section-heading {
   display: inline-block;
-  font-size: 1.3rem;
+  font-size: 1.8rem;
   font-weight: 700;
-  line-height: 1.4;
+  line-height: 1.35;
   padding-bottom: 0.5rem;
-  margin: 0 0 1.5rem;
-  border-bottom: 3px solid var(--accent);
+  margin: 0 0 1.75rem;
+  border-bottom: 4px solid var(--accent);
 }
 
 /* ========== Logo entries (education, experience, projects) ========== */
@@ -211,8 +211,8 @@ section {
 /* rows sit on a soft card that lights up on hover */
 .entry,
 .post-item {
-  padding: 1.25rem;
-  border-radius: 10px;
+  padding: 1.5rem;
+  border-radius: 12px;
   transition: background 0.25s ease, box-shadow 0.25s ease;
 }
 
@@ -222,19 +222,19 @@ section {
   box-shadow: var(--shadow);
 }
 
+/* logos sit vertically centred beside their text */
 .entry {
   display: grid;
-  grid-template-columns: 100px 1fr;
-  gap: 1.5rem;
-  align-items: start;
+  grid-template-columns: 150px 1fr;
+  gap: 1.75rem;
+  align-items: center;
 }
 
 .entry-logo {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-  padding-top: 0.15rem;
+  gap: 10px;
 }
 
 .entry-logo .logo,
@@ -249,30 +249,30 @@ section {
 .entry-logo img {
   width: 100%;
   height: auto;
-  max-width: 84px;
-  max-height: 72px;
+  max-width: 120px;
+  max-height: 100px;
   object-fit: contain;
 }
 
 .entry-logo .wide img {
-  max-width: 100px;
-  max-height: 30px;
+  max-width: 150px;
+  max-height: 44px;
 }
 
 /* two logos (university + lab, company + team) stack, each a bit smaller */
 .entry-logo.pair img {
-  max-width: 40px;
-  max-height: 40px;
+  max-width: 64px;
+  max-height: 64px;
 }
 
 .entry-logo.pair .wide img {
-  max-width: 92px;
-  max-height: 26px;
+  max-width: 140px;
+  max-height: 40px;
 }
 
 .entry-name {
   font-weight: 700;
-  font-size: 16px;
+  font-size: 19px;
   margin-bottom: 0.15rem;
 }
 
@@ -285,19 +285,19 @@ section {
 }
 
 .entry-date {
-  font-size: 13.5px;
+  font-size: 15px;
   color: var(--muted);
   margin-bottom: 0.6rem;
 }
 
 .entry-role {
-  font-size: 14.5px;
+  font-size: 16.5px;
   font-weight: 700;
   margin-bottom: 0.15rem;
 }
 
 .entry-detail {
-  font-size: 14px;
+  font-size: 16px;
   color: var(--muted);
   margin-top: 0.3rem;
 }
@@ -305,7 +305,7 @@ section {
 /* ========== Post lists (home + /blog/) ========== */
 
 .post-title {
-  font-size: 15px;
+  font-size: 19px;
   font-weight: 700;
   color: var(--text);
 }
@@ -315,7 +315,7 @@ section {
 }
 
 .post-date {
-  font-size: 13.5px;
+  font-size: 15px;
   font-style: italic;
   color: var(--muted);
 }
@@ -323,13 +323,13 @@ section {
 .post-desc,
 .prose .post-desc {
   margin: 0.35rem 0 0;
-  font-size: 14px;
+  font-size: 16px;
   color: var(--muted);
 }
 
 .more-link {
   margin: 1.5rem 0 0;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 700;
 }
 
@@ -340,14 +340,14 @@ section {
   padding-top: 2rem;
   border-top: 1px solid var(--border);
   text-align: center;
-  font-size: 13px;
+  font-size: 14.5px;
   color: var(--muted);
 }
 
 /* ========== Long-form text (blog index + posts) ========== */
 
 .prose {
-  font-size: 16px;
+  font-size: 17px;
   line-height: 1.75;
 }
 
@@ -490,6 +490,10 @@ section {
 /* ========== Small screens ========== */
 
 @media (max-width: 700px) {
+  body {
+    font-size: 16px;
+  }
+
   .container {
     padding: 2rem 1.25rem;
   }
@@ -508,54 +512,74 @@ section {
 
   .profile-photo,
   .profile-photo img {
-    width: 140px;
-    height: 140px;
+    width: 160px;
+    height: 160px;
   }
 
   .profile-info h1 {
-    font-size: 1.8rem;
+    font-size: 2.1rem;
   }
 
   .nickname {
-    font-size: 1.2rem;
+    font-size: 1.35rem;
+  }
+
+  .section-heading {
+    font-size: 1.5rem;
   }
 
   .entry {
-    grid-template-columns: 72px 1fr;
+    grid-template-columns: 84px 1fr;
     gap: 1rem;
   }
 
   .entry,
   .post-item {
-    padding: 0.75rem;
+    padding: 0.9rem;
   }
 
   .entry-logo {
-    gap: 6px;
+    gap: 8px;
   }
 
   .entry-logo img {
-    max-width: 64px;
-    max-height: 56px;
+    max-width: 80px;
+    max-height: 64px;
   }
 
   .entry-logo .wide img {
-    max-width: 72px;
-    max-height: 24px;
+    max-width: 84px;
+    max-height: 28px;
   }
 
   .entry-logo.pair img {
-    max-width: 32px;
-    max-height: 32px;
+    max-width: 44px;
+    max-height: 44px;
   }
 
   .entry-logo.pair .wide img {
-    max-width: 68px;
-    max-height: 20px;
+    max-width: 80px;
+    max-height: 26px;
+  }
+
+  .entry-name {
+    font-size: 17.5px;
+  }
+
+  .entry-role {
+    font-size: 15.5px;
+  }
+
+  .entry-detail {
+    font-size: 15px;
+  }
+
+  .post-title {
+    font-size: 17.5px;
   }
 
   .prose {
-    font-size: 15.5px;
+    font-size: 16px;
   }
 
   .prose h1 {

@@ -81,7 +81,7 @@ export const experience: ExperienceEntry[] = [
     org: "Carnegie Mellon University, Catalyst Group",
     logos: [
       cmu,
-      { src: "/logos/provided/trimmed/catalyst-transparent-v2.png", alt: "Catalyst Group", href: "https://catalyst.cs.cmu.edu/", wide: true },
+      { src: "/logos/catalyst.png", alt: "Catalyst Group", href: "https://catalyst.cs.cmu.edu/", wide: true },
     ],
     role: "Research Intern",
     date: "Jun 2026 – Present",
@@ -101,7 +101,7 @@ export const experience: ExperienceEntry[] = [
     org: "Cornell University, Computer Systems Laboratory",
     logos: [
       { src: "/logos/cornell.png", alt: "Cornell University", href: "https://www.cornell.edu/" },
-      { src: "/logos/provided/trimmed/csl-trim.png", alt: "Computer Systems Laboratory", href: "https://www.csl.cornell.edu/", wide: true },
+      { src: "/logos/csl.png", alt: "Computer Systems Laboratory", href: "https://www.csl.cornell.edu/", wide: true },
     ],
     role: "Research Intern",
     date: "May 2026 – Sep 2026",
@@ -128,7 +128,7 @@ export const experience: ExperienceEntry[] = [
   },
   {
     org: "Haystack",
-    logos: [{ src: "/logos/provided/haystack.png", alt: "Haystack", href: "https://www.haystackteam.com/", wide: true }],
+    logos: [{ src: "/logos/haystack.png", alt: "Haystack", href: "https://www.haystackteam.com/", wide: true }],
     role: "Software Engineer Intern",
     date: "May 2024 – Sep 2024",
     detail: "Worked on organization-wide universal search, a dual-protocol API gateway, Docker, and Kubernetes.",
