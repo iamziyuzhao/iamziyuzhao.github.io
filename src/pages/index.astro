@@ -8,18 +8,23 @@ import { posts } from "../data/posts";
 const latestPosts = posts.slice(0, 3);
 ---
 
-<Base title="Ziyu Zhao (Albert)" nav={false}>
+<Base
+  title="Ziyu Zhao (Albert)"
+  description="Ziyu (Albert) Zhao — M.S. student at Carnegie Mellon University researching recursive self-improvement, continual learning, and post-training."
+  nav={false}
+>
   <header class="profile">
     <div class="profile-info">
       <h1>{profile.name} <span class="nickname">({profile.nickname})</span></h1>
+      <p class="headline">{profile.headline}</p>
       <p>
-        I am a first-year Master's student in the Department of Electrical and Computer Engineering at Carnegie Mellon University, advised by <a href="https://tqchen.com/" target="_blank" rel="noreferrer">Prof. Tianqi Chen</a> in the <a href="https://catalyst.cs.cmu.edu/" target="_blank" rel="noreferrer">Catalyst Lab</a> and <a href="https://www.andrew.cmu.edu/user/beidic/" target="_blank" rel="noreferrer">Prof. Beidi Chen</a> in the <a href="https://www.infini-ai-lab.cmu.edu/" target="_blank" rel="noreferrer">Infini AI Lab</a>. I work on machine learning systems and AI infrastructure: LLM inference, post-training infrastructure, agent harnesses, and sandbox/cloud infrastructure.
+        I am a first-year M.S. student in Information Networking at Carnegie Mellon University, concentrating on Machine Learning &amp; AI Infrastructure. I do research with <a href="https://tqchen.com/" target="_blank" rel="noreferrer">Prof. Tianqi Chen</a> in the <a href="https://catalyst.cs.cmu.edu/" target="_blank" rel="noreferrer">Catalyst Group</a> on agents and kernels, and with <a href="https://www.andrew.cmu.edu/user/beidic/" target="_blank" rel="noreferrer">Prof. Beidi Chen</a> in the <a href="https://www.infini-ai-lab.cmu.edu/" target="_blank" rel="noreferrer">InfiniAI Lab</a> on recursive self-improvement and continual learning. I will join ByteDance as a Research Scientist Intern working on post-training.
       </p>
       <p>
-        During my undergraduate studies at the University of Rochester, I built search, recommendation, and sandbox infrastructure at <a href="https://www.haystackteam.com/key-features/universal-search" target="_blank" rel="noreferrer">Haystack</a>, where I was glad to work with the Google Cloud team. Inspired by the power of search and recommendation algorithms, several colleagues and I founded the AI company <a href="https://www.realkey.ai/" target="_blank" rel="noreferrer">RealKey</a>, where we raised $1.5 million.
+        Previously, I was a research engineer on post-training infrastructure at Tencent Hunyuan, where I contributed key parts of the evaluation, distillation, SFT, RFT, and sandbox infrastructure used to train and fine-tune the <a href="https://hy.tencent.ai/research/hy3" target="_blank" rel="noreferrer">Hy3 model</a>. I also worked on an efficient post-quantization approach for LLM inference with <a href="https://www.mohsaied.com/" target="_blank" rel="noreferrer">Prof. Mohamed S. Abdelfattah</a> in the <a href="https://www.csl.cornell.edu/faculty/" target="_blank" rel="noreferrer">Computer Systems Lab</a> at Cornell.
       </p>
       <p>
-        To seek a deeper, larger-scale understanding of AI research, I joined Tencent Hunyuan as a research engineer, where I contributed key parts of the Agent Harness and evaluation infrastructure used to train and fine-tune the <a href="https://hy.tencent.ai/research/hy3" target="_blank" rel="noreferrer">Hy3 model</a>. I am currently doing efficient inference research, advised by <a href="https://www.mohsaied.com/" target="_blank" rel="noreferrer">Prof. Mohamed Abdelfattah</a> in the <a href="https://www.csl.cornell.edu/faculty/" target="_blank" rel="noreferrer">Computer Systems Lab</a> at Cornell.
+        During my undergraduate studies at the University of Rochester, I built search and API infrastructure at <a href="https://www.haystackteam.com/key-features/universal-search" target="_blank" rel="noreferrer">Haystack</a>, where I was glad to work with the Google Cloud team. Inspired by the power of search and recommendation algorithms, several colleagues and I founded the AI company GetMyHome.ai (now <a href="https://www.realkey.ai/" target="_blank" rel="noreferrer">RealKey</a>), where we raised $1.5 million in a pre-seed round.
       </p>
       <nav class="social-links" aria-label="Profile links">
         {profile.email && <a href={`mailto:${profile.email}`}>Email</a>}
@@ -36,7 +41,7 @@ const latestPosts = posts.slice(0, 3);
     <div class="entries">
       {education.map((item) => (
         <div class="entry">
-          <LogoMark logo={item.logo} name={item.school} />
+          <LogoMark logos={item.logos} />
           <div class="entry-body">
             <div class="entry-name">{item.school}</div>
             <div class="entry-date">{item.date}</div>
@@ -53,12 +58,12 @@ const latestPosts = posts.slice(0, 3);
     <div class="entries">
       {experience.map((item) => (
         <div class="entry">
-          <LogoMark logo={item.logo} name={item.org} />
+          <LogoMark logos={item.logos} />
           <div class="entry-body">
             <div class="entry-name">{item.org}</div>
             <div class="entry-date">{item.date}</div>
             <div class="entry-role">{item.role}</div>
-            <div class="entry-detail">{item.detail}</div>
+            {item.detail && <div class="entry-detail">{item.detail}</div>}
           </div>
         </div>
       ))}
@@ -70,7 +75,7 @@ const latestPosts = posts.slice(0, 3);
     <div class="entries">
       {projects.map((item) => (
         <div class="entry">
-          <LogoMark logo={item.logo} name="" />
+          <LogoMark logos={item.logos} />
           <div class="entry-body">
             <div class="entry-name">
               {item.href ? <a href={item.href} target="_blank" rel="noreferrer">{item.title}</a> : item.title}

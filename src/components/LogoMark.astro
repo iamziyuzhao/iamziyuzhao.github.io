@@ -2,20 +2,22 @@
 import type { Logo } from "../data/profile";
 
 interface Props {
-  logo: Logo;
-  /** Organization name — the image's alt text (empty when a link next to it already names it). */
-  name: string;
+  logos: Logo[];
 }
 
-const { logo, name } = Astro.props;
+const { logos } = Astro.props;
 ---
 
-<div class:list={["entry-logo", { wide: logo.wide }]}>
-  {logo.href ? (
-    <a href={logo.href} target="_blank" rel="noreferrer">
-      <img src={logo.src} alt={name} loading="lazy" />
-    </a>
-  ) : (
-    <img src={logo.src} alt={name} loading="lazy" />
-  )}
+<div class:list={["entry-logo", { pair: logos.length > 1 }]}>
+  {logos.map((logo) => (
+    <div class:list={["logo", { wide: logo.wide }]}>
+      {logo.href ? (
+        <a href={logo.href} target="_blank" rel="noreferrer">
+          <img src={logo.src} alt={logo.alt} loading="lazy" />
+        </a>
+      ) : (
+        <img src={logo.src} alt={logo.alt} loading="lazy" />
+      )}
+    </div>
+  ))}
 </div>

@@ -118,6 +118,13 @@ img {
   margin: 0 0 1rem;
 }
 
+.profile-info .headline {
+  margin: -0.6rem 0 1rem;
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
 .nickname {
   font-size: 1.4rem;
   font-weight: 400;
@@ -188,54 +195,85 @@ section {
   font-weight: 700;
   line-height: 1.4;
   padding-bottom: 0.5rem;
-  margin: 1.5rem 0 1.5rem;
+  margin: 0 0 1.5rem;
   border-bottom: 3px solid var(--accent);
 }
 
 /* ========== Logo entries (education, experience, projects) ========== */
 
-.entries {
+.entries,
+.post-list {
   display: flex;
   flex-direction: column;
-  gap: 1.75rem;
+  gap: 0.25rem;
+}
+
+/* rows sit on a soft card that lights up on hover */
+.entry,
+.post-item {
+  padding: 1.25rem;
+  border-radius: 10px;
+  transition: background 0.25s ease, box-shadow 0.25s ease;
+}
+
+.entry:hover,
+.post-item:hover {
+  background: var(--card-bg);
+  box-shadow: var(--shadow);
 }
 
 .entry {
   display: grid;
-  grid-template-columns: 110px 1fr;
-  gap: 1.75rem;
+  grid-template-columns: 100px 1fr;
+  gap: 1.5rem;
   align-items: start;
 }
 
 .entry-logo {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  height: 64px;
+  gap: 8px;
+  padding-top: 0.15rem;
 }
 
+.entry-logo .logo,
 .entry-logo a {
   display: flex;
-  align-items: center;
   justify-content: center;
   width: 100%;
-  height: 100%;
 }
 
+/* width:100% gives size-less SVGs (viewBox only) a box; object-fit keeps
+   every logo's aspect inside its max-width × max-height */
 .entry-logo img {
+  width: 100%;
+  height: auto;
   max-width: 84px;
-  max-height: 64px;
+  max-height: 72px;
   object-fit: contain;
 }
 
-.entry-logo.wide img {
-  max-width: 110px;
+.entry-logo .wide img {
+  max-width: 100px;
   max-height: 30px;
+}
+
+/* two logos (university + lab, company + team) stack, each a bit smaller */
+.entry-logo.pair img {
+  max-width: 40px;
+  max-height: 40px;
+}
+
+.entry-logo.pair .wide img {
+  max-width: 92px;
+  max-height: 26px;
 }
 
 .entry-name {
   font-weight: 700;
-  font-size: 15px;
+  font-size: 16px;
+  margin-bottom: 0.15rem;
 }
 
 .entry-name a {
@@ -247,28 +285,24 @@ section {
 }
 
 .entry-date {
-  font-size: 13px;
+  font-size: 13.5px;
   color: var(--muted);
-  margin-bottom: 0.3rem;
+  margin-bottom: 0.6rem;
 }
 
 .entry-role {
-  font-size: 13.5px;
+  font-size: 14.5px;
   font-weight: 700;
+  margin-bottom: 0.15rem;
 }
 
 .entry-detail {
-  font-size: 13.5px;
+  font-size: 14px;
   color: var(--muted);
+  margin-top: 0.3rem;
 }
 
 /* ========== Post lists (home + /blog/) ========== */
-
-.post-list {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
 
 .post-title {
   font-size: 15px;
@@ -281,7 +315,7 @@ section {
 }
 
 .post-date {
-  font-size: 13px;
+  font-size: 13.5px;
   font-style: italic;
   color: var(--muted);
 }
@@ -302,9 +336,10 @@ section {
 /* ========== Footer ========== */
 
 .footer {
-  margin-top: 3rem;
-  padding-top: 1.25rem;
+  margin-top: 1rem;
+  padding-top: 2rem;
   border-top: 1px solid var(--border);
+  text-align: center;
   font-size: 13px;
   color: var(--muted);
 }
@@ -461,9 +496,14 @@ section {
 
   .profile {
     flex-direction: column-reverse;
-    align-items: flex-start;
+    align-items: center;
+    text-align: center;
     gap: 1.5rem;
     padding-bottom: 1.5rem;
+  }
+
+  .social-links {
+    justify-content: center;
   }
 
   .profile-photo,
@@ -485,18 +525,33 @@ section {
     gap: 1rem;
   }
 
+  .entry,
+  .post-item {
+    padding: 0.75rem;
+  }
+
   .entry-logo {
-    height: 48px;
+    gap: 6px;
   }
 
   .entry-logo img {
     max-width: 64px;
-    max-height: 48px;
+    max-height: 56px;
   }
 
-  .entry-logo.wide img {
+  .entry-logo .wide img {
     max-width: 72px;
     max-height: 24px;
+  }
+
+  .entry-logo.pair img {
+    max-width: 32px;
+    max-height: 32px;
+  }
+
+  .entry-logo.pair .wide img {
+    max-width: 68px;
+    max-height: 20px;
   }
 
   .prose {

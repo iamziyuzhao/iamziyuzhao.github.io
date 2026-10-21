@@ -5,6 +5,8 @@ export interface ProfileLink {
 
 export interface Logo {
   src: string;
+  /** The image's alt text; empty when a link next to it already names it. */
+  alt: string;
   /** Organization website — the logo links here when set. */
   href?: string;
   /** Wordmark-style logo (wider than tall) — gets more horizontal room. */
@@ -13,7 +15,7 @@ export interface Logo {
 
 export interface EducationEntry {
   school: string;
-  logo: Logo;
+  logos: Logo[];
   degree: string;
   date: string;
   note?: string;
@@ -21,16 +23,17 @@ export interface EducationEntry {
 
 export interface ExperienceEntry {
   org: string;
-  logo: Logo;
+  /** One logo, or two (university + lab, company + team) stacked. */
+  logos: Logo[];
   role: string;
   date: string;
-  detail: string;
+  detail?: string;
 }
 
 export interface ProjectEntry {
   title: string;
   href?: string;
-  logo: Logo;
+  logos: Logo[];
   venue: string;
   date: string;
   summary: string;
@@ -39,27 +42,35 @@ export interface ProjectEntry {
 export const profile = {
   name: "Ziyu Zhao",
   nickname: "Albert",
+  // one-line title under the name (from the LinkedIn headline)
+  headline:
+    "Incoming Research Scientist Intern (Post-Train) @ ByteDance · Research @ CMU & Cornell · Ex-Scaling & Training Infra @ Tencent Hunyuan LLM · M.S. @ CMU",
   photo: "/images/albert-zhao.jpg",
   // Fill in to show an "Email" button next to the links below.
   email: "",
   links: [
     { label: "CV", href: "/files/2026ZiyuZhaoJune.pdf" },
     { label: "GitHub", href: "https://github.com/iamziyuzhao" },
+    { label: "LinkedIn", href: "https://www.linkedin.com/in/albertzzhao/" },
     { label: "Blog", href: "/blog/" },
   ] as ProfileLink[],
 };
 
+const cmu: Logo = { src: "/logos/cmu.png", alt: "Carnegie Mellon University", href: "https://www.cmu.edu/" };
+const rochester: Logo = { src: "/logos/rochester.png", alt: "University of Rochester", href: "https://www.rochester.edu/" };
+
 export const education: EducationEntry[] = [
   {
     school: "Carnegie Mellon University",
-    logo: { src: "/logos/cmu.png", href: "https://www.cmu.edu/" },
-    degree: "M.S. in Information Networking",
+    logos: [cmu],
+    degree: "M.S. in Information Networking (Thesis-based)",
     date: "2026 – 2028",
+    note: "Concentration: Machine Learning & AI Infrastructure · Tuition Scholarship",
   },
   {
     school: "University of Rochester",
-    logo: { src: "/logos/rochester.png", href: "https://www.rochester.edu/" },
-    degree: "B.S. in Computer Science and B.S. in Business",
+    logos: [rochester],
+    degree: "B.S. in Computer Science and B.S. in Business/Managerial Economics",
     date: "2022 – 2026",
     note: "Computer Science major GPA: 3.9/4.0",
   },
@@ -68,40 +79,65 @@ export const education: EducationEntry[] = [
 export const experience: ExperienceEntry[] = [
   {
     org: "Carnegie Mellon University, Catalyst Group",
-    logo: { src: "/logos/provided/trimmed/catalyst-transparent-v2.png", href: "https://catalyst.cs.cmu.edu/", wide: true },
-    role: "Research Assistant Intern",
-    date: "Apr 2026 – Present",
-    detail: "LLM inference, GPU kernels, and agent benchmarking.",
+    logos: [
+      cmu,
+      { src: "/logos/provided/trimmed/catalyst-transparent-v2.png", alt: "Catalyst Group", href: "https://catalyst.cs.cmu.edu/", wide: true },
+    ],
+    role: "Research Intern",
+    date: "Jun 2026 – Present",
+    detail: "Advised by Prof. Tianqi Chen. Working on agents and kernels.",
+  },
+  {
+    org: "Carnegie Mellon University, InfiniAI Lab",
+    logos: [
+      cmu,
+      { src: "/logos/infini-ai-lab.png", alt: "InfiniAI Lab", href: "https://www.infini-ai-lab.cmu.edu/", wide: true },
+    ],
+    role: "Research Intern",
+    date: "Sep 2026 – Present",
+    detail: "Advised by Prof. Beidi Chen. Working on recursive self-improvement and continual learning.",
   },
   {
     org: "Cornell University, Computer Systems Laboratory",
-    logo: { src: "/logos/provided/trimmed/csl-trim.png", href: "https://www.csl.cornell.edu/", wide: true },
-    role: "Research Assistant Intern",
-    date: "Apr 2026 – Present",
-    detail: "Efficient quantization for LLM inference.",
+    logos: [
+      { src: "/logos/cornell.png", alt: "Cornell University", href: "https://www.cornell.edu/" },
+      { src: "/logos/provided/trimmed/csl-trim.png", alt: "Computer Systems Laboratory", href: "https://www.csl.cornell.edu/", wide: true },
+    ],
+    role: "Research Intern",
+    date: "May 2026 – Sep 2026",
+    detail: "Advised by Prof. Mohamed S. Abdelfattah and Jake Hyun. Working on an efficient post-quantization approach for LLM inference.",
   },
   {
     org: "Tencent, Hunyuan LLM Team",
-    logo: { src: "/logos/tencent-hunyuan.png", href: "https://hunyuan.tencent.com/research?page=1", wide: true },
-    role: "Research Engineer Intern",
+    logos: [
+      { src: "/logos/tencent.png", alt: "Tencent", href: "https://www.tencent.com/en-us/", wide: true },
+      { src: "/logos/tencent-hunyuan.png", alt: "Tencent Hunyuan", href: "https://hunyuan.tencent.com/research?page=1", wide: true },
+    ],
+    role: "Research Engineer Intern, Post-Train Infra",
     date: "Jan 2026 – Apr 2026",
-    detail: "Agent Harness, Runtime, Eval infra and Sandbox infra.",
+    detail:
+      "Joined the Hunyuan LLM Reinforcement Learning Team 1 and contributed key parts of the evaluation, distillation, SFT, RFT, and sandbox infrastructure used to train and fine-tune the Hy3 model (295B MoE, A21B, 256K-token context).",
   },
   {
-    org: "RealKey",
-    logo: { src: "/logos/provided/getmyhome.svg", href: "https://www.realkey.ai/" },
-    role: "Machine Learning Engineer Intern",
-    date: "Oct 2024 – Aug 2025",
+    org: "GetMyHome.ai (now RealKey)",
+    logos: [{ src: "/logos/provided/getmyhome.svg", alt: "GetMyHome.ai", href: "https://www.realkey.ai/" }],
+    role: "Machine Learning Engineer",
+    date: "Oct 2024 – Sep 2025",
     detail:
-      "Founding member of HomeGPT, building multi-agent real estate infrastructure, price-estimation models, and scalable RAG systems.",
+      "Founding team member ($1.5M pre-seed round). Worked on multi-agent infrastructure, retrieval and ranking algorithms, and recommender systems.",
   },
   {
     org: "Haystack",
-    logo: { src: "/logos/provided/haystack.png", href: "https://www.haystackteam.com/", wide: true },
-    role: "Software Development Engineer Intern",
+    logos: [{ src: "/logos/provided/haystack.png", alt: "Haystack", href: "https://www.haystackteam.com/", wide: true }],
+    role: "Software Engineer Intern",
     date: "May 2024 – Sep 2024",
-    detail:
-      "Universal enterprise search across workplace data, dual-protocol API gateway, and Kubernetes deployment infrastructure.",
+    detail: "Worked on organization-wide universal search, a dual-protocol API gateway, Docker, and Kubernetes.",
+  },
+  {
+    org: "University of Rochester, Goergen Institute for Data Science",
+    logos: [rochester],
+    role: "Teaching Assistant, DSCC 401 (graduate course)",
+    date: "Sep 2023 – Jan 2024",
   },
 ];
 
@@ -109,7 +145,7 @@ export const projects: ProjectEntry[] = [
   {
     title: "FlashInfer-Bench",
     href: "https://github.com/flashinfer-ai/flashinfer-bench",
-    logo: { src: "/logos/flashinfer.svg" },
+    logos: [{ src: "/logos/flashinfer.svg", alt: "" }],
     venue: "Open source",
     date: "2025 – Present",
     summary:
@@ -118,7 +154,7 @@ export const projects: ProjectEntry[] = [
   {
     title: "Kaggle MakeDataCount",
     href: "https://www.kaggle.com/certification/competitions/jojozhaoamz/make-data-count-finding-data-references",
-    logo: { src: "/logos/kaggle.svg", wide: true },
+    logos: [{ src: "/logos/kaggle.svg", alt: "", wide: true }],
     venue: "Silver Medal, rank 54 / 1,282",
     date: "2025",
     summary: "Built a vLLM-accelerated NLP pipeline with AWQ-quantized Qwen2.5-32B for distributed GPU inference.",
