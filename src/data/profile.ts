@@ -27,7 +27,7 @@ export interface ExperienceEntry {
   logos: Logo[];
   role: string;
   date: string;
-  detail?: string;
+  detail: string;
 }
 
 export interface ProjectEntry {
@@ -132,12 +132,6 @@ export const experience: ExperienceEntry[] = [
     role: "Software Engineer Intern",
     date: "May 2024 – Sep 2024",
     detail: "Worked on organization-wide universal search, a dual-protocol API gateway, Docker, and Kubernetes.",
-  },
-  {
-    org: "University of Rochester, Goergen Institute for Data Science",
-    logos: [rochester],
-    role: "Teaching Assistant, DSCC 401 (graduate course)",
-    date: "Sep 2023 – Jan 2024",
   },
 ];
 
