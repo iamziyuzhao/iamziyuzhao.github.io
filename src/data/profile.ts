@@ -44,9 +44,6 @@ export interface ProjectEntry {
 export const profile = {
   name: "Ziyu Zhao",
   nickname: "Albert",
-  // one-line title under the name (from the LinkedIn headline)
-  headline:
-    "Incoming Research Scientist Intern (Post-Train) @ ByteDance · Research @ CMU & Cornell · Ex-Scaling & Training Infra @ Tencent Hunyuan LLM · M.S. @ CMU",
   photo: "/images/albert-zhao.jpg",
   // Fill in to show an "Email" button next to the links below.
   email: "",
