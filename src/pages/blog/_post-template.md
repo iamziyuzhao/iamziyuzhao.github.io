@@ -4,11 +4,8 @@
 # Structure follows docs/writing-tech-posts.md — delete sections you don't need.
 layout: ../../layouts/BlogPost.astro
 title: A Title That Makes a Claim, Not a Description
-titleZh: 中文标题（可选）
 description: One sentence stating the pain point and what the reader gets. Used on /blog/ and in the meta tag.
-descriptionZh: 中文摘要（可选）
 category: Research Notes
-categoryZh: 研究笔记
 date: 2026-01-01
 ---
 

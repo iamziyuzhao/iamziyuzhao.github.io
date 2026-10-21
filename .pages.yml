@@ -28,23 +28,13 @@ content:
         label: Title
         type: string
         required: true
-      - name: titleZh
-        label: Title (中文, optional)
-        type: string
       - name: description
         label: Description (shown on /blog/ and in search results)
-        type: text
-      - name: descriptionZh
-        label: Description (中文, optional)
         type: text
       - name: category
         label: Category
         type: string
         default: Research Notes
-      - name: categoryZh
-        label: Category (中文)
-        type: string
-        default: 研究笔记
       - name: date
         label: Date
         type: date

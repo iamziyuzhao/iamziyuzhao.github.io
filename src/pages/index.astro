@@ -1,509 +1,99 @@
 ---
 import Base from "../layouts/Base.astro";
 import LogoMark from "../components/LogoMark.astro";
-import { education, experience, news, newsZh, profile, projects } from "../data/profile";
+import { education, experience, profile, projects } from "../data/profile";
+import { formatDate } from "../data/format";
+import { posts } from "../data/posts";
 
-const focusAreas = [
-  { en: "Inference", zh: "推理" },
-  { en: "Post-Train Infra", zh: "后训练基础设施" },
-  { en: "Agent Harness", zh: "Agent Harness" },
-  { en: "Sandbox/Cloud infra", zh: "沙箱 / 云基础设施" },
-];
+const latestPosts = posts.slice(0, 3);
 ---
 
-<Base title="Ziyu Zhao (Albert)">
-  <section class="academic-shell">
-    <aside class="profile-card">
-      <div class="portrait-frame">
-        <img class="portrait" src="/images/albert-zhao.jpg" alt="Albert Zhao" loading="eager" />
-      </div>
-      <div class="profile-name">Ziyu Zhao (Albert)</div>
-      <div class="profile-title">
-        <span class="lang-en">{profile.title}</span>
-        <span class="lang-zh">{profile.titleZh}</span>
-      </div>
-      <div class="profile-detail">
-        <span class="lang-en">Incoming M.S. student</span>
-        <span class="lang-zh">硕士新生</span>
-        <br />
-        Carnegie Mellon University
-        <br />
-        Pittsburgh, PA
-      </div>
-    </aside>
+<Base title="Ziyu Zhao (Albert)" nav={false}>
+  <header class="profile">
+    <div class="profile-info">
+      <h1>{profile.name} <span class="nickname">({profile.nickname})</span></h1>
+      <p>
+        I am a first-year Master's student in the Department of Electrical and Computer Engineering at Carnegie Mellon University, advised by <a href="https://tqchen.com/" target="_blank" rel="noreferrer">Prof. Tianqi Chen</a> in the <a href="https://catalyst.cs.cmu.edu/" target="_blank" rel="noreferrer">Catalyst Lab</a> and <a href="https://www.andrew.cmu.edu/user/beidic/" target="_blank" rel="noreferrer">Prof. Beidi Chen</a> in the <a href="https://www.infini-ai-lab.cmu.edu/" target="_blank" rel="noreferrer">Infini AI Lab</a>. I work on machine learning systems and AI infrastructure: LLM inference, post-training infrastructure, agent harnesses, and sandbox/cloud infrastructure.
+      </p>
+      <p>
+        During my undergraduate studies at the University of Rochester, I built search, recommendation, and sandbox infrastructure at <a href="https://www.haystackteam.com/key-features/universal-search" target="_blank" rel="noreferrer">Haystack</a>, where I was glad to work with the Google Cloud team. Inspired by the power of search and recommendation algorithms, several colleagues and I founded the AI company <a href="https://www.realkey.ai/" target="_blank" rel="noreferrer">RealKey</a>, where we raised $1.5 million.
+      </p>
+      <p>
+        To seek a deeper, larger-scale understanding of AI research, I joined Tencent Hunyuan as a research engineer, where I contributed key parts of the Agent Harness and evaluation infrastructure used to train and fine-tune the <a href="https://hy.tencent.ai/research/hy3" target="_blank" rel="noreferrer">Hy3 model</a>. I am currently doing efficient inference research, advised by <a href="https://www.mohsaied.com/" target="_blank" rel="noreferrer">Prof. Mohamed Abdelfattah</a> in the <a href="https://www.csl.cornell.edu/faculty/" target="_blank" rel="noreferrer">Computer Systems Lab</a> at Cornell.
+      </p>
+      <nav class="social-links" aria-label="Profile links">
+        {profile.email && <a href={`mailto:${profile.email}`}>Email</a>}
+        {profile.links.map((link) => <a href={link.href}>{link.label}</a>)}
+      </nav>
+    </div>
+    <div class="profile-photo">
+      <img src={profile.photo} alt="Ziyu (Albert) Zhao" width="1280" height="960" />
+    </div>
+  </header>
 
-    <div class="academic-main">
-      <section class="terminal-hero" aria-label="Introduction">
-        <div class="term-window">
-          <div class="term-bar">
-            <span class="term-dots" aria-hidden="true"><i></i><i></i><i></i></span>
-            <span class="term-title" aria-hidden="true">albert@cmu:~ — zsh</span>
-            <span class="term-size" aria-hidden="true">80×24</span>
-          </div>
-          <div class="term-body">
-            <p class="term-line"><span class="term-prompt" aria-hidden="true">$</span><span class="term-cmd type-6">whoami</span></p>
-            <h1 class="term-name">
-              <span class="visually-hidden">Ziyu Zhao (Albert)</span>
-              <img class="term-name-img" src="/images/name-newyork.png" alt="Ziyu Zhao (Albert)" width="1788" height="242" decoding="async" />
-            </h1>
-            <p class="term-out term-role">
-              <span class="lang-en">{profile.title}</span>
-              <span class="lang-zh">{profile.titleZh}</span>
-            </p>
-            <p class="term-out term-dim">
-              <span class="lang-en">incoming M.S. student · Carnegie Mellon University · Pittsburgh, PA</span>
-              <span class="lang-zh">硕士新生 · Carnegie Mellon University · Pittsburgh, PA</span>
-            </p>
-            <p class="term-line"><span class="term-prompt" aria-hidden="true">$</span><span class="term-cmd type-13">cat focus.txt</span></p>
-            {focusAreas.map((area, i) => (
-              <p class="term-out term-focus">
-                <span class="term-idx" aria-hidden="true">{i}:</span>
-                <span class="lang-en">{area.en}</span>
-                <span class="lang-zh">{area.zh}</span>
-              </p>
-            ))}
-            <p class="term-line term-last"><span class="term-prompt" aria-hidden="true">$</span><span class="term-cmd type-17" data-boot-cmd>source ~/.profile</span><span class="term-cursor" aria-hidden="true" data-static-cursor></span></p>
+  <section>
+    <h2 class="section-heading">Education</h2>
+    <div class="entries">
+      {education.map((item) => (
+        <div class="entry">
+          <LogoMark logo={item.logo} name={item.school} />
+          <div class="entry-body">
+            <div class="entry-name">{item.school}</div>
+            <div class="entry-date">{item.date}</div>
+            <div class="entry-role">{item.degree}</div>
+            {item.note && <div class="entry-detail">{item.note}</div>}
           </div>
         </div>
-      </section>
-
-      <section class="section about-section">
-        <h2><span class="lang-en">About</span><span class="lang-zh">关于</span></h2>
-        <p>
-          <span class="lang-en">I am a first-year Master's student in the Department of Electrical and Computer Engineering at Carnegie Mellon University, advised by <a href="https://tqchen.com/" target="_blank" rel="noreferrer">Prof. Tianqi Chen</a> in the <a href="https://catalyst.cs.cmu.edu/" target="_blank" rel="noreferrer">Catalyst Lab</a> and <a href="https://www.andrew.cmu.edu/user/beidic/" target="_blank" rel="noreferrer">Prof. Beidi Chen</a> in the <a href="https://www.infini-ai-lab.cmu.edu/" target="_blank" rel="noreferrer">Infini AI Lab</a>.</span>
-          <span class="lang-zh">我是卡内基梅隆大学电气与计算机工程系的一年级硕士生，由 <a href="https://catalyst.cs.cmu.edu/" target="_blank" rel="noreferrer">Catalyst Lab</a> 的 <a href="https://tqchen.com/" target="_blank" rel="noreferrer">Tianqi Chen 教授</a>与 <a href="https://www.infini-ai-lab.cmu.edu/" target="_blank" rel="noreferrer">Infini AI Lab</a> 的 <a href="https://www.andrew.cmu.edu/user/beidic/" target="_blank" rel="noreferrer">Beidi Chen 教授</a>共同指导。</span>
-        </p>
-        <p>
-          <span class="lang-en">During my undergraduate studies at the University of Rochester, I built search, recommendation, and sandbox infrastructure at <a href="https://www.haystackteam.com/key-features/universal-search" target="_blank" rel="noreferrer">Haystack</a>, where I was glad to work with the Google Cloud team. Inspired by the power of search and recommendation algorithms, several colleagues and I founded the AI company <a href="https://www.realkey.ai/" target="_blank" rel="noreferrer">RealKey</a>, where we raised $1.5 million. To seek a deeper, larger-scale understanding of AI research, I joined Tencent Hunyuan as a research engineer, where I contributed key parts of the Agent Harness and evaluation infrastructure used to train and fine-tune the <a href="https://hy.tencent.ai/research/hy3" target="_blank" rel="noreferrer">Hy3 model</a>. I am currently doing efficient inference research, advised by <a href="https://www.mohsaied.com/" target="_blank" rel="noreferrer">Prof. Mohamed Abdelfattah</a> in the <a href="https://www.csl.cornell.edu/faculty/" target="_blank" rel="noreferrer">Computer Systems Lab</a> at Cornell.</span>
-          <span class="lang-zh">本科就读于罗切斯特大学期间，我在 <a href="https://www.haystackteam.com/key-features/universal-search" target="_blank" rel="noreferrer">Haystack</a> 构建搜索 / 推荐 / 沙箱基础设施，并有幸与 Google Cloud 团队合作。受搜索与推荐算法的启发，我与几位同事共同创立了 AI 公司 <a href="https://www.realkey.ai/" target="_blank" rel="noreferrer">RealKey</a>，并完成 150 万美元融资。为更深入、更大规模地理解 AI 研究，我加入腾讯混元担任研究工程师，参与构建了用于训练与微调 <a href="https://hy.tencent.ai/research/hy3" target="_blank" rel="noreferrer">Hy3 模型</a>的 Agent Harness 与评测基础设施的核心部分。目前我在康奈尔大学 <a href="https://www.csl.cornell.edu/faculty/" target="_blank" rel="noreferrer">Computer Systems Lab</a>，由 <a href="https://www.mohsaied.com/" target="_blank" rel="noreferrer">Mohamed Abdelfattah 教授</a>指导，从事高效推理研究。</span>
-        </p>
-      </section>
-
-      <section class="content-card">
-        <div class="cv-grid">
-          <div class="cv-block">
-            <h2><span class="lang-en">Education</span><span class="lang-zh">教育</span></h2>
-            <ul class="cv-list">
-              {education.map((item) => (
-                <li>
-                  <div class="affiliation-row">
-                    <LogoMark item={item} />
-                    <span>
-                      <strong>{item.school}</strong>
-                      <span class="lang-en">{item.degree}</span>
-                      <span class="lang-zh">{item.degreeZh}</span>
-                      <br />
-                      <span class="date-chip">{item.date}</span>
-                      <br />
-                      <span class="lang-en">{item.meta}</span>
-                      <span class="lang-zh">{item.metaZh}</span>
-                    </span>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div class="cv-block">
-            <h2><span class="lang-en">Experience</span><span class="lang-zh">经历</span></h2>
-            <ul class="cv-list">
-              {experience.map((item) => (
-                <li>
-                  <div class="affiliation-row">
-                    <LogoMark item={item} />
-                    <span>
-                      <strong>{item.org}</strong>
-                      <span class="lang-en">{item.role}</span>
-                      <span class="lang-zh">{item.roleZh}</span>
-                      <br />
-                      <span class="date-chip">{item.date}</span>
-                      <span class="code-comment">
-                        <span class="lang-en">{item.detail}</span>
-                        <span class="lang-zh">{item.detailZh}</span>
-                      </span>
-                    </span>
-                  </div>
-                </li>
-              ))}
-            </ul>
-
-          </div>
-        </div>
-      </section>
-
-      <section class="content-card" id="projects">
-        <div class="section-heading">
-          <h2><span class="lang-en">Projects</span><span class="lang-zh">项目</span></h2>
-          <span class="shell-hint" aria-hidden="true">$ ls ~/projects/</span>
-        </div>
-        <ul class="project-list">
-          {projects.map((project) => (
-            <li>
-              <div class="project-row">
-                <span class="project-title">
-                  {project.links.length > 0 ? <a href={project.links[0].href}>{project.title}</a> : project.title}
-                </span>
-                <span class="project-venue">
-                  <span class="lang-en">{project.venue}</span>
-                  <span class="lang-zh">{project.venueZh}</span>
-                </span>
-                <span class="date-chip">{project.date}</span>
-              </div>
-              <p class="code-comment">
-                <span class="lang-en">{project.summary}</span>
-                <span class="lang-zh">{project.summaryZh}</span>
-              </p>
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      <section class="content-card">
-        <div class="section-heading">
-          <h2><span class="lang-en">News</span><span class="lang-zh">动态</span></h2>
-          <span class="shell-hint" aria-hidden="true">$ tail -n 4 news.log</span>
-        </div>
-        <ul class="news-list">
-          {news.map((item, index) => (
-            <li>
-              <span class="log-ln" aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>
-              <time>{item.slice(0, 4)}</time>
-              <span>
-                <span class="lang-en">{item.replace(/^\d{4}:\s*/, "")}</span>
-                <span class="lang-zh">{newsZh[index].replace(/^\d{4}：\s*/, "")}</span>
-              </span>
-            </li>
-          ))}
-        </ul>
-      </section>
+      ))}
     </div>
   </section>
+
+  <section>
+    <h2 class="section-heading">Experience</h2>
+    <div class="entries">
+      {experience.map((item) => (
+        <div class="entry">
+          <LogoMark logo={item.logo} name={item.org} />
+          <div class="entry-body">
+            <div class="entry-name">{item.org}</div>
+            <div class="entry-date">{item.date}</div>
+            <div class="entry-role">{item.role}</div>
+            <div class="entry-detail">{item.detail}</div>
+          </div>
+        </div>
+      ))}
+    </div>
+  </section>
+
+  <section>
+    <h2 class="section-heading">Projects</h2>
+    <div class="entries">
+      {projects.map((item) => (
+        <div class="entry">
+          <LogoMark logo={item.logo} name="" />
+          <div class="entry-body">
+            <div class="entry-name">
+              {item.href ? <a href={item.href} target="_blank" rel="noreferrer">{item.title}</a> : item.title}
+            </div>
+            <div class="entry-date">{item.venue} · {item.date}</div>
+            <div class="entry-detail">{item.summary}</div>
+          </div>
+        </div>
+      ))}
+    </div>
+  </section>
+
+  <section>
+    <h2 class="section-heading">Blog</h2>
+    <div class="post-list">
+      {latestPosts.map((post) => (
+        <article class="post-item">
+          <a class="post-title" href={`${post.url}/`}>{post.title}</a>
+          <div class="post-date">{formatDate(post.date)}</div>
+          {post.description && <p class="post-desc">{post.description}</p>}
+        </article>
+      ))}
+    </div>
+    {posts.length > latestPosts.length && <p class="more-link"><a href="/blog/">All posts →</a></p>}
+  </section>
 </Base>
-
-<script>
-  // === New York DOTTED MOSAIC: the name is built from rounded dots ===========
-  // Progressive enhancement. The <img class="term-name-img"> is the no-JS
-  // fallback (crisp serif). When motion is allowed and the boot is not skipped,
-  // an overlay <canvas> samples the New York PNG on a square grid and draws each
-  // covered cell as a white CIRCLE — an "object mosaic + rounded" look. The dots
-  // TYPE IN left-to-right (column sweep, red leading cursor, per-cell jitter)
-  // and then REMAIN as the final settled mosaic. The crisp img is never shown
-  // once JS runs: the dotted mosaic IS the name. Reduced-motion draws the full
-  // mosaic instantly with no sweep.
-  (() => {
-    const html = document.documentElement;
-    const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const h1 = document.querySelector("h1.term-name");
-    const img = h1?.querySelector(".term-name-img") as HTMLImageElement | null;
-    if (!h1 || !img) return;
-    // reduced-motion still gets the dotted mosaic (just no sweep); only no-JS
-    // keeps the crisp img. The boot script bails under reduced-motion, so here
-    // we draw the static mosaic regardless of html.booting.
-    const booting = html.classList.contains("booting");
-
-    let done = false;
-    let canvas: HTMLCanvasElement | null = null;
-    let ctx: CanvasRenderingContext2D | null = null;
-    let dots: { cx: number; cy: number; r: number; a: number; t: number }[] = [];
-    let dpr = 1;
-    // canvas-pixel cell size + the vertical band the dots occupy (top/bottom),
-    // captured in build() so the block cursor is sized to one cell wide and the
-    // full dot-region height.
-    let cellPx = 2;
-    let dotTop = 0;
-    let dotBottom = 0;
-
-    // paint the COMPLETE dotted mosaic (final state) — used at the end of the
-    // sweep, on skip, and for the reduced-motion instant render.
-    const paintAll = () => {
-      if (!ctx || !canvas) return;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = "#fff";
-      for (const d of dots) {
-        ctx.globalAlpha = d.a;
-        ctx.beginPath();
-        ctx.arc(d.cx, d.cy, d.r, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      ctx.globalAlpha = 1;
-    };
-
-    const finishMosaic = () => {
-      if (done) return;
-      done = true;
-      // if a skip lands before the sweep ever built the canvas, build it now so
-      // the settled name is ALWAYS the dotted mosaic — never the crisp img.
-      if (!canvas && !build()) {
-        // image not measurable yet — retry once the img reports its size, then
-        // the no-JS crisp img is the only acceptable interim fallback
-        done = false;
-        const retry = () => {
-          if (canvas) return;
-          if (build()) paintAll();
-        };
-        if (img.complete && img.naturalWidth) retry();
-        else img.addEventListener("load", retry, { once: true });
-        done = true;
-        return;
-      }
-      paintAll(); // settle as the full dotted mosaic — do NOT remove the canvas
-    };
-
-    // a skip at any time lands the full mosaic immediately
-    const onSkip = () => finishMosaic();
-    document.addEventListener("keydown", onSkip, true);
-    document.addEventListener("pointerdown", onSkip, true);
-
-    // build the canvas + sample the PNG into a dot grid. Returns false if the
-    // image isn't ready / measurable yet.
-    const build = (): boolean => {
-      if (canvas) return true; // idempotent — canvas already built, img already hidden
-      const box = img.getBoundingClientRect();
-      const cw = box.width, ch = box.height;
-      if (!cw || !ch) return false;
-      dpr = Math.min(window.devicePixelRatio || 1, 2);
-      canvas = document.createElement("canvas");
-      canvas.className = "term-name-canvas";
-      canvas.setAttribute("aria-hidden", "true");
-      canvas.width = Math.round(cw * dpr);
-      canvas.height = Math.round(ch * dpr);
-      ctx = canvas.getContext("2d");
-      if (!ctx) return false;
-      h1.classList.add("has-dots"); // hide the crisp img; mosaic takes over
-      h1.insertBefore(canvas, img);
-
-      // offscreen buffer of the source PNG at backing resolution
-      const off = document.createElement("canvas");
-      off.width = canvas.width;
-      off.height = canvas.height;
-      const octx = off.getContext("2d")!;
-      octx.drawImage(img, 0, 0, off.width, off.height);
-      const data = octx.getImageData(0, 0, off.width, off.height).data;
-
-      // square grid in CSS space (so dot density is identical at any DPR).
-      // The name is now ~34px tall on desktop / ~22px on mobile, so a coarse 4px
-      // cell would leave only ~8 rows — too few to read the New York serif. Use
-      // a finer cell that targets ~11 dot rows at the current height (≈3px at
-      // 34px desktop, ≈2.6px at 22px mobile) so the italic stays legible while
-      // still clearly reading as a grid of discrete dots.
-      const cellCss = ch <= 26 ? 2.6 : 3;
-      const cell = Math.max(2, Math.round(cellCss * dpr));
-      cellPx = cell;
-      const cols = Math.ceil(canvas.width / cell);
-      const rows = Math.ceil(canvas.height / cell);
-      // dot diameter ~76% of the cell → visible gaps separate the dots
-      const radius = (cell * 0.76) / 2;
-      dots = [];
-      for (let cx = 0; cx < cols; cx++) {
-        for (let cy = 0; cy < rows; cy++) {
-          let sum = 0, n = 0;
-          for (let px = cx * cell; px < Math.min((cx + 1) * cell, canvas.width); px++)
-            for (let py = cy * cell; py < Math.min((cy + 1) * cell, canvas.height); py++) {
-              sum += data[(py * canvas.width + px) * 4 + 3];
-              n++;
-            }
-          const a = n ? sum / n / 255 : 0;
-          if (a > 0.16)
-            dots.push({
-              cx: cx * cell + cell / 2,
-              cy: cy * cell + cell / 2,
-              r: radius,
-              // coverage maps to opacity for soft edges, floored so faint
-              // edge dots still read
-              a: Math.min(1, 0.45 + a * 0.7),
-              // strict column index — NO random jitter. The sweep reveals dots
-              // cleanly left-to-right (a dot reveals when the head passes its
-              // center x), so no dot ever appears to the RIGHT of the block
-              // cursor that trails the sweep head.
-              t: cx,
-            });
-        }
-      }
-      // vertical band the dots actually occupy (their outer edges), so the block
-      // cursor matches the dot-region height rather than the whole canvas box
-      dotTop = canvas.height;
-      dotBottom = 0;
-      for (const d of dots) {
-        if (d.cy - d.r < dotTop) dotTop = d.cy - d.r;
-        if (d.cy + d.r > dotBottom) dotBottom = d.cy + d.r;
-      }
-      if (dotBottom <= dotTop) {
-        dotTop = 0;
-        dotBottom = canvas.height;
-      }
-      return true;
-    };
-
-    // animated left-to-right type-in of the dots, with a BLOCK cursor that always
-    // sits just AFTER the rightmost revealed dot (like a terminal typing the
-    // name), then settle as the clean mosaic with no cursor.
-    const sweep = () => {
-      if (done || html.classList.contains("skip")) return finishMosaic();
-      if (!build()) return; // couldn't measure yet
-      if (!ctx || !canvas) return finishMosaic();
-      const w = canvas.width;
-      // the rightmost dot center → the sweep head only needs to travel this far
-      // to reveal every dot; it ends just past it so the cursor rests after the
-      // full name.
-      let lastCx = 0;
-      for (const d of dots) if (d.cx > lastCx) lastCx = d.cx;
-      const DUR = 1050; // ms — within the 0.9–1.2s target, before "source"
-      const red =
-        getComputedStyle(html).getPropertyValue("--term-red").trim() || "#e3554d";
-      // block cursor geometry: ~2 dot-cells wide (within the 1.6–2.4 target),
-      // spanning the full dot-region height.
-      const cw = Math.max(2, Math.round(cellPx * 2));
-      const cyTop = dotTop;
-      const ch2 = Math.max(cellPx, dotBottom - dotTop);
-      const gap = cellPx * 0.2; // tiny gap so the block is unmistakably AFTER
-
-      // draw the revealed dots up to a given head x, plus (optionally) the block
-      // cursor whose LEFT edge is at/just past the rightmost revealed dot.
-      const drawFrame = (headX: number, showCursor: boolean) => {
-        ctx!.clearRect(0, 0, w, canvas!.height);
-        ctx!.fillStyle = "#fff";
-        let maxRight = 0; // right edge of the rightmost revealed dot
-        for (const d of dots) {
-          if (d.cx <= headX) {
-            const right = d.cx + d.r;
-            if (right > maxRight) maxRight = right;
-            ctx!.globalAlpha = d.a;
-            ctx!.beginPath();
-            ctx!.arc(d.cx, d.cy, d.r, 0, Math.PI * 2);
-            ctx!.fill();
-          }
-        }
-        ctx!.globalAlpha = 1;
-        if (showCursor) {
-          // left edge = past both the sweep head AND every revealed dot's right
-          // edge → the block is never among/over the dots, always to their right
-          let bx = Math.max(headX, maxRight + gap);
-          bx = Math.min(bx, w - cw); // keep the whole block on-canvas
-          if (bx < 0) bx = 0;
-          ctx!.fillStyle = red;
-          ctx!.fillRect(bx, cyTop, cw, ch2);
-        }
-      };
-
-      const start = performance.now();
-      const tick = (now: number) => {
-        if (done || html.classList.contains("skip")) return finishMosaic();
-        const p = Math.min(1, (now - start) / DUR);
-        // head travels just past the last dot so the cursor ends after the name
-        const headX = p * (lastCx + cw);
-        drawFrame(headX, true);
-        if (p < 1) requestAnimationFrame(tick);
-        else blinkOut();
-      };
-
-      // at the end the block rests just right of the full name and blinks a
-      // couple of times, then disappears → the settled state is the clean mosaic.
-      const blinkOut = () => {
-        const fullHead = lastCx + cw; // every dot revealed
-        const blinkStart = performance.now();
-        const PERIOD = 320; // ms per on/off cycle
-        const CYCLES = 2; // blink ~twice
-        const blink = (now: number) => {
-          if (done || html.classList.contains("skip")) return finishMosaic();
-          const t = now - blinkStart;
-          if (t >= PERIOD * CYCLES) return finishMosaic();
-          const on = Math.floor(t / (PERIOD / 2)) % 2 === 0;
-          drawFrame(fullHead, on);
-          requestAnimationFrame(blink);
-        };
-        requestAnimationFrame(blink);
-      };
-
-      requestAnimationFrame(tick);
-    };
-
-    const ready = (run: () => void) => {
-      if (img.complete && img.naturalWidth) run();
-      else img.addEventListener("load", run, { once: true });
-    };
-
-    // Build the canvas and HIDE the crisp img IMMEDIATELY — as soon as the PNG is
-    // decodable — so the un-pixelated New York name can never flash before the
-    // name line's CSS reveal (~0.50s). Previously .has-dots was only added inside
-    // sweep() at ~550ms, leaving a brief crisp-serif flash. Then either settle the
-    // full mosaic (reduced-motion / not booting) or run the dot sweep in sync with
-    // the name-line reveal.
-    ready(() => {
-      build(); // adds .has-dots (img hidden) + inserts the empty canvas
-      if (reduce || !booting) finishMosaic();
-      else setTimeout(sweep, 550);
-    });
-  })();
-
-  // tiny interactive shell — progressive enhancement on the hero terminal
-  const win = document.querySelector(".term-window");
-  const tb = win?.querySelector(".term-body");
-  if (win && tb) {
-    tb.querySelector("[data-static-cursor]")?.remove();
-    const live = document.createElement("p");
-    live.className = "term-line term-live";
-    live.innerHTML =
-      '<span class="term-prompt" aria-hidden="true">$</span><span class="term-typed"></span><span class="term-cursor" aria-hidden="true"></span>';
-    const input = document.createElement("input");
-    input.className = "term-input";
-    input.type = "text";
-    input.setAttribute("aria-label", "Interactive terminal. Type help and press Enter.");
-    input.autocapitalize = "none";
-    input.autocomplete = "off";
-    input.spellcheck = false;
-    tb.append(live, input);
-    const typed = live.querySelector(".term-typed") as HTMLElement;
-    const out = (text: string) => {
-      const p = document.createElement("p");
-      p.className = "term-out";
-      p.textContent = text;
-      tb.insertBefore(p, live);
-    };
-    const commands: Record<string, () => void> = {
-      help: () => out("commands: help  ls  cat focus.txt  source ~/.profile  open blog  clear"),
-      ls: () => out("blog/  projects/  focus.txt"),
-      "source ~/.profile": () => out("profile already loaded — you're looking at it"),
-      "cat focus.txt": () =>
-        tb.querySelectorAll("p.term-focus").forEach((line) => {
-          const copy = line.cloneNode(true) as HTMLElement;
-          copy.classList.remove("term-hidden");
-          tb.insertBefore(copy, live);
-        }),
-      "open blog": () => {
-        out("opening ~/blog ...");
-        window.location.href = "/blog/";
-      },
-      clear: () =>
-        [...tb.children].forEach((el) => {
-          if (el !== live && el !== input) el.classList.add("term-hidden");
-        }),
-    };
-    const run = (raw: string) => {
-      const echo = document.createElement("p");
-      echo.className = "term-line";
-      const prompt = document.createElement("span");
-      prompt.className = "term-prompt";
-      prompt.textContent = "$";
-      echo.append(prompt, document.createTextNode(raw));
-      tb.insertBefore(echo, live);
-      const cmd = raw.trim();
-      if (!cmd) return;
-      if (commands[cmd]) commands[cmd]();
-      else out("zsh: command not found: " + cmd.split(/\s+/)[0]);
-    };
-    input.addEventListener("focus", () => win.classList.add("shell-on"));
-    input.addEventListener("input", () => (typed.textContent = input.value));
-    input.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") {
-        run(input.value);
-        input.value = "";
-        typed.textContent = "";
-      } else if (e.key === "Escape") input.blur();
-    });
-    tb.addEventListener("click", (e) => {
-      if (e.target instanceof Element && e.target.closest("a")) return;
-      win.classList.add("shell-on");
-      input.focus({ preventScroll: true });
-    });
-  }
-</script>

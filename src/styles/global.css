@@ -1,2441 +1,509 @@
 /* ===========================================================================
-   global.css — variant "terminal session".
-   White page ground with dark terminal components in Cornell-red livery:
-   a zsh hero window with a typed-on session, hex section counters (0x01),
-   exit-code date chips, tmux-style status-bar footer, and code blocks that
-   share window chrome with the hero terminal. Cascade-order-sensitive areas
-   (the logo system and the mobile media query) preserve the original
-   relative rule order — be careful when reordering.
-   =========================================================================== */
-
-/* ===========================================================================
-   0. Fonts — New York (Apple's serif) powers the whole page; the terminal and
-   code keep IBM Plex Mono. Self-hosted, Latin-subset variable woff2 (~66/70KB)
-   with the weight (400–1000) and optical-size (12–256) axes preserved, so body
-   and headings get size-appropriate cuts automatically. New York has no CJK
-   glyphs, so Chinese text falls back to a CJK serif in the stacks below.
-   =========================================================================== */
-
-@font-face {
-  font-family: "New York";
-  src: url("/fonts/NewYork.woff2") format("woff2");
-  font-weight: 400 1000;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: "New York";
-  src: url("/fonts/NewYorkItalic.woff2") format("woff2");
-  font-weight: 400 1000;
-  font-style: italic;
-  font-display: swap;
-}
-
-/* ===========================================================================
-   1. Design tokens
+   global.css — clean academic homepage: white page, Lato, blue links,
+   round portrait, pill links, logo rows. One file for every page.
    =========================================================================== */
 
 :root {
   color-scheme: light;
+  --accent: #1772d0;
+  --accent-light: rgba(23, 114, 208, 0.06);
+  --accent-hover: #f09228;
+  --text: #2d3436;
+  --muted: #636e72;
   --bg: #ffffff;
-  --paper: #ffffff;
-  --ink: #221e1a;
-  --muted: #5c554d;
-  --faint: #8b8278;
-  --line: #e8e5e1;
-  --line-strong: #d7d2cb;
-  --accent: #b31b1b;            /* Cornell red — the ink */
-  --accent-dark: #9d1818;       /* hover red */
-  --accent-deep: #7f1313;       /* pressed / high-contrast red */
-  --accent-soft: #f8efec;       /* red-tinted wash */
-  --green: #2f6d57;
-  --amber: #8a5b16;
-  --code-bg: #161210;           /* dark warm terminal ground */
-  --code-ink: #ece5df;
-  --code-line: #3a2d28;
-  --term-bg: #161210;           /* terminal window body */
-  --term-bar: #241c18;          /* terminal title bar */
-  --term-edge: #2e2521;         /* terminal hairlines */
-  --term-ink: #ece5df;          /* terminal foreground */
-  --term-dim: #9c918a;          /* terminal secondary */
-  --term-red: #f0726a;          /* Cornell red, raised for dark ground */
-  --term-green: #7fc89a;        /* ok / uptime green */
-  --term-amber: #d9a036;
-  --shadow: none;
-  --radius: 3px;
-  --max: 1020px;
-  /* New York powers all page text (body + headings). Chinese has no New York
-     glyphs, so it falls through to a CJK serif (Songti / Noto Serif SC). Both
-     "sans" and "serif" tokens now resolve to New York — the names are kept so
-     existing rules don't need touching. The terminal + code keep --font-mono. */
-  --font-ny: "New York", "Songti SC", "Noto Serif SC", Georgia, "Times New Roman", serif;
-  --font-sans: var(--font-ny);
-  --font-serif: var(--font-ny);
-  --font-mono: "IBM Plex Mono", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  --card-bg: #f8f9fa;
+  --border: #e9ecef;
+  --shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --shadow-hover: 0 6px 20px rgba(0, 0, 0, 0.1);
+  --max-width: 880px;
+  --font: "Lato", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
 }
 
-/* ===========================================================================
-   2. Reset, base typography, links, code
-   =========================================================================== */
+/* ========== Base ========== */
 
-* { box-sizing: border-box; }
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
 
 body {
   margin: 0;
-  background: var(--bg);
-  color: var(--ink);
-  font-family: var(--font-sans);
-  font-size: 16px;
+  font-family: var(--font);
+  font-size: 15px;
   line-height: 1.7;
-  /* status-bar footer hugs the bottom even on short pages */
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
-
-::selection {
-  background: rgba(179, 27, 27, 0.14);
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
 }
 
 a {
   color: var(--accent);
-  text-decoration-thickness: 1px;
-  text-decoration-color: rgba(179, 27, 27, 0.32);
-  text-underline-offset: 3px;
+  text-decoration: none;
+  transition: color 0.2s ease;
 }
 
 a:hover {
-  color: var(--accent-deep);
-  text-decoration-color: currentColor;
+  color: var(--accent-hover);
 }
 
-a:focus-visible,
-button:focus-visible {
+:focus-visible {
   outline: 2px solid var(--accent);
-  outline-offset: 3px;
+  outline-offset: 2px;
+  border-radius: 3px;
 }
 
-/* on the red header bar a red outline would vanish — use paper white */
-.site-header a:focus-visible,
-.site-header button:focus-visible {
-  outline-color: #ffffff;
+img {
+  max-width: 100%;
+  height: auto;
 }
 
-h1, h2, h3 {
-  margin: 0;
-  line-height: 1.2;
-  font-weight: 600;
+.container {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 3rem 2rem;
 }
 
-h1,
-h2,
-h3,
-.profile-name,
-.paper-title,
-.item-title,
-.item h2 {
-  letter-spacing: 0;
+/* blog pages: nav, article and footer share the text column's edges */
+.container:has(.prose) {
+  max-width: calc(720px + 4rem);
 }
 
-h1 {
-  font-family: var(--font-serif);
-  font-size: clamp(38px, 6vw, 54px);
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  line-height: 1.06;
-  margin-bottom: 18px;
-}
+/* ========== Top nav (every page but home) ========== */
 
-h2 {
-  color: var(--ink);
-  font-family: var(--font-serif);
-  font-size: 29px;
-  font-weight: 600;
-  letter-spacing: -0.005em;
-  margin-bottom: 16px;
-  text-transform: none;
-}
-
-h3 {
-  font-family: var(--font-sans);
-  font-size: 16px;
+.nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding-bottom: 1rem;
+  margin-bottom: 2.5rem;
+  border-bottom: 1px solid var(--border);
+  font-size: 14px;
   font-weight: 700;
 }
 
-p { margin: 0 0 14px; }
-.muted { color: var(--muted); }
-.small { font-size: 13px; }
-
-/* markdown code — systems posts get real treatment */
-
-code {
-  font-family: var(--font-mono);
+.nav a {
+  color: var(--muted);
 }
 
-/* code blocks share window chrome with the hero terminal: dark card,
-   title strip with traffic dots (drawn as gradients so markdown needs
-   no extra markup), sticky so it survives horizontal scrolling */
-pre {
-  background: var(--term-bg) !important; /* beat shiki's inline theme bg */
-  color: var(--code-ink);
-  font-family: var(--font-mono);
-  font-size: 13.5px;
-  line-height: 1.7;
-  tab-size: 2;
-  border: 1px solid var(--term-edge);
-  border-radius: 8px;
-  padding: 0;
-  margin: 22px 0 26px;
-  overflow: hidden; /* horizontal scrolling lives on the inner <code> */
+.nav .brand {
+  font-size: 1.1rem;
+  color: var(--text);
 }
 
-pre::before {
-  content: "albert@cmu:~ — zsh";
-  display: block;
-  padding: 8px 14px 8px 64px;
-  background-color: var(--term-bar);
-  background-image:
-    radial-gradient(circle 4px at 50% 50%, #e3554d 98%, transparent),
-    radial-gradient(circle 4px at 50% 50%, #d9a036 98%, transparent),
-    radial-gradient(circle 4px at 50% 50%, #4fa36b 98%, transparent);
-  background-size: 9px 9px, 9px 9px, 9px 9px;
-  background-position: 14px 50%, 30px 50%, 46px 50%;
-  background-repeat: no-repeat;
-  border-bottom: 1px solid var(--term-edge);
-  color: var(--term-dim);
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.05em;
-  line-height: 1;
+.nav a:hover {
+  color: var(--accent);
 }
 
-pre code {
-  display: block;
-  overflow-x: auto;
-  background: transparent;
-  border: 0;
-  padding: 14px 18px 18px;
-  color: inherit;
-  font-size: inherit;
-}
+/* ========== Profile header ========== */
 
-:not(pre) > code {
-  background: var(--accent-soft);
-  border: 1px solid rgba(179, 27, 27, 0.16);
-  border-radius: 3px;
-  color: var(--accent-deep);
-  font-size: 0.86em;
-  padding: 1px 5px;
-}
-
-hr {
-  border: 0;
-  border-top: 1px solid var(--line-strong);
-  margin: 32px 0;
-}
-
-/* ===========================================================================
-   3. Language-toggle visibility system
-   (paired with the inline data-lang script in Base.astro)
-   =========================================================================== */
-
-.lang-zh { display: none; }
-body[data-lang="zh"] .lang-en { display: none; }
-body[data-lang="zh"] .lang-zh { display: inline; }
-body[data-lang="zh"] p.lang-zh,
-body[data-lang="zh"] div.lang-zh,
-body[data-lang="zh"] span.lang-zh.block { display: block; }
-
-/* ===========================================================================
-   4. Header / nav — deep Cornell red masthead, mono nav
-   =========================================================================== */
-
-.site-header {
-  background-color: #b31b1b;
-  /* faint CRT scanlines over the red */
-  background-image: repeating-linear-gradient(
-    0deg,
-    rgba(0, 0, 0, 0.055) 0px,
-    rgba(0, 0, 0, 0.055) 1px,
-    transparent 1px,
-    transparent 3px
-  );
-  border-bottom: 1px solid #7f1313;
-  /* dark bezel strip under the red, echoing the terminal chrome */
-  box-shadow: 0 3px 0 0 #211a17;
-}
-
-.nav {
-  max-width: var(--max);
-  margin: 0 auto;
-  min-height: 72px;
-  padding: 0 24px;
+.profile {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 24px;
+  gap: 3rem;
+  padding-bottom: 2.5rem;
+  margin-bottom: 1rem;
 }
 
-.brand {
-  color: #ffffff;
-  /* readable brand wordmark in New York; the "$" accent below stays mono */
-  font-family: var(--font-serif);
-  font-size: 18px;
-  font-weight: 600;
-  letter-spacing: 0.01em;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  line-height: 1;
-  white-space: nowrap;
+.profile-info {
+  flex: 1;
+  min-width: 0;
 }
 
-.brand::before {
-  content: "$";
-  /* terminal-grammar prompt stays mono even though the wordmark is serif */
-  font-family: var(--font-mono);
-  color: rgba(255, 255, 255, 0.55);
-  font-weight: 500;
-  margin-right: 0.55ch;
+.profile-info h1 {
+  font-size: 2.1rem;
+  font-weight: 700;
+  line-height: 1.3;
+  margin: 0 0 1rem;
 }
 
-/* static block cursor after the brand — the hero terminal owns the only
-   blinking cursor on the page */
-.brand::after {
-  content: "";
-  display: inline-block;
-  width: 0.58ch;
-  height: 1.02em;
-  margin-left: 0.5ch;
-  background: rgba(255, 255, 255, 0.6);
-  vertical-align: text-bottom;
-}
-
-@keyframes cursor-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.3; }
-}
-
-.nav-links {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 2px;
-  counter-reset: win -1;
-}
-
-/* tmux window indices: 0:home 1:blog — terminal-grammar accent stays mono
-   (re-declares --font-mono so it doesn't inherit the serif nav-link font) */
-.nav-links a::before {
-  counter-increment: win;
-  content: counter(win) ":";
-  font-family: var(--font-mono);
-  color: rgba(255, 255, 255, 0.62);
+.nickname {
+  font-size: 1.4rem;
   font-weight: 400;
-  margin-right: 0.25ch;
-}
-
-.nav-links a {
-  color: #ffffff;
-  /* readable nav labels in New York; the "0:"/"1:" indices above stay mono */
-  font-family: var(--font-serif);
-  font-size: 15px;
-  font-weight: 500;
-  letter-spacing: 0.01em;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  line-height: 1;
-  padding: 8px 10px;
-  border-radius: var(--radius);
-}
-
-.nav-links a:hover {
-  color: #ffffff;
-  background: #9d1818;
-}
-
-.lang-toggle {
-  min-width: 58px;
-  min-height: 30px;
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  border-radius: var(--radius);
-  background: rgba(255, 255, 255, 0.08);
-  color: #ffffff;
-  cursor: pointer;
-  padding: 6px 10px;
-  /* "中文"/"EN" readable label in New York */
-  font-family: var(--font-serif);
-  font-size: 14.5px;
-  font-weight: 500;
-  line-height: 1;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  margin-left: 6px;
-}
-
-.lang-toggle:hover {
-  background: #9d1818;
-  border-color: rgba(255, 255, 255, 0.65);
-}
-
-/* ===========================================================================
-   5. Page shell (main, .academic-shell, .prose) + section counter
-   =========================================================================== */
-
-main {
-  width: 100%;
-  max-width: var(--max);
-  margin: 0 auto;
-  padding: 42px 24px 88px;
-  /* zero-based section addresses, matching focus.txt's 0-indexing */
-  counter-reset: sec -1;
-  flex: 1 0 auto;
-}
-
-.academic-shell {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 224px;
-  gap: 54px;
-  align-items: start;
-}
-
-.academic-main {
-  grid-column: 1;
-  grid-row: 1;
-}
-
-.academic-main > section {
-  margin-bottom: 72px;
-}
-
-.prose {
-  max-width: none;
-  margin-bottom: 56px;
-}
-
-/* page titles must clearly outrank the 29px section h2s */
-.prose h1 { font-size: clamp(38px, 5.5vw, 50px); }
-.prose h2 { margin-top: 38px; }
-.prose ul { padding-left: 22px; }
-.prose li::marker { color: var(--accent); }
-
-.prose blockquote {
-  margin: 18px 0 20px;
-  padding: 2px 0 2px 18px;
-  border-left: 3px solid var(--accent);
   color: var(--muted);
+  margin-left: 0.15rem;
 }
 
-/* full-grid bordered tables for posts */
-.prose table {
-  width: 100%;
-  border-collapse: collapse;
-  border: 1px solid var(--line-strong);
-  background: var(--paper);
-  font-size: 14px;
-  margin: 18px 0 24px;
+.profile-info p {
+  margin: 0 0 0.65rem;
 }
 
-.prose th {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  text-align: left;
-  color: var(--ink);
-  background: var(--bg);
-  border: 1px solid var(--line);
-  border-bottom: 2px solid var(--accent);
-  padding: 12px 16px;
+.profile-photo {
+  flex-shrink: 0;
+  width: 200px;
 }
 
-.prose td {
-  border: 1px solid var(--line);
-  padding: 10px 16px;
-}
-
-/* markdown emits align attributes; keep numeric columns right-aligned */
-.prose th[align="right"],
-.prose td[align="right"] { text-align: right; }
-.prose th[align="center"],
-.prose td[align="center"] { text-align: center; }
-
-/* post metadata as mono tokens: "@date 2026-05-19  @read 1 min  @topic …" */
-.prose .post-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 22px;
-  color: var(--muted);
-  margin-bottom: 34px;
-  font-family: var(--font-mono);
-  font-size: 12.5px;
-  letter-spacing: 0.02em;
-}
-
-.meta-tok {
-  white-space: nowrap;
-}
-
-.tok-tag {
-  color: var(--accent);
-  font-weight: 600;
-  margin-right: 0.7ch;
-}
-
-.post > p:first-of-type {
-  font-size: 17.5px;
-  line-height: 1.65;
-}
-
-/* ===========================================================================
-   6. Profile sidebar — figure plate + mono chips
-   =========================================================================== */
-
-.profile-card {
-  grid-column: 2;
-  grid-row: 1;
-  position: static;
-  border: 0;
-  background: transparent;
-  box-shadow: none;
-  padding: 6px 0 0;
-  text-align: left;
-}
-
-/* red corner-bracket viewfinder around the portrait: the wrapper's two
-   pseudo-elements each paint two 2px L-brackets (top pair / bottom pair) */
-.portrait-frame {
-  position: relative;
-  width: max-content;
-  max-width: 100%;
-  margin: 0 0 22px auto;
-  padding: 7px;
-}
-
-.portrait-frame::before,
-.portrait-frame::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background-repeat: no-repeat;
-}
-
-.portrait-frame::before {
-  background-image:
-    linear-gradient(var(--accent), var(--accent)),
-    linear-gradient(var(--accent), var(--accent)),
-    linear-gradient(var(--accent), var(--accent)),
-    linear-gradient(var(--accent), var(--accent));
-  background-position: left 0 top 0, left 0 top 0, right 0 top 0, right 0 top 0;
-  background-size: 18px 2px, 2px 18px, 18px 2px, 2px 18px;
-}
-
-.portrait-frame::after {
-  background-image:
-    linear-gradient(var(--accent), var(--accent)),
-    linear-gradient(var(--accent), var(--accent)),
-    linear-gradient(var(--accent), var(--accent)),
-    linear-gradient(var(--accent), var(--accent));
-  background-position: left 0 bottom 0, left 0 bottom 0, right 0 bottom 0, right 0 bottom 0;
-  background-size: 18px 2px, 2px 18px, 18px 2px, 2px 18px;
-}
-
-.portrait {
+.profile-photo img {
   display: block;
-  width: 186px;
-  height: 186px;
-  max-width: 100%;
-  margin: 0;
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius);
-  object-fit: cover;
-  object-position: center 38%;
-  background: var(--paper);
-}
-
-.profile-name { display: none; }
-
-.profile-title,
-.profile-detail,
-.profile-note {
-  color: var(--muted);
-  font-size: 14px;
-}
-
-.profile-title { line-height: 1.4; }
-
-.profile-detail {
-  line-height: 1.5;
-  margin-top: 14px;
-}
-
-.profile-note {
-  margin: 18px 0 0;
-  padding-top: 14px;
-  border-top: 1px solid var(--line);
-  font-size: 13px;
-  line-height: 1.55;
-}
-
-.profile-note::before {
-  content: "// note";
-  display: block;
-  margin-bottom: 4px;
-  color: var(--accent);
-  font-family: var(--font-mono);
-  font-size: 10.5px;
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
-
-.profile-links {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-start;
-  gap: 8px;
-  margin-top: 16px;
-  font-size: 14px;
-}
-
-.profile-links a,
-.links a {
-  display: inline-flex;
-  align-items: center;
-  min-height: 32px;
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius);
-  background: var(--paper);
-  color: var(--ink);
-  padding: 5px 11px;
-  font-family: var(--font-mono);
-  font-size: 12px;
-  font-weight: 500;
-  text-decoration: none;
-}
-
-.profile-links a:hover,
-.links a:hover {
-  border-color: rgba(179, 27, 27, 0.5);
-  color: var(--accent-deep);
-  background: var(--accent-soft);
-}
-
-/* ===========================================================================
-   7. Sections, headings, cards — numbered headings, red rules
-   =========================================================================== */
-
-.terminal-hero,
-.content-card,
-.prose,
-.section {
-  border: 0;
-  background: transparent;
-  box-shadow: none;
-  padding: 0;
-}
-
-/* --- the hero terminal window ------------------------------------------ */
-
-.academic-main > .terminal-hero {
-  margin-bottom: 60px;
-}
-
-.term-window {
-  background: var(--term-bg);
-  /* the whole terminal (title bar + body) stays in the mono "terminal" font
-     even though the rest of the page is New York */
-  font-family: var(--font-mono);
-  border: 1px solid var(--term-edge);
-  border-radius: 9px;
-  box-shadow:
-    0 18px 40px -22px rgba(24, 14, 10, 0.55),
-    0 2px 10px rgba(24, 14, 10, 0.10);
-  overflow: hidden;
-}
-
-.term-bar {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  background: var(--term-bar);
-  border-bottom: 1px solid var(--term-edge);
-  padding: 9px 14px;
-}
-
-.term-dots {
-  display: inline-flex;
-  gap: 7px;
-}
-
-.term-dots i {
-  width: 10px;
-  height: 10px;
+  width: 200px;
+  height: 200px;
   border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0 0 0 4px var(--bg), 0 0 0 5.5px var(--border), var(--shadow);
+  transition: box-shadow 0.3s ease, transform 0.3s ease;
 }
 
-.term-dots i:nth-child(1) { background: #e3554d; }
-.term-dots i:nth-child(2) { background: #d9a036; }
-.term-dots i:nth-child(3) { background: #4fa36b; }
-
-.term-title {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  color: var(--term-dim);
-  font-family: var(--font-mono);
-  font-size: 11.5px;
-  font-weight: 500;
-  letter-spacing: 0.05em;
-  white-space: nowrap;
-}
-
-.term-size {
-  color: #6d6159;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.05em;
-}
-
-.term-body {
-  position: relative;
-  padding: 20px 24px 18px;
-  font-family: var(--font-mono);
-  font-size: 13.5px;
-  line-height: 1.75;
-  cursor: text;
-}
-
-.term-body > * {
-  margin: 0;
-}
-
-.term-line,
-.term-out {
-  color: var(--term-ink);
-}
-
-.term-line + .term-line,
-.term-out + .term-line {
-  margin-top: 16px;
-}
-
-.term-prompt {
-  color: var(--term-red);
-  font-weight: 600;
-  margin-right: 0.7ch;
-}
-
-.term-cmd {
-  display: inline-block;
-  overflow: hidden;
-  white-space: nowrap;
-  vertical-align: bottom;
-  color: var(--term-ink);
-  font-weight: 500;
-}
-
-.type-6 { width: 6ch; }
-.type-13 { width: 13ch; }
-.type-17 { width: 17ch; }
-
-h1.term-name {
-  position: relative;
-  margin: 8px 0 6px;
-  /* the New York italic serif name is the centerpiece; height drives the box
-     and the 7.388 aspect ratio sets width. ~34px tall on desktop — small but
-     still tall enough that the finer dot grid (~3px cells → ~11 rows) keeps
-     the serif shapes legible while reading as a grid of discrete dots. */
-  line-height: 0;
-}
-
-.term-name-img {
-  display: block;
-  height: 34px;
-  width: auto;
-  /* lock aspect so the box never reflows while the canvas overlay is up */
-  aspect-ratio: 1788 / 242;
-}
-
-/* canvas that paints the dotted New York mosaic (and stays as the final
-   settled state). Absolute so it never adds to the h1 box; the img stays in
-   flow (visibility:hidden) holding the size while the canvas paints above it.
-   When JS runs, .has-dots is set on the h1 and the img is hidden permanently —
-   the dotted mosaic is the final look, not a transient overlay. */
-.term-name-canvas {
-  position: absolute;
-  top: 0;
-  left: 0;
-  display: block;
-  height: 34px;
-  width: auto;
-  aspect-ratio: 1788 / 242;
-}
-
-h1.term-name.has-dots .term-name-img {
-  visibility: hidden;
-}
-
-/* accessible text kept in the DOM for SEO/screen readers, painted nowhere */
-.visually-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  margin: -1px;
-  padding: 0;
-  border: 0;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  clip-path: inset(50%);
-  white-space: nowrap;
-}
-
-.term-role {
-  color: var(--term-red);
-  font-weight: 500;
-}
-
-.term-dim {
-  color: var(--term-dim);
-}
-
-.term-focus {
-  color: #e2dad3;
-}
-
-.term-idx {
-  color: var(--term-dim);
-  margin-right: 1ch;
-}
-
-.term-cursor {
-  display: inline-block;
-  width: 0.62em;
-  height: 1.05em;
-  margin-left: 0.15ch;
-  background: var(--term-red);
-  vertical-align: text-bottom;
-}
-
-/* interactive shell (progressive enhancement, wired up in index.astro):
-   the live prompt mirrors a visually hidden input; Escape blurs it */
-.term-input {
-  position: absolute;
-  left: 24px;
-  bottom: 18px;
-  width: 1px;
-  height: 1px;
-  margin: 0;
-  padding: 0;
-  border: 0;
-  opacity: 0;
-  /* the entry animation force-fades children to opacity 1 — clip the input
-     away entirely so neither it nor its caret/focus ring ever paints */
-  clip-path: inset(50%);
-}
-
-.term-typed {
-  white-space: pre-wrap;
-  color: var(--term-ink);
-  font-weight: 500;
-}
-
-.term-hidden { display: none; }
-
-/* type-on session: lines land in order, commands type with steps().
-   Everything is fully settled by ~2.5s; reduced-motion sees the final
-   frame immediately because the animations only exist in this block. */
-@media (prefers-reduced-motion: no-preference) {
-  .term-body > * {
-    opacity: 0;
-    animation: term-in 0.16s ease-out forwards;
-  }
-  /* retimed for the New York pixel-reveal: whoami types, the name line lands,
-     the canvas sweep paints it in (~0.55–1.45s), THEN role/dim/focus/source
-     print. The reveal is always done before "$ source ~/.profile" begins. */
-  .term-body > :nth-child(1) { animation-delay: 0.05s; }
-  .term-body > :nth-child(2) { animation-delay: 0.50s; }
-  .term-body > :nth-child(3) { animation-delay: 1.50s; }
-  .term-body > :nth-child(4) { animation-delay: 1.60s; }
-  .term-body > :nth-child(5) { animation-delay: 1.74s; }
-  .term-body > :nth-child(6) { animation-delay: 2.30s; }
-  .term-body > :nth-child(7) { animation-delay: 2.38s; }
-  .term-body > :nth-child(8) { animation-delay: 2.46s; }
-  .term-body > :nth-child(9) { animation-delay: 2.54s; }
-  .term-body > :nth-child(10) { animation-delay: 2.66s; }
-  .term-body > :nth-child(n + 11) { animation-delay: 0s; }
-
-  .type-6 { animation: type-w 0.3s steps(6, end) 0.14s both; }
-  .type-13 { animation: type-w 0.45s steps(13, end) 1.84s both; }
-  .type-17 { animation: type-w 0.5s steps(17, end) 2.74s both; }
-
-  .term-cursor { animation: cursor-pulse 1.25s ease-in-out 3.3s infinite; }
-
-  /* once the user clicks into the shell, freeze the entry choreography so
-     freshly printed lines appear instantly and never re-run delays */
-  .shell-on .term-body > *,
-  .shell-on .term-cmd {
-    animation: none;
-    opacity: 1;
-  }
-}
-
-@keyframes term-in {
-  to { opacity: 1; }
-}
-
-@keyframes type-w {
-  from { width: 0; }
-}
-
-/* --- boot sequence: "$ source ~/.profile" loads the rest of the page ------
-   An inline <head> script (Base.astro) sets html.booting before first paint,
-   home page only, motion permitting. No JS → no class → normal render, and
-   blog pages never get the class. When the final command finishes typing,
-   booting flips to booted and everything cascades in like terminal output.
-   html.skip zeroes the whole choreography for an instant settled state. */
-
-/* the interactive shell's live prompt + input is appended at parse time. Keep
-   the live prompt OCCUPYING its layout space during the boot (visibility:hidden,
-   not display:none) so the natural rect the boot script measures already
-   includes it — otherwise the window would grow by one line after docking (an
-   end-jump). It's just invisible so no stray "$" caret floats in the fullscreen
-   terminal; it becomes visible the moment the page settles. The input stays
-   fully removed from layout (it's clipped to 1px and absolutely positioned). */
-html.booting .term-live {
-  visibility: hidden;
-}
-html.booting .term-input {
-  display: none;
-}
-
-/* hidden but still occupying layout — the terminal must not shift while it
-   sits alone on the blank page */
-html.booting .site-header,
-html.booting .footer,
-html.booting .profile-card,
-html.booting .academic-main > section:not(.terminal-hero) {
-  opacity: 0;
-  visibility: hidden;
-}
-
-/* the section containers reveal instantly (visibility only) so their inner
-   blocks can stream their tokens in parallel. The sidebar + footer reveal the
-   same way — their text is tokenized too, so the container only needs to become
-   visible; the per-token opacity is JS-driven. */
-html.booted .academic-main > section:not(.terminal-hero),
-html.booted .footer,
-html.booted .profile-card {
-  animation: boot-show 0.01s linear both;
-}
-
-/* THE MASTHEAD IS ALWAYS THE PAGE FRAME. It does NOT type or stream — when the
-   terminal un-fullscreens and the page appears, the red bar fades in ONCE as a
-   whole, gentle ~260ms opacity rise that completes just as the content begins
-   streaming. No clip-wipe, no per-letter type-on, no tick on the brand/nav —
-   it reads as always-there, framing the page, never popping in piecemeal. */
-html.booted .site-header {
-  animation: masthead-in 0.26s ease-out both;
-}
-
-@keyframes boot-show {
-  from { visibility: hidden; }
-  to { visibility: visible; }
-}
-
-@keyframes masthead-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-/* === C. TOKEN-BY-TOKEN STREAM ============================================
-   The page reveals like an LLM streaming tokens into a terminal: every text
-   block prints its text ONE TOKEN AT A TIME (word-by-word for English, char /
-   small-group for 中文), with a red terminal cursor immediately AFTER the most
-   recently revealed token. The streaming is driven entirely by JS (see the
-   token-stream module in index.astro): at reveal time it walks the visible
-   language's text nodes inside each block, wraps every token in <i class="tok">
-   that RESERVES ITS FINAL LAYOUT SPACE (opacity:0, never display:none), then
-   lifts each token to opacity:1 token-by-token on a rAF schedule.
-
-   ZERO REFLOW: because every token occupies its final position from the first
-   frame, revealing it moves nothing. The cursor is layout-neutral — an
-   absolutely-positioned element pinned to the right edge / baseline of the last
-   revealed token, so it never pushes text or wraps a line. There is NO ::after
-   caret adding inline width (that inline caret is what used to wrap the last
-   word and cause the 203px teardown jolt). The settled DOM renders the <i> spans
-   exactly like the original plain text, so the final layout is pixel-identical.
-
-   CSS only needs to (a) define the token + cursor primitives and (b) hold the
-   blocks visible-but-blank until JS starts. JS owns all the timing. */
-
-/* a wrapped token. <i> is reused purely as a generic inline box, so its default
-   italic is reset — it inherits EVERYTHING from its parent and renders byte-for-
-   byte like the original text, reserving its exact final box. opacity:0 during
-   the stream; .on lifts it in. A tiny transition gives each token a soft fade
-   rather than a hard pop, so the stream reads smooth. The settled DOM keeps the
-   spans but they are inert and fully opaque, identical to plain text. */
-html.booted .tok {
-  font: inherit;
-  font-style: inherit;
-  letter-spacing: inherit;
-  color: inherit;
-  opacity: 0;
-}
-html.booted .tok.on {
-  opacity: 1;
-}
-html.booted body:not(.skip) .tok {
-  transition: opacity 0.09s linear;
-}
-
-/* the per-block streaming cursor: a red terminal block, absolutely positioned by
-   JS at the right edge + baseline of the last revealed token. Layout-neutral
-   (position:absolute, pointer-events:none) so it never nudges or wraps text.
-   It blinks while streaming and is removed by JS the instant the block finishes
-   / the page settles. */
-html.booted .boot-cursor {
-  position: absolute;
-  width: 0.5em;
-  height: 1.02em;
-  background: var(--term-red, #e3554d);
-  pointer-events: none;
-  z-index: 1;
-  opacity: 0.95;
-  border-radius: 1px;
-  animation: boot-cursor-blink 0.9s steps(1, end) infinite;
-  /* font-size is set inline by JS from the cursor's host block so the block
-     scales to that block's text size */
-}
-
-@keyframes boot-cursor-blink {
-  0%, 49% { opacity: 0.95; }
-  50%, 100% { opacity: 0; }
-}
-
-/* blocks that host a streaming cursor need a positioning context. Each block we
-   stream is given position:relative by JS only while it carries a cursor; this
-   rule is a CSS backstop so a relative context exists from the first frame and
-   the absolute cursor never escapes to the page. */
-html.booted .is-streaming {
-  position: relative;
-}
-
-/* === PORTRAIT scan reveal ===============================================
-   The portrait reveals PROGRESSIVELY (top→bottom clip wipe) with a thin bright
-   red leading scan edge acting as a cursor, ending fully visible. It animates
-   IN PARALLEL with all the streaming text (same --bd jitter). The image is
-   masked with a clip-path that opens top→bottom; a JS-injected `.portrait-scan`
-   bar (so the existing ::before/::after corner brackets stay intact) slides down
-   with the reveal edge as the bright red scan cursor, then fades at the bottom. */
-@keyframes portrait-scan {
-  0% { clip-path: inset(0 0 100% 0); }
-  100% { clip-path: inset(0 0 0% 0); }
-}
-
-@keyframes portrait-scanline {
-  0% { transform: translateY(0); opacity: 0; }
-  10% { opacity: 1; }
-  82% { opacity: 1; }
-  100% { transform: translateY(186px); opacity: 0; }
-}
-
-html.booted .profile-card .portrait-frame {
-  animation: none;            /* not the old whole-unit boot-in fade */
-}
-html.booted .profile-card .portrait-frame .portrait {
-  clip-path: inset(0 0 100% 0);
-  animation: portrait-scan 0.9s cubic-bezier(0.35, 0, 0.25, 1) both;
-  animation-delay: var(--bd, 0s);
-}
-/* the moving red scan line — injected by the boot script as a child div so it
-   never collides with the corner-bracket pseudo-elements */
-html.booted .profile-card .portrait-frame .portrait-scan {
-  position: absolute;
-  left: 7px;
-  right: 7px;
-  top: 7px;
-  height: 3px;
-  z-index: 2;
-  background: var(--term-red, #e3554d);
-  box-shadow: 0 0 12px 2px var(--term-red, #e3554d);
-  pointer-events: none;
-  opacity: 0;
-  animation: portrait-scanline 0.9s cubic-bezier(0.35, 0, 0.25, 1) both;
-  animation-delay: var(--bd, 0s);
-}
-
-/* --- fullscreen boot: the terminal fills the whole viewport like a maximized
-   terminal app, then shrinks + docks to its natural in-flow rect. The inline
-   boot script measures the card's natural rect on DOMContentLoaded, locks the
-   hero wrapper's min-height to preserve layout, then makes the card
-   position:fixed and adds .boot-full (fullscreen geometry). On the dock it adds
-   .boot-dock, which transitions top/left/width/height/border-radius/box-shadow
-   to the stored natural rect; transitionend strips all inline styles so the
-   card settles in normal flow at the identical spot. These classes are only
-   added by the boot script — reduced-motion, no-JS, and blog never see them. */
-html.booting .terminal-hero .term-window {
-  /* invisible until the fixed fullscreen geometry is applied, so the very
-     first painted frame is the maximized terminal, never the natural card */
-  opacity: 0;
-}
-
-html.booting .terminal-hero .term-window.boot-full {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  width: 100dvw;
-  height: 100vh;
-  height: 100dvh;
-  margin: 0;
-  z-index: 60;
-  border-radius: 0;
-  border: 0;
-  box-shadow: none;
-  opacity: 1;
-  will-change: top, left, width, height;
-}
-
-/* the dock: same fixed positioning, but the script swaps top/left/width/height
-   to the stored natural rect and these transitions carry it home */
-html.booting .terminal-hero .term-window.boot-full.boot-dock {
-  /* balanced ease-in-out: gentle acceleration AND gentle deceleration so the
-     window glides home with no sudden motion at either end (ease-out-expo did
-     ~half the shrink in the first 80ms, which still read as an abrupt start;
-     the old back-loaded cubic-bezier(.7,0,.2,1) snapped at the end instead). */
-  transition:
-    top 1s cubic-bezier(0.65, 0, 0.35, 1),
-    left 1s cubic-bezier(0.65, 0, 0.35, 1),
-    width 1s cubic-bezier(0.65, 0, 0.35, 1),
-    height 1s cubic-bezier(0.65, 0, 0.35, 1),
-    border-radius 1s cubic-bezier(0.65, 0, 0.35, 1),
-    box-shadow 1s cubic-bezier(0.65, 0, 0.35, 1);
-  will-change: top, left, width, height, border-radius;
-  border: 1px solid var(--term-edge);
-  border-radius: 9px;
-  box-shadow:
-    0 18px 40px -22px rgba(24, 14, 10, 0.55),
-    0 2px 10px rgba(24, 14, 10, 0.10);
-}
-
-/* fullscreen body: text stays at normal glyph size, anchored top-left. The
-   padding MUST equal the settled .term-body padding (20px 24px 18px) — any
-   difference makes the terminal content jump the instant the boot classes are
-   stripped at dock-complete (a 2px content "shake" just after it shrinks). */
-html.booting .terminal-hero .term-window.boot-full .term-body {
-  padding: 20px 24px 18px;
-}
-
-/* skip: any click/keydown during the show lands the COMPLETE settled page in
-   one frame. Every entry animation (terminal session, masthead fade, portrait
-   scan) is zeroed; every streamed token is forced fully opaque with no fade;
-   every streaming cursor is removed. Nothing is left stranded at opacity:0,
-   mid-stream, or mid-clip. The JS settle pass also unwraps state, but these
-   rules guarantee the visual even before/independently of it. */
-html.skip .term-body > *,
-html.skip .term-cmd,
-html.skip .site-header,
-html.skip .site-header *,
-html.skip .site-header *::before,
-html.skip .site-header *::after,
-html.skip .footer,
-html.skip .footer *,
-html.skip .footer *::before,
-html.skip .footer *::after,
-html.skip .profile-card,
-html.skip .profile-card *,
-html.skip .profile-card *::before,
-html.skip .profile-card *::after,
-html.skip .academic-main > section,
-html.skip .academic-main > section *,
-html.skip .academic-main > section *::before,
-html.skip .academic-main > section *::after {
-  animation-duration: 0s !important;
-  animation-delay: 0s !important;
-}
-
-/* every streamed token fully visible, instantly, with NO fade — and every
-   streaming cursor gone. Works at any skip phase, whether or not JS settled. */
-html.skip .tok {
-  opacity: 1 !important;
-  transition: none !important;
-}
-html.skip .boot-cursor {
-  display: none !important;
-}
-
-/* skip also lands the card itself: no fixed geometry, no dock-in-progress —
-   the boot script strips the classes + inline styles too; same-frame guarantee */
-html.skip .terminal-hero .term-window {
-  position: static !important;
-  transition: none !important;
-}
-
-/* --- about section under the terminal ----------------------------------- */
-
-/* serif is reserved for page/post H1 titles — the about lede stays sans */
-.about-section p {
-  max-width: 660px;
-  color: #46403a;
-  font-size: 17px;
-  line-height: 1.65;
-}
-
-.content-card,
-.section {
-  margin: 0 0 72px;
-}
-
-.eyebrow {
-  position: relative;
-  display: inline-block;
-  color: var(--accent);
-  font-family: var(--font-mono);
-  font-size: 12.5px;
-  font-weight: 600;
-  letter-spacing: 0.16em;
-  margin-bottom: 14px;
-  padding-bottom: 0;
-  text-transform: uppercase;
-}
-
-.eyebrow::before {
-  content: "// ";
-  font-weight: 500;
-}
-
-/* shell-path eyebrow on blog pages: "$ cat ~/blog/post.md" */
-.term-path {
-  margin-bottom: 16px;
-  font-family: var(--font-mono);
-  font-size: 13px;
-  color: var(--ink);
-}
-
-.term-path .tp-cmd {
-  color: var(--accent);
-  font-weight: 600;
-}
-
-.term-path a {
-  color: var(--muted);
-  text-decoration: none;
-}
-
-.term-path a:hover {
-  color: var(--accent-deep);
-  text-decoration: underline;
-}
-
-.term-path .tp-file {
-  color: var(--ink);
-  font-weight: 500;
-}
-
-/* exit-code style date chips on CV rows */
-.date-chip {
-  display: inline-block;
-  margin: 3px 0;
-  border: 1px solid var(--line-strong);
-  border-radius: 3px;
-  background: #faf9f7;
-  color: var(--muted);
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.02em;
-  line-height: 1.6;
-  padding: 0 7px;
-}
-
-.date-chip::before {
-  content: "[";
-  color: rgba(179, 27, 27, 0.55);
-}
-
-.date-chip::after {
-  content: "]";
-  color: rgba(179, 27, 27, 0.55);
-}
-
-/* "// …" technical one-liners under CV roles, project rows, blog rows */
-.code-comment {
-  display: block;
-  margin: 5px 0 0;
-  color: var(--muted);
-  font-family: var(--font-mono);
-  font-size: 12px;
-  line-height: 1.65;
-}
-
-.code-comment::before {
-  content: "// ";
-  color: var(--accent);
-}
-
-p.code-comment {
-  max-width: 720px;
-  margin-bottom: 0;
-}
-
-/* compact project rows under "$ ls ~/projects/" */
-.project-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.project-list li {
-  border-top: 1px solid var(--line);
-  padding: 14px 0;
-}
-
-.project-list li:first-child {
-  border-top: 0;
-  padding-top: 0;
-}
-
-.project-list li:last-child {
-  padding-bottom: 0;
+.profile-photo img:hover {
+  box-shadow: 0 0 0 4px var(--bg), 0 0 0 5.5px var(--accent), var(--shadow-hover);
+  transform: scale(1.02);
 }
 
-.project-row {
+.social-links {
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
-  gap: 4px 12px;
+  gap: 0.5rem;
+  margin-top: 1.25rem;
 }
 
-.project-title {
-  color: var(--ink);
-  font-family: var(--font-mono);
-  font-size: 14.5px;
-  font-weight: 600;
-}
-
-.project-title a {
-  color: var(--accent);
-}
-
-.project-venue {
-  color: var(--faint);
-  font-family: var(--font-mono);
-  font-size: 11.5px;
-}
-
-.project-row .date-chip {
-  margin-left: auto;
-}
-
-/* terminal headings: hex address counters (0x01, 0x02, …) in red mono,
-   New York serif titles on a hairline with a short red ink rule. The readable
-   title TEXT is New York (var(--font-serif)); only the "0x0n" counter accent
-   below stays mono (it must re-declare --font-mono so it doesn't inherit the
-   serif from the heading element). */
-.cv-block h2,
-.section-heading h2,
-.section > h2 {
-  font-family: var(--font-serif);
-  font-size: 15px;
-  font-weight: 600;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--ink);
-}
-
-.cv-block h2::before,
-.section-heading h2::before,
-.section > h2::before {
-  counter-increment: sec;
-  content: "0x0" counter(sec);
-  font-family: var(--font-mono); /* code-grammar accent stays mono */
-  color: var(--accent);
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  margin-right: 14px;
-  text-transform: none; /* keep the x lowercase */
-}
-
-/* blog posts keep markdown's own glyphs: ## in red mono */
-.prose h2 {
-  font-family: var(--font-mono);
-  font-size: 17.5px;
-  font-weight: 600;
+.social-links a {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.35rem 1rem;
+  border: 1.5px solid var(--border);
+  border-radius: 20px;
+  font-size: 13.5px;
+  font-weight: 700;
   letter-spacing: 0.01em;
+  color: var(--muted);
+  transition: all 0.2s ease;
 }
 
-.prose h2::before {
-  content: "## ";
+.social-links a:hover,
+.social-links a:focus-visible {
+  border-color: var(--accent);
   color: var(--accent);
-  font-weight: 600;
+  background: var(--accent-light);
 }
 
-/* headings sit on a hairline with a short red ink rule */
-.cv-block h2,
-.section > h2,
-.prose h2 {
-  position: relative;
-  display: block;
-  border-bottom: 1px solid var(--line-strong);
-  padding-bottom: 10px;
-  margin-bottom: 18px;
-}
+/* ========== Sections ========== */
 
-.cv-block h2::after,
-.section > h2::after,
-.prose h2::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  bottom: -1px;
-  width: 64px;
-  height: 2px;
-  background: var(--accent);
+section {
+  margin-bottom: 2.5rem;
 }
 
 .section-heading {
-  position: relative;
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 14px;
-  border-bottom: 1px solid var(--line-strong);
-  padding-bottom: 10px;
-  margin-bottom: 22px;
-}
-
-.section-heading::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  bottom: -1px;
-  width: 120px;
-  height: 2px;
-  background: var(--accent);
-}
-
-.section-heading h2 {
-  position: static;
   display: inline-block;
-  margin-bottom: 0;
-  padding-bottom: 0;
-}
-
-.section-heading a {
-  display: inline-block;
-  margin-left: 14px;
-  font-family: var(--font-mono);
-  font-size: 12.5px;
-  white-space: nowrap;
-}
-
-/* decorative shell hint on the right of a section heading */
-.shell-hint {
-  color: var(--faint);
-  font-family: var(--font-mono);
-  font-size: 12px;
-  white-space: nowrap;
-}
-
-/* ===========================================================================
-   8. Content lists (cv-list, paper-row, item, news-list, fact-strip, badges)
-   =========================================================================== */
-
-/* metric tiles: hairline border, mono small-caps sublabel over a strong
-   value, with a small red corner tick in the top-right */
-.fact-strip {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-  max-width: 660px;
-  margin-top: 26px;
-}
-
-.fact-strip > span {
-  position: relative;
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius);
-  background: var(--paper);
-  padding: 11px 14px 10px;
-}
-
-.fact-strip > span::after {
-  content: "";
-  position: absolute;
-  top: 3px;
-  right: 3px;
-  width: 0;
-  height: 0;
-  border-top: 7px solid var(--accent);
-  border-left: 7px solid transparent;
-}
-
-.fact-strip strong,
-.fact-strip small {
-  display: block;
-}
-
-.fact-strip strong {
-  color: var(--ink);
-  font-size: 15px;
-  margin-top: 3px;
-}
-
-.fact-strip small {
-  color: var(--faint);
-  font-family: var(--font-mono);
-  font-size: 10.5px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
-.cv-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 46px;
-}
-
-.cv-block h2 {
-  margin-bottom: 10px;
-}
-
-.cv-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: grid;
-  gap: 0;
-}
-
-.cv-list li {
-  color: var(--muted);
-  font-size: 15px;
-  line-height: 1.45;
-  border-top: 1px solid var(--line-strong);
-  display: flex;
-  align-items: flex-start;
-  box-sizing: border-box;
-  min-height: 146px;
-  padding: 18px 0;
-}
-
-.cv-list li > .affiliation-row {
-  width: 100%;
-}
-
-.cv-list li:first-child {
-  border-top: 0;
-  padding-top: 0;
-}
-
-.cv-list li:last-child {
-  padding-bottom: 0;
-}
-
-.cv-block .cv-list {
-  border-top: 1px solid var(--line-strong);
-  border-bottom: 1px solid var(--line-strong);
-}
-
-.cv-block .cv-list li:first-child {
-  border-top: 0;
-  padding-top: 18px;
-}
-
-.cv-block .cv-list li:last-child {
-  padding-bottom: 18px;
-}
-
-.cv-list strong {
-  display: block;
-  color: var(--ink);
+  font-size: 1.3rem;
   font-weight: 700;
-  margin-bottom: 2px;
+  line-height: 1.4;
+  padding-bottom: 0.5rem;
+  margin: 1.5rem 0 1.5rem;
+  border-bottom: 3px solid var(--accent);
 }
 
-.affiliation-row {
-  display: grid;
-  grid-template-columns: max-content minmax(0, 1fr);
-  gap: 14px;
-  align-items: center;
-}
+/* ========== Logo entries (education, experience, projects) ========== */
 
-.paper-list {
-  display: grid;
-}
-
-.paper-row {
-  display: grid;
-  grid-template-columns: 96px minmax(0, 1fr);
-  gap: 22px;
-  padding: 24px 0;
-  border-top: 1px solid var(--line);
-}
-
-.paper-row:first-child {
-  border-top: 0;
-  padding-top: 0;
-}
-
-.paper-title,
-.item-title,
-.item h2 {
-  color: var(--ink);
-  font-family: var(--font-serif);
-  font-size: 21px;
-  font-weight: 600;
-  line-height: 1.26;
-}
-
-.paper-title { margin-bottom: 4px; }
-
-.item h2 { margin-bottom: 4px; }
-
-.paper-year,
-.paper-meta,
-.meta,
-.item time,
-.news-list time {
-  color: var(--faint);
-  font-family: var(--font-mono);
-  font-size: 11.5px;
-}
-
-.paper-year {
-  line-height: 1.5;
-  color: var(--accent);
-  font-weight: 500;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.paper-meta {
-  line-height: 1.6;
-  margin-bottom: 7px;
-}
-
-.meta { line-height: 1.6; }
-
-.item time {
-  text-align: right;
-  letter-spacing: 0.04em;
-  color: var(--accent);
-  font-weight: 500;
-}
-
-.item time::before { content: "["; opacity: 0.55; }
-.item time::after { content: "]"; opacity: 0.55; }
-
-/* blog-index categories read as tags: # research notes */
-.item .meta::before {
-  content: "# ";
-  color: var(--accent);
-  font-weight: 600;
-}
-
-.badge-row {
+.entries {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin: 0 0 8px;
-}
-
-.badge {
-  display: inline-flex;
-  align-items: center;
-  border: 1px solid rgba(179, 27, 27, 0.42);
-  border-radius: var(--radius);
-  background: transparent;
-  color: var(--accent-deep);
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  line-height: 1;
-  padding: 4px 8px;
-}
-
-.badge.green {
-  border-color: rgba(47, 109, 87, 0.45);
-  background: transparent;
-  color: var(--green);
-}
-
-.badge.amber {
-  border-color: rgba(138, 91, 22, 0.45);
-  background: transparent;
-  color: var(--amber);
-}
-
-.links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 8px;
-  font-size: 13px;
-}
-
-.news-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: grid;
-  gap: 12px;
-}
-
-/* log-output framing: faint line numbers before the bracketed years */
-.news-list li {
-  display: grid;
-  grid-template-columns: 22px 58px minmax(0, 1fr);
-  gap: 14px;
-  color: var(--ink);
-  font-size: 14.5px;
-}
-
-.news-list .log-ln {
-  color: var(--faint);
-  font-family: var(--font-mono);
-  font-size: 11.5px;
-  font-weight: 400;
-  line-height: 2;
-  text-align: right;
-}
-
-.news-list time {
-  color: var(--accent);
-  font-size: 12.5px;
-  font-weight: 600;
-  line-height: 1.8;
-}
-
-/* exit-code brackets around news years */
-.news-list time::before { content: "["; opacity: 0.55; }
-.news-list time::after { content: "]"; opacity: 0.55; }
-
-.list {
-  display: grid;
-  gap: 0;
-}
-
-.item {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 120px;
-  gap: 16px;
-  align-items: start;
-  padding: 24px 0;
-  border-top: 1px solid var(--line);
-}
-
-.item:first-child {
-  border-top: 0;
-  padding-top: 0;
-}
-
-/* blog index rows styled as `ls -l ~/blog/` output:
-   date · #category · title · read time, with a "// description" line */
-.ls-total {
-  color: var(--faint);
-  font-family: var(--font-mono);
-  font-size: 12px;
-  margin-bottom: 12px;
-}
-
-.ls-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.ls-list li {
-  border-top: 1px solid var(--line);
-  padding: 18px 0;
-}
-
-.ls-list li:first-child {
-  border-top: 0;
-  padding-top: 0;
-}
-
-.ls-row {
-  display: grid;
-  grid-template-columns: max-content max-content minmax(0, 1fr) max-content;
-  gap: 4px 22px;
-  align-items: baseline;
-}
-
-.ls-date {
-  color: var(--accent);
-  font-family: var(--font-mono);
-  font-size: 12px;
-  font-weight: 500;
-  letter-spacing: 0.02em;
-}
-
-.ls-cat {
-  color: var(--faint);
-  font-family: var(--font-mono);
-  font-size: 12px;
-}
-
-.ls-cat::before {
-  content: "# ";
-  color: var(--accent);
-  font-weight: 600;
-}
-
-.ls-title {
-  font-family: var(--font-mono);
-  font-size: 15px;
-  font-weight: 600;
-}
-
-.ls-read {
-  color: var(--faint);
-  font-family: var(--font-mono);
-  font-size: 12px;
-  white-space: nowrap;
-}
-
-.ls-list .code-comment {
-  margin-top: 8px;
-  max-width: 680px;
-}
-
-.ls-section {
-  margin-bottom: 96px;
-}
-
-/* ===========================================================================
-   9. Logo system
-   NOTE: rule order and selector forms are load-bearing here.
-   ".logo-pair .logo-box:not(.wide):not(.text-logo) img" (0,4,1) intentionally
-   beats the later per-brand rules (0,3,1); brands escape it via .wide.
-   =========================================================================== */
-
-.logo-mark {
-  width: max-content;
-  min-height: 72px;
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.logo-mark.logo-pair {
-  width: auto;
-}
-
-.logo-box,
-.logo-box.wide,
-.logo-box.text-logo {
-  width: auto;
-  height: 72px;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  overflow: visible;
-  padding: 0;
-}
-
-.logo-box img {
-  display: block;
-  object-fit: contain;
-}
-
-.logo-box a {
-  color: inherit;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 1;
-  text-decoration: none;
-}
-
-.logo-box.text-logo {
-  color: var(--muted);
-  font-family: var(--font-sans);
-  font-size: 20px;
-  font-weight: 700;
-}
-
-.logo-box.text-logo span {
-  max-width: none;
-  overflow: visible;
-  padding: 0;
-  text-overflow: clip;
-  white-space: nowrap;
-}
-
-/* Must precede the .logo-mark.logo-pair flex rule below: on desktop the
-   pair's justify-content: flex-start intentionally wins over this center. */
-.cv-list .logo-mark {
-  justify-content: center;
-}
-
-.affiliation-row .logo-mark,
-.affiliation-row .logo-box,
-.affiliation-row .logo-box.wide,
-.affiliation-row .logo-box.text-logo {
-  align-items: flex-start;
-}
-
-.affiliation-row .logo-mark {
-  transform: translateY(4px);
-}
-
-.affiliation-row .logo-box img {
-  object-position: top center;
-}
-
-.logo-mark.logo-pair {
-  display: inline-flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 6px;
+  gap: 1.75rem;
 }
 
-.logo-pair .logo-box,
-.logo-pair .logo-box.wide,
-.logo-pair .logo-box.text-logo {
-  height: auto;
-}
-
-.logo-pair .logo-box img {
-  transform: none;
-}
-
-.logo-pair .logo-box:not(.wide):not(.text-logo) img {
-  width: 72px;
-  height: 72px;
-  max-width: none;
-  max-height: none;
-  object-fit: fill;
-}
-
-.logo-box img,
-.logo-pair .logo-box img {
-  width: 63px;
-  height: 72px;
-  max-width: 96px;
-  max-height: 72px;
-}
-
-.logo-box.wide img,
-.logo-pair .logo-box.wide img {
-  width: 156px;
-  height: 72px;
-  max-width: 156px;
-  max-height: 72px;
-}
-
-.logo-pair .logo-box,
-.logo-pair .logo-box.wide,
-.logo-pair .logo-box.text-logo {
-  width: 156px;
-}
-
-.logo-box.logo-rochester img {
-  width: 129px;
-  height: 72px;
-  max-width: 129px;
-  max-height: 72px;
-}
-
-.cv-list .affiliation-row:not(:has(.logo-pair)) .logo-box:not(.wide):not(.text-logo) img {
-  width: 72px;
-  height: 72px;
-  max-width: none;
-  max-height: none;
-  object-fit: fill;
-}
-
-.cv-list .affiliation-row:not(:has(.logo-pair)) .logo-box.wide img,
-.cv-list .affiliation-row:not(:has(.logo-pair)) .logo-box.logo-rochester img {
-  width: 129px;
-  height: 72px;
-  max-width: none;
-  max-height: none;
-}
-
-.logo-pair .logo-box.logo-catalyst img {
-  width: 138px;
-  height: auto;
-  max-width: none;
-  max-height: none;
-  transform: translateY(-1px);
-}
-
-.logo-pair .logo-box.logo-csl img {
-  width: 78px;
-  height: auto;
-  max-width: none;
-  max-height: none;
-  transform: translateY(-1px);
-}
-
-.logo-pair .logo-box.logo-tencent img,
-.logo-pair .logo-box.logo-tencent-hunyuan img {
-  width: 132px;
-  height: auto;
-  max-width: none;
-  max-height: none;
-}
-
-.logo-pair .logo-box.logo-tencent-hunyuan img {
-  transform: translateY(-1px);
-}
-
-.logo-pair .logo-box.text-logo span {
-  font-size: 18px;
-  line-height: 1;
-}
-
-.cv-list .affiliation-row:not(:has(.logo-pair)) .logo-box.logo-haystack img {
-  width: 151px;
-  height: auto;
-  max-width: none;
-  max-height: none;
-  object-fit: contain;
-  transform: translateY(3px);
-}
-
-.cv-list .affiliation-row {
-  grid-template-columns: 174px minmax(0, 1fr);
+.entry {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  gap: 1.75rem;
   align-items: start;
 }
 
-.cv-list .logo-mark,
-.cv-list .logo-mark.logo-pair {
-  width: 174px;
+.entry-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 64px;
 }
 
-/* Post comments (giscus) — rendered only when configured in src/data/site.ts */
-.comments {
-  margin-top: 64px;
-  padding-top: 28px;
-  border-top: 1px solid var(--line);
+.entry-logo a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
 }
-.comments::before {
-  content: "// comments";
-  display: block;
-  font-family: var(--font-mono);
-  font-size: 13px;
+
+.entry-logo img {
+  max-width: 84px;
+  max-height: 64px;
+  object-fit: contain;
+}
+
+.entry-logo.wide img {
+  max-width: 110px;
+  max-height: 30px;
+}
+
+.entry-name {
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.entry-name a {
+  color: var(--text);
+}
+
+.entry-name a:hover {
   color: var(--accent);
-  margin-bottom: 18px;
 }
 
-/* ===========================================================================
-   10. Footer — tmux/vim status bar
-   =========================================================================== */
+.entry-date {
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 0.3rem;
+}
+
+.entry-role {
+  font-size: 13.5px;
+  font-weight: 700;
+}
+
+.entry-detail {
+  font-size: 13.5px;
+  color: var(--muted);
+}
+
+/* ========== Post lists (home + /blog/) ========== */
+
+.post-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.post-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.post-title:hover {
+  color: var(--accent);
+}
+
+.post-date {
+  font-size: 13px;
+  font-style: italic;
+  color: var(--muted);
+}
+
+.post-desc,
+.prose .post-desc {
+  margin: 0.35rem 0 0;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.more-link {
+  margin: 1.5rem 0 0;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+/* ========== Footer ========== */
 
 .footer {
+  margin-top: 3rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--border);
+  font-size: 13px;
+  color: var(--muted);
+}
+
+/* ========== Long-form text (blog index + posts) ========== */
+
+.prose {
+  font-size: 16px;
+  line-height: 1.75;
+}
+
+.prose h1 {
+  font-size: 2rem;
+  line-height: 1.25;
+  margin: 0 0 0.5rem;
+}
+
+.prose h2 {
+  font-size: 1.4rem;
+  line-height: 1.35;
+  margin: 2.25rem 0 0.75rem;
+}
+
+.prose h3 {
+  font-size: 1.15rem;
+  margin: 1.75rem 0 0.5rem;
+}
+
+.prose h4 {
+  font-size: 1rem;
+  margin: 1.5rem 0 0.5rem;
+}
+
+.prose p,
+.prose ul,
+.prose ol {
+  margin: 0 0 1rem;
+}
+
+.prose ul,
+.prose ol {
+  padding-left: 1.4rem;
+}
+
+.prose li + li {
+  margin-top: 0.25rem;
+}
+
+.prose hr {
+  border: 0;
+  border-top: 1px solid var(--border);
+  margin: 2rem 0;
+}
+
+.prose blockquote {
+  margin: 1.25rem 0;
+  padding: 0.75rem 1rem;
+  border-left: 3px solid var(--accent);
+  background: var(--accent-light);
+  border-radius: 0 8px 8px 0;
+}
+
+.prose blockquote > :last-child {
+  margin-bottom: 0;
+}
+
+.prose table {
   width: 100%;
-  margin: 64px 0 0;
-  display: flex;
-  align-items: stretch;
-  flex-wrap: wrap;
-  background: var(--term-bg);
-  border-top: 1px solid var(--term-edge);
-  color: var(--term-dim);
+  border-collapse: collapse;
+  margin: 1.25rem 0;
+  font-size: 14px;
+}
+
+.prose th,
+.prose td {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.prose th {
+  background: var(--card-bg);
+  font-weight: 700;
+}
+
+.prose th[align="right"],
+.prose td[align="right"] {
+  text-align: right;
+}
+
+.prose th[align="center"],
+.prose td[align="center"] {
+  text-align: center;
+}
+
+.prose code {
   font-family: var(--font-mono);
-  font-size: 12px;
-  line-height: 1;
+  font-size: 0.88em;
 }
 
-.sb-seg {
-  display: inline-flex;
-  align-items: center;
-  padding: 11px 14px;
-  white-space: nowrap;
+.prose pre code {
+  font-size: inherit;
 }
 
-.sb-mode {
-  background: var(--accent);
-  color: #ffffff;
-  font-weight: 600;
-  letter-spacing: 0.04em;
+.prose :not(pre) > code {
+  padding: 0.1em 0.35em;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
 }
 
-.sb-host {
-  color: var(--term-ink);
-  font-weight: 500;
+.prose pre {
+  margin: 1.25rem 0;
+  padding: 0.9rem 1rem;
+  overflow-x: auto;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 13.5px;
+  line-height: 1.6;
 }
 
-.sb-desc {
-  color: var(--term-dim);
+/* Shiki writes its theme background inline */
+.prose pre.astro-code {
+  background-color: var(--card-bg) !important;
 }
 
-.sb-host + .sb-desc::before {
-  content: "·";
-  margin-right: 14px;
-  color: #57493f;
+.prose img {
+  border-radius: 8px;
 }
 
-.sb-spacer {
-  flex: 1 1 auto;
-  min-width: 8px;
+.post-meta {
+  margin-bottom: 2rem;
+  font-size: 14px;
+  color: var(--muted);
 }
 
-.sb-spacer ~ .sb-seg {
-  border-left: 1px solid var(--term-edge);
+.prose .blog-intro {
+  color: var(--muted);
+  margin-bottom: 2rem;
 }
 
-/* build-time git short hash, tmux-segment style */
-.sb-git {
-  color: var(--term-green);
-  font-weight: 500;
-  letter-spacing: 0.02em;
+.comments {
+  margin-top: 3rem;
 }
 
-/* ===========================================================================
-   11. Mobile
-   =========================================================================== */
+/* ========== Small screens ========== */
 
-@media (max-width: 760px) {
-  /* header / nav: brand row + single nav row, no ragged orphans */
-  .nav {
-    flex-wrap: wrap;
-    gap: 6px 12px;
-    min-height: auto;
-    padding: 14px 18px 10px;
+@media (max-width: 700px) {
+  .container {
+    padding: 2rem 1.25rem;
   }
 
-  .brand {
-    font-size: 15px;
-    flex-basis: 100%;
+  .profile {
+    flex-direction: column-reverse;
+    align-items: flex-start;
+    gap: 1.5rem;
+    padding-bottom: 1.5rem;
   }
 
-  .nav-links {
-    justify-content: flex-start;
-    gap: 0;
-    margin-left: -7px;
+  .profile-photo,
+  .profile-photo img {
+    width: 140px;
+    height: 140px;
   }
 
-  .nav-links a {
-    font-size: 12px;
-    padding: 6px 7px;
+  .profile-info h1 {
+    font-size: 1.8rem;
   }
 
-  .lang-toggle {
-    min-width: 42px;
-    padding: 4px 6px;
-    font-size: 12px;
-    margin-left: 2px;
+  .nickname {
+    font-size: 1.2rem;
   }
 
-  /* page shell */
-  main { padding: 22px 20px 64px; }
-
-  .academic-shell {
-    display: flex;
-    flex-direction: column;
-    gap: 22px;
+  .entry {
+    grid-template-columns: 72px 1fr;
+    gap: 1rem;
   }
 
-  .academic-main { order: 0; }
-
-  .profile-card {
-    order: 1;
-    width: 100%;
-    text-align: center;
+  .entry-logo {
+    height: 48px;
   }
 
-  .portrait-frame {
-    margin: 0 auto 18px;
+  .entry-logo img {
+    max-width: 64px;
+    max-height: 48px;
   }
 
-  .portrait {
-    width: 154px;
-    height: 154px;
-    margin: 0;
+  .entry-logo.wide img {
+    max-width: 72px;
+    max-height: 24px;
   }
 
-  .profile-links {
-    justify-content: center;
+  .prose {
+    font-size: 15.5px;
   }
 
-  /* hero terminal + headings — body copy stays left-aligned on mobile */
-  .academic-main > .terminal-hero { margin-bottom: 48px; }
-
-  .term-bar { padding: 8px 12px; }
-  .term-size { display: none; }
-
-  /* the window-title meta line flows beside the dots, stays >=11px and may
-     wrap to two lines instead of colliding with the chrome */
-  .term-title {
-    position: static;
-    transform: none;
-    flex: 1 1 auto;
-    text-align: right;
-    white-space: normal;
-    font-size: 11px;
-    line-height: 1.45;
+  .prose h1 {
+    font-size: 1.65rem;
   }
-
-  .term-body {
-    padding: 16px 15px 18px;
-    font-size: 12px;
-    line-height: 1.7;
-  }
-
-  .term-name-img,
-  .term-name-canvas { height: 22px; }
-
-  .about-section p { font-size: 17px; }
-  h1 { font-size: 36px; }
-
-  .cv-block h2,
-  .section-heading h2,
-  .section > h2 {
-    font-size: 13px;
-  }
-
-  .prose h2 { font-size: 16px; }
-  .eyebrow { font-size: 11.5px; }
-  .term-path { font-size: 12px; }
-
-  .section-heading { flex-wrap: wrap; }
-
-  pre {
-    font-size: 12.5px;
-  }
-
-  pre code {
-    padding: 12px 14px 16px;
-  }
-
-  .prose th { padding: 10px 10px; }
-  .prose td { padding: 8px 10px; }
-
-  .content-card,
-  .section {
-    margin-bottom: 56px;
-  }
-
-  /* lists */
-  .paper-row,
-  .item {
-    grid-template-columns: 1fr;
-    gap: 8px;
-  }
-
-  /* log lines keep their numbers: ln + year on the first row, text below */
-  .news-list li {
-    grid-template-columns: 22px minmax(0, 1fr);
-    gap: 2px 12px;
-  }
-
-  .news-list li > span:last-child {
-    grid-column: 2;
-  }
-
-  .item time { text-align: left; }
-
-  /* ls rows restack: meta tokens on one line, then the title, then "//" */
-  .ls-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px 16px;
-  }
-
-  .ls-date { order: 1; }
-  .ls-cat { order: 2; }
-  .ls-read { order: 3; }
-
-  .ls-title {
-    order: 4;
-    flex-basis: 100%;
-    font-size: 14.5px;
-  }
-
-  .ls-section { margin-bottom: 72px; }
-
-  .fact-strip {
-    grid-template-columns: 1fr;
-    text-align: left;
-  }
-
-  /* affiliation rows */
-  .affiliation-row:has(.logo-pair) { gap: 8px; }
-
-  .paper-row .affiliation-row,
-  .item .affiliation-row,
-  .affiliation-row:has(.logo-pair) {
-    grid-template-columns: 1fr;
-    text-align: left;
-  }
-
-  .item .affiliation-row { align-items: start; }
-
-  .logo-mark,
-  .affiliation-row:has(.logo-pair) .logo-mark {
-    width: max-content;
-  }
-
-  /* logo system */
-  .affiliation-row .logo-mark {
-    transform: translateY(3px);
-  }
-
-  .logo-pair .logo-box:not(.wide):not(.text-logo) img {
-    width: 60px;
-    height: 60px;
-    max-width: none;
-    max-height: none;
-    object-fit: fill;
-  }
-
-  .logo-mark,
-  .logo-mark.logo-pair {
-    min-height: 60px;
-  }
-
-  .logo-box,
-  .logo-box.wide,
-  .logo-box.text-logo {
-    height: 60px;
-  }
-
-  .logo-box img,
-  .logo-pair .logo-box img {
-    width: 84px;
-    height: 60px;
-    max-width: 84px;
-    max-height: 60px;
-  }
-
-  .logo-box.wide img,
-  .logo-pair .logo-box.wide img {
-    width: 126px;
-    height: 60px;
-    max-width: 126px;
-    max-height: 60px;
-  }
-
-  .logo-pair .logo-box,
-  .logo-pair .logo-box.wide,
-  .logo-pair .logo-box.text-logo {
-    width: 126px;
-  }
-
-  .logo-box.text-logo {
-    font-size: 18px;
-  }
-
-  .logo-box.logo-rochester img,
-  .cv-list .affiliation-row:not(:has(.logo-pair)) .logo-box.logo-rochester img {
-    width: 117px;
-    height: 60px;
-    max-width: none;
-    max-height: none;
-  }
-
-  .cv-list .affiliation-row:not(:has(.logo-pair)) .logo-box:not(.wide):not(.text-logo) img {
-    width: 60px;
-    height: 60px;
-    max-width: none;
-    max-height: none;
-    object-fit: fill;
-  }
-
-  .cv-list .affiliation-row:not(:has(.logo-pair)) .logo-box.wide img {
-    width: 117px;
-    height: 60px;
-    max-width: none;
-    max-height: none;
-  }
-
-  .logo-pair .logo-box.logo-catalyst img {
-    width: 112px;
-    height: auto;
-    max-width: none;
-    max-height: none;
-    transform: translateY(-1px);
-  }
-
-  .logo-pair .logo-box.logo-csl img {
-    width: 63px;
-    height: auto;
-    max-width: none;
-    max-height: none;
-    transform: translateY(-1px);
-  }
-
-  .logo-pair .logo-box.logo-tencent img,
-  .logo-pair .logo-box.logo-tencent-hunyuan img {
-    width: 107px;
-    height: auto;
-    max-width: none;
-    max-height: none;
-  }
-
-  .logo-pair .logo-box.logo-tencent-hunyuan img {
-    transform: translateY(-2px);
-  }
-
-  .logo-pair .logo-box.text-logo span {
-    font-size: 16px;
-    line-height: 1;
-  }
-
-  .cv-list .affiliation-row:not(:has(.logo-pair)) .logo-box.logo-haystack img {
-    width: 124px;
-    height: auto;
-    max-width: none;
-    max-height: none;
-    object-fit: contain;
-    transform: translateY(3px);
-  }
-
-  /* CV rows */
-  .cv-list .affiliation-row:not(:has(.logo-pair)),
-  .cv-list .affiliation-row:has(.logo-pair) {
-    grid-template-columns: 144px minmax(0, 1fr);
-    gap: 14px;
-  }
-
-  .cv-list .affiliation-row:not(:has(.logo-pair)) .logo-mark,
-  .cv-list .affiliation-row:has(.logo-pair) .logo-mark,
-  .cv-list .affiliation-row:has(.logo-pair) .logo-mark.logo-pair {
-    width: 144px;
-  }
-
-  /* On mobile (unlike desktop) cv-list pair marks are vertically centered:
-     this (0,4,0) rule outranks .logo-mark.logo-pair's flex-start. */
-  .cv-list .affiliation-row:has(.logo-pair) .logo-mark {
-    justify-content: center;
-  }
-
-  .cv-list li {
-    min-height: 170px;
-    padding: 16px 0;
-  }
-
-  .cv-list li:first-child { padding-top: 0; }
-  .cv-list li:last-child { padding-bottom: 0; }
-  .cv-block .cv-list li:first-child { padding-top: 16px; }
-  .cv-block .cv-list li:last-child { padding-bottom: 16px; }
-
-  .academic-main > section { margin-bottom: 42px; }
-  .academic-main > .terminal-hero { margin-bottom: 42px; }
-
-  /* status bar collapses to its essential segments: mode + host + git hash.
-     desc, utf-8, en|zh and the location cell are hidden on mobile. */
-  .footer { margin-top: 44px; font-size: 11.5px; }
-  .sb-seg { padding: 10px 11px; }
-  .sb-desc,
-  .sb-extra,
-  .sb-loc { display: none; }
 }

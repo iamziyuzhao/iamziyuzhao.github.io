@@ -1,11 +1,8 @@
 ---
 layout: ../../layouts/BlogPost.astro
 title: Notes Toward LLM Inference Systems
-titleZh: LLM 推理系统笔记
 description: The opening thread for a blog that treats AI infrastructure as a serious systems discipline.
-descriptionZh: 这是一组把 AI 基础设施当作严肃系统学科来写的开篇笔记。
 category: Research Notes
-categoryZh: 研究笔记
 date: 2026-05-19
 ---
 

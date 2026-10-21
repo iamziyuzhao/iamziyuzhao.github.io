@@ -77,9 +77,6 @@ Fallbacks that always work: edit files directly on github.com, or locally +
 
 ## Notes
 
-- Chinese fields (`titleZh`, `descriptionZh`, `categoryZh`) are optional;
-  posts without them simply show English in both language modes.
 - The comment section is invisible until step 3 is completed, so the site
   can be deployed immediately and comments added later.
-- If you ever use a custom domain, set it in Settings → Pages and update
-  `url` in `src/data/site.ts`.
+- If you ever use a custom domain, set it in Settings → Pages.

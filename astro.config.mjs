@@ -6,4 +6,8 @@ export default defineConfig({
   devToolbar: {
     enabled: false,
   },
+  markdown: {
+    // light code blocks to match the page (Astro's default is github-dark)
+    shikiConfig: { theme: "github-light" },
+  },
 });

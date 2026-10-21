@@ -1,49 +1,20 @@
 ---
 import Base from "./Base.astro";
 import Comments from "../components/Comments.astro";
+import { formatDate } from "../data/format";
 
 const { frontmatter, rawContent } = Astro.props;
-const date = frontmatter.date ? new Date(frontmatter.date) : null;
-const dateIso = date?.toISOString().slice(0, 10);
 const words = typeof rawContent === "function" ? rawContent().trim().split(/\s+/).length : 0;
 const readingMinutes = words ? Math.max(1, Math.round(words / 200)) : null;
-const slug = Astro.url.pathname.replace(/\/+$/, "").split("/").pop();
 ---
 
-<Base title={frontmatter.title} description={frontmatter.description}>
+<Base title={`${frontmatter.title} | Ziyu Zhao`} description={frontmatter.description}>
   <article class="prose post">
-    <div class="term-path"><span class="tp-cmd" aria-hidden="true">$ cat&nbsp;</span><a href="/blog/">~/blog/</a><span class="tp-file">{slug}.md</span></div>
-    <h1>
-      {frontmatter.titleZh ? (
-        <>
-          <span class="lang-en">{frontmatter.title}</span>
-          <span class="lang-zh">{frontmatter.titleZh}</span>
-        </>
-      ) : (
-        frontmatter.title
-      )}
-    </h1>
-    <div class="meta post-meta">
-      {dateIso && (
-        <span class="meta-tok">
-          <span class="tok-tag" aria-hidden="true">@date</span>
-          <time datetime={dateIso}>{dateIso}</time>
-        </span>
-      )}
-      {readingMinutes && (
-        <span class="meta-tok">
-          <span class="tok-tag" aria-hidden="true">@read</span>
-          <span class="lang-en">{readingMinutes} min</span>
-          <span class="lang-zh">{readingMinutes} 分钟</span>
-        </span>
-      )}
-      {(frontmatter.category || frontmatter.categoryZh) && (
-        <span class="meta-tok">
-          <span class="tok-tag" aria-hidden="true">@topic</span>
-          <span class="lang-en">{frontmatter.category}</span>
-          <span class="lang-zh">{frontmatter.categoryZh ?? frontmatter.category}</span>
-        </span>
-      )}
+    <h1>{frontmatter.title}</h1>
+    <div class="post-meta">
+      {frontmatter.date && <time datetime={new Date(frontmatter.date).toISOString().slice(0, 10)}>{formatDate(frontmatter.date)}</time>}
+      {readingMinutes && <> · {readingMinutes} min read</>}
+      {frontmatter.category && <> · {frontmatter.category}</>}
     </div>
     <slot />
     <Comments />

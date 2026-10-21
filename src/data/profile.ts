@@ -3,245 +3,124 @@ export interface ProfileLink {
   href: string;
 }
 
-export interface LogoRef {
+export interface Logo {
   src: string;
-  alt?: string;
-  wide?: boolean;
-  text?: string;
+  /** Organization website — the logo links here when set. */
   href?: string;
+  /** Wordmark-style logo (wider than tall) — gets more horizontal room. */
+  wide?: boolean;
 }
 
-export interface Profile {
-  name: string;
-  title: string;
-  titleZh: string;
-  location: string;
-  email: string;
-  links: ProfileLink[];
-  intro: string;
-  introZh: string;
-  focus: string;
-  focusZh: string;
-}
-
-interface LogoFields {
-  logo: string;
-  logoAlt?: string;
-  logoWide?: boolean;
-  logoHref?: string;
-  logoPair?: LogoRef[];
-}
-
-export interface EducationEntry extends LogoFields {
+export interface EducationEntry {
   school: string;
+  logo: Logo;
   degree: string;
-  degreeZh: string;
-  meta: string;
-  metaZh: string;
   date: string;
+  note?: string;
 }
 
-export interface ExperienceEntry extends LogoFields {
+export interface ExperienceEntry {
   org: string;
+  logo: Logo;
   role: string;
-  roleZh: string;
   date: string;
   detail: string;
-  detailZh: string;
 }
 
-export interface ProjectEntry extends LogoFields {
+export interface ProjectEntry {
   title: string;
+  href?: string;
+  logo: Logo;
   venue: string;
-  venueZh: string;
   date: string;
   summary: string;
-  summaryZh: string;
-  links: ProfileLink[];
 }
 
-export const profile: Profile = {
-  name: "Ziyu Zhao (Albert)",
-  title: "Machine Learning Systems & AI Infrastructure",
-  titleZh: "机器学习系统与 AI 基础设施",
-  location: "Pittsburgh, PA",
-  email: "contact@example.com",
+export const profile = {
+  name: "Ziyu Zhao",
+  nickname: "Albert",
+  photo: "/images/albert-zhao.jpg",
+  // Fill in to show an "Email" button next to the links below.
+  email: "",
   links: [
     { label: "CV", href: "/files/2026ZiyuZhaoJune.pdf" },
-    { label: "GitHub", href: "#" },
-    { label: "Google Scholar", href: "#" },
-  ],
-  intro:
-    "I work on systems for large language models, with interests in LLM inference, GPU kernels, agent benchmarking, and AI infrastructure.",
-  introZh:
-    "我关注大语言模型背后的系统问题，研究兴趣包括 LLM 推理、GPU kernels、agent benchmark 和 AI 基础设施。",
-  focus:
-    "I am interested in the infrastructure behind frontier AI systems: inference serving, efficient kernels, agent execution, and the systems work required to make large models useful in real deployments.",
-  focusZh:
-    "我感兴趣的是前沿 AI 系统背后的基础设施：推理服务、高效 kernels、agent 执行，以及让大模型在真实部署中可用的系统工作。",
+    { label: "GitHub", href: "https://github.com/iamziyuzhao" },
+    { label: "Blog", href: "/blog/" },
+  ] as ProfileLink[],
 };
 
 export const education: EducationEntry[] = [
   {
     school: "Carnegie Mellon University",
-    logo: "/logos/provided/cmu.png",
-    logoHref: "https://www.cmu.edu/",
+    logo: { src: "/logos/cmu.png", href: "https://www.cmu.edu/" },
     degree: "M.S. in Information Networking",
-    degreeZh: "信息网络硕士",
-    meta: "Machine Learning Systems & AI Infrastructure, advised by Prof. Tianqi Chen",
-    metaZh: "方向：机器学习系统与 AI 基础设施，导师 Prof. Tianqi Chen",
-    date: "2026 - 2028",
+    date: "2026 – 2028",
   },
   {
     school: "University of Rochester",
-    logo: "/logos/provided/rochester.png",
-    logoWide: true,
-    logoHref: "https://www.rochester.edu/",
+    logo: { src: "/logos/rochester.png", href: "https://www.rochester.edu/" },
     degree: "B.S. in Computer Science and B.S. in Business",
-    degreeZh: "计算机科学学士、商科学士",
-    meta: "Computer Science major GPA: 3.9/4.0",
-    metaZh: "计算机科学专业 GPA：3.9/4.0",
-    date: "2022 - 2026",
+    date: "2022 – 2026",
+    note: "Computer Science major GPA: 3.9/4.0",
   },
 ];
 
 export const experience: ExperienceEntry[] = [
   {
     org: "Carnegie Mellon University, Catalyst Group",
-    logo: "/logos/provided/catalyst.svg",
-    logoPair: [
-      { src: "/logos/provided/trimmed/cmu-trim.png", href: "https://www.cmu.edu/" },
-      { src: "/logos/provided/trimmed/catalyst-transparent-v2.png", wide: true, href: "https://catalyst.cs.cmu.edu/" },
-    ],
+    logo: { src: "/logos/provided/trimmed/catalyst-transparent-v2.png", href: "https://catalyst.cs.cmu.edu/", wide: true },
     role: "Research Assistant Intern",
-    roleZh: "研究助理实习生",
-    date: "Apr 2026 - present",
+    date: "Apr 2026 – Present",
     detail: "LLM inference, GPU kernels, and agent benchmarking.",
-    detailZh: "研究 LLM 推理、GPU kernels 和 agent benchmarking。",
   },
   {
     org: "Cornell University, Computer Systems Laboratory",
-    logo: "/logos/provided/cornell.png",
-    logoPair: [
-      { src: "/logos/provided/trimmed/cornell-trim.png", href: "https://www.cornell.edu/" },
-      { src: "/logos/provided/trimmed/csl-trim.png", wide: true, href: "https://www.csl.cornell.edu/" },
-    ],
+    logo: { src: "/logos/provided/trimmed/csl-trim.png", href: "https://www.csl.cornell.edu/", wide: true },
     role: "Research Assistant Intern",
-    roleZh: "研究助理实习生",
-    date: "Apr 2026 - present",
+    date: "Apr 2026 – Present",
     detail: "Efficient quantization for LLM inference.",
-    detailZh: "研究面向 LLM 推理的高效量化方法。",
   },
   {
     org: "Tencent, Hunyuan LLM Team",
-    logo: "/logos/provided/tencent.png",
-    logoWide: true,
-    logoPair: [
-      { src: "/logos/provided/trimmed/tencent-trim.png", wide: true, href: "https://www.tencent.com/en-us/" },
-      { src: "/logos/provided/trimmed/tencent-hunyuan-trim.png", wide: true, href: "https://hunyuan.tencent.com/research?page=1" },
-    ],
+    logo: { src: "/logos/tencent-hunyuan.png", href: "https://hunyuan.tencent.com/research?page=1", wide: true },
     role: "Research Engineer Intern",
-    roleZh: "研究工程实习生",
-    date: "Jan 2026 - Apr 2026",
-    detail:
-      "Agent Harness, Runtime, Eval infra and Sandbox infra.",
-    detailZh:
-      "Agent Harness、Runtime、Eval infra 与 Sandbox infra。",
+    date: "Jan 2026 – Apr 2026",
+    detail: "Agent Harness, Runtime, Eval infra and Sandbox infra.",
   },
   {
     org: "RealKey",
-    logo: "/logos/provided/getmyhome.svg",
-    logoHref: "https://www.realkey.ai/",
+    logo: { src: "/logos/provided/getmyhome.svg", href: "https://www.realkey.ai/" },
     role: "Machine Learning Engineer Intern",
-    roleZh: "机器学习工程实习生",
-    date: "Oct 2024 - Aug 2025",
+    date: "Oct 2024 – Aug 2025",
     detail:
       "Founding member of HomeGPT, building multi-agent real estate infrastructure, price-estimation models, and scalable RAG systems.",
-    detailZh:
-      "作为 HomeGPT 早期成员，参与构建面向房地产场景的多 agent 平台、房价估计模型和可扩展 RAG 系统。",
   },
   {
     org: "Haystack",
-    logo: "/logos/provided/haystack.png",
-    logoWide: true,
-    logoHref: "https://www.haystackteam.com/",
+    logo: { src: "/logos/provided/haystack.png", href: "https://www.haystackteam.com/", wide: true },
     role: "Software Development Engineer Intern",
-    roleZh: "软件开发工程实习生",
-    date: "May 2024 - Sep 2024",
+    date: "May 2024 – Sep 2024",
     detail:
       "Universal enterprise search across workplace data, dual-protocol API gateway, and Kubernetes deployment infrastructure.",
-    detailZh:
-      "参与企业级 universal search、双协议 API gateway，以及 Kubernetes 部署基础设施。",
   },
 ];
 
 export const projects: ProjectEntry[] = [
   {
     title: "FlashInfer-Bench",
-    logo: "/logos/flashinfer.svg",
+    href: "https://github.com/flashinfer-ai/flashinfer-bench",
+    logo: { src: "/logos/flashinfer.svg" },
     venue: "Open source",
-    venueZh: "开源项目",
-    date: "2025 - present",
+    date: "2025 – Present",
     summary:
       "Contributed DeepSeek-V4 model support to rigorous evaluation and production deployment of AI-agent-generated GPU kernels.",
-    summaryZh:
-      "为 FlashInfer-Bench 贡献 DeepSeek-V4 模型支持，参与 AI-agent 生成 GPU kernels 的严谨评测与生产部署链路。",
-    links: [{ label: "Project", href: "#" }],
-  },
-  {
-    title: "Hunyuan Agent Runtime Infrastructure",
-    logo: "/logos/provided/tencent-hunyuan.png",
-    logoWide: true,
-    logoPair: [
-      { src: "/logos/provided/tencent.png", wide: true, href: "https://www.tencent.com/en-us/" },
-      { src: "/logos/provided/tencent-hunyuan.png", wide: true, href: "https://hunyuan.tencent.com/research?page=1" },
-    ],
-    venue: "Tencent Hunyuan LLM Team",
-    venueZh: "腾讯混元大模型团队",
-    date: "2026",
-    summary:
-      "Built runtime and execution infrastructure for evaluation and distillation workflows around a large MoE model, reducing environment complexity and improving startup latency.",
-    summaryZh:
-      "构建面向大规模 MoE 模型评测/蒸馏工作流的 runtime 与执行基础设施，降低环境复杂度并改善启动延迟。",
-    links: [],
-  },
-  {
-    title: "HomeGPT",
-    logo: "/logos/provided/getmyhome.svg",
-    logoHref: "https://www.realkey.ai/",
-    venue: "RealKey",
-    venueZh: "RealKey",
-    date: "2024 - 2025",
-    summary:
-      "Co-developed an LLM multi-agent platform for real estate workflows, including price-estimation agents and retrieval infrastructure.",
-    summaryZh:
-      "参与开发面向房地产流程的 LLM 多 agent 平台，包括价格估计 agent 与检索基础设施。",
-    links: [],
   },
   {
     title: "Kaggle MakeDataCount",
-    logo: "/logos/kaggle.svg",
+    href: "https://www.kaggle.com/certification/competitions/jojozhaoamz/make-data-count-finding-data-references",
+    logo: { src: "/logos/kaggle.svg", wide: true },
     venue: "Silver Medal, rank 54 / 1,282",
-    venueZh: "银牌，排名 54 / 1,282",
     date: "2025",
-    summary:
-      "Built a vLLM-accelerated NLP pipeline with AWQ-quantized Qwen2.5-32B for distributed GPU inference.",
-    summaryZh:
-      "构建基于 vLLM 加速、AWQ 量化 Qwen2.5-32B 的分布式 GPU 推理 NLP pipeline。",
-    links: [],
+    summary: "Built a vLLM-accelerated NLP pipeline with AWQ-quantized Qwen2.5-32B for distributed GPU inference.",
   },
-];
-
-export const news: string[] = [
-  "2026: Starting M.S. study at Carnegie Mellon University in Information Networking.",
-  "2026: Joined CMU Catalyst Group and Cornell CSL as a research assistant intern.",
-  "2025: Contributed DeepSeek-V4 model support to FlashInfer-Bench.",
-  "2025: Received a Kaggle Research Competition Silver Medal for MakeDataCount.",
-];
-
-export const newsZh: string[] = [
-  "2026：即将在 Carnegie Mellon University 攻读 Information Networking 硕士。",
-  "2026：加入 CMU Catalyst Group 和 Cornell CSL 担任研究助理实习生。",
-  "2025：为 FlashInfer-Bench 贡献 DeepSeek-V4 模型支持。",
-  "2025：在 Kaggle MakeDataCount 研究竞赛中获得银牌。",
 ];

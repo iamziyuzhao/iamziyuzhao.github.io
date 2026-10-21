@@ -1,32 +1,7 @@
 ---
-import { execSync } from "node:child_process";
-
-// build-time git short hash for the status bar; falls back outside a checkout
-let commit = "dev";
-try {
-  commit =
-    execSync("git rev-parse --short HEAD", {
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "ignore"],
-    }).trim() || "dev";
-} catch {
-  /* not a git repo (e.g. tarball deploy) — keep "dev" */
-}
+const year = new Date().getFullYear();
 ---
 
-<footer class="footer" aria-label="Site footer">
-  <span class="sb-seg sb-mode" aria-hidden="true">[NORMAL]</span>
-  <span class="sb-seg sb-host">albert@cmu:~</span>
-  <span class="sb-seg sb-desc">
-    <span class="lang-en">ml systems · research notes</span>
-    <span class="lang-zh">机器学习系统 · 研究笔记</span>
-  </span>
-  <span class="sb-spacer" aria-hidden="true"></span>
-  <span class="sb-seg sb-extra" aria-hidden="true">utf-8</span>
-  <span class="sb-seg sb-extra" aria-hidden="true">en|zh</span>
-  <span class="sb-seg sb-loc">
-    <span class="lang-en">pittsburgh</span>
-    <span class="lang-zh">匹兹堡</span>
-  </span>
-  <span class="sb-seg sb-git" aria-hidden="true">HEAD:{commit}</span>
+<footer class="footer">
+  © {year} Ziyu Zhao · Pittsburgh, PA
 </footer>
