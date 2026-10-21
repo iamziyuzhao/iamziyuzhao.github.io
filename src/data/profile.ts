@@ -23,6 +23,8 @@ export interface EducationEntry {
 
 export interface ExperienceEntry {
   org: string;
+  /** The lab's or team's website; the whole logo block links here. */
+  href: string;
   /** One logo, or two (university + lab, company + team) stacked. */
   logos: Logo[];
   role: string;
@@ -56,7 +58,8 @@ export const profile = {
   ] as ProfileLink[],
 };
 
-const cmu: Logo = { src: "/logos/cmu.png", alt: "Carnegie Mellon University", href: "https://www.cmu.edu/" };
+const cmuSeal: Logo = { src: "/logos/cmu.png", alt: "Carnegie Mellon University" };
+const cmu: Logo = { ...cmuSeal, href: "https://www.cmu.edu/" };
 const rochester: Logo = { src: "/logos/rochester.png", alt: "University of Rochester", href: "https://www.rochester.edu/" };
 
 export const education: EducationEntry[] = [
@@ -79,9 +82,10 @@ export const education: EducationEntry[] = [
 export const experience: ExperienceEntry[] = [
   {
     org: "Carnegie Mellon University, Catalyst Group",
+    href: "https://catalyst.cs.cmu.edu/",
     logos: [
-      cmu,
-      { src: "/logos/catalyst.png", alt: "Catalyst Group", href: "https://catalyst.cs.cmu.edu/", wide: true },
+      cmuSeal,
+      { src: "/logos/catalyst.png", alt: "Catalyst Group", wide: true },
     ],
     role: "Research Intern",
     date: "Jun 2026 – Present",
@@ -89,9 +93,10 @@ export const experience: ExperienceEntry[] = [
   },
   {
     org: "Carnegie Mellon University, InfiniAI Lab",
+    href: "https://www.infini-ai-lab.cmu.edu/",
     logos: [
-      cmu,
-      { src: "/logos/infini-ai-lab.png", alt: "InfiniAI Lab", href: "https://www.infini-ai-lab.cmu.edu/", wide: true },
+      cmuSeal,
+      { src: "/logos/infini-ai-lab.png", alt: "InfiniAI Lab", wide: true },
     ],
     role: "Research Intern",
     date: "Sep 2026 – Present",
@@ -99,9 +104,10 @@ export const experience: ExperienceEntry[] = [
   },
   {
     org: "Cornell University, Computer Systems Laboratory",
+    href: "https://www.csl.cornell.edu/",
     logos: [
-      { src: "/logos/cornell.png", alt: "Cornell University", href: "https://www.cornell.edu/" },
-      { src: "/logos/csl.png", alt: "Computer Systems Laboratory", href: "https://www.csl.cornell.edu/", wide: true },
+      { src: "/logos/cornell.png", alt: "Cornell University" },
+      { src: "/logos/csl.png", alt: "Computer Systems Laboratory", wide: true },
     ],
     role: "Research Intern",
     date: "May 2026 – Sep 2026",
@@ -109,9 +115,10 @@ export const experience: ExperienceEntry[] = [
   },
   {
     org: "Tencent, Hunyuan LLM Team",
+    href: "https://hy.tencent.ai/research/hy3",
     logos: [
-      { src: "/logos/tencent.png", alt: "Tencent", href: "https://www.tencent.com/en-us/", wide: true },
-      { src: "/logos/tencent-hunyuan.png", alt: "Tencent Hunyuan", href: "https://hunyuan.tencent.com/research?page=1", wide: true },
+      { src: "/logos/tencent.png", alt: "Tencent", wide: true },
+      { src: "/logos/tencent-hunyuan.png", alt: "Tencent Hunyuan", wide: true },
     ],
     role: "Research Engineer Intern, Post-Train Infra",
     date: "Jan 2026 – Apr 2026",
@@ -120,7 +127,8 @@ export const experience: ExperienceEntry[] = [
   },
   {
     org: "GetMyHome.ai (now RealKey)",
-    logos: [{ src: "/logos/provided/getmyhome.svg", alt: "GetMyHome.ai", href: "https://www.realkey.ai/" }],
+    href: "https://www.realkey.ai/",
+    logos: [{ src: "/logos/provided/getmyhome.svg", alt: "GetMyHome.ai" }],
     role: "Machine Learning Engineer",
     date: "Oct 2024 – Sep 2025",
     detail:
@@ -128,7 +136,8 @@ export const experience: ExperienceEntry[] = [
   },
   {
     org: "Haystack",
-    logos: [{ src: "/logos/haystack.png", alt: "Haystack", href: "https://www.haystackteam.com/", wide: true }],
+    href: "https://www.haystackteam.com/",
+    logos: [{ src: "/logos/haystack.png", alt: "Haystack", wide: true }],
     role: "Software Engineer Intern",
     date: "May 2024 – Sep 2024",
     detail: "Worked on organization-wide universal search, a dual-protocol API gateway, Docker, and Kubernetes.",

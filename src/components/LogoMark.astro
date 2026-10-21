@@ -3,21 +3,34 @@ import type { Logo } from "../data/profile";
 
 interface Props {
   logos: Logo[];
+  /** One link for the whole block (e.g. the lab's site), used instead of each logo's own href. */
+  href?: string;
 }
 
-const { logos } = Astro.props;
+const { logos, href } = Astro.props;
+const classes = ["entry-logo", { pair: logos.length > 1 }];
 ---
 
-<div class:list={["entry-logo", { pair: logos.length > 1 }]}>
-  {logos.map((logo) => (
-    <div class:list={["logo", { wide: logo.wide }]}>
-      {logo.href ? (
-        <a href={logo.href} target="_blank" rel="noreferrer">
-          <img src={logo.src} alt={logo.alt} loading="lazy" />
-        </a>
-      ) : (
+{href ? (
+  <a class:list={classes} href={href} target="_blank" rel="noreferrer">
+    {logos.map((logo) => (
+      <div class:list={["logo", { wide: logo.wide }]}>
         <img src={logo.src} alt={logo.alt} loading="lazy" />
-      )}
-    </div>
-  ))}
-</div>
+      </div>
+    ))}
+  </a>
+) : (
+  <div class:list={classes}>
+    {logos.map((logo) => (
+      <div class:list={["logo", { wide: logo.wide }]}>
+        {logo.href ? (
+          <a href={logo.href} target="_blank" rel="noreferrer">
+            <img src={logo.src} alt={logo.alt} loading="lazy" />
+          </a>
+        ) : (
+          <img src={logo.src} alt={logo.alt} loading="lazy" />
+        )}
+      </div>
+    ))}
+  </div>
+)}
