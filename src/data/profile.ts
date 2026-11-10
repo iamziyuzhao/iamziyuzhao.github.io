@@ -85,7 +85,7 @@ export const experience: ExperienceEntry[] = [
       { src: "/logos/catalyst.png", alt: "Catalyst Group", wide: true },
     ],
     role: "Research Intern",
-    date: "Jun 2026 – Present",
+    date: "Jun 2026 – Sep 2026",
     detail: "Advised by Prof. Tianqi Chen. Working on agents and kernels.",
   },
   {
