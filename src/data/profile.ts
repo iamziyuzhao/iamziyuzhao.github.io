@@ -53,7 +53,6 @@ export const profile = {
   // Fill in to show an "Email" button next to the links below.
   email: "",
   links: [
-    { label: "CV", href: "/files/2026ZiyuZhaoJune.pdf" },
     { label: "GitHub", href: "https://github.com/iamziyuzhao" },
     { label: "LinkedIn", href: "https://www.linkedin.com/in/albertzzhao/" },
     { label: "Blog", href: "/blog/" },
@@ -160,7 +159,7 @@ export const projects: ProjectEntry[] = [
     title: "AstraFlow",
     href: "https://github.com/Infini-AI-Lab/astraflow",
     repo: "Infini-AI-Lab/astraflow",
-    logos: [{ src: "/logos/infini-ai-lab.png", alt: "", wide: true }],
+    logos: [{ src: "/logos/astraflow.svg", alt: "", wide: true }],
     venue: "NeurIPS 2026",
     date: "Aug 2026 – Present",
     summary:
