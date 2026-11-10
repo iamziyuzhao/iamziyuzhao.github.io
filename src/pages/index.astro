@@ -77,7 +77,7 @@ const repoStats = await fetchRepoStats(projects.flatMap((p) => (p.repo ? [p.repo
     <div class="entries">
       {projects.map((item) => (
         <div class="entry">
-          <LogoMark logos={item.logos} />
+          <LogoMark logos={item.logos} href={item.href} />
           <div class="entry-body">
             <div class:list={["entry-name", { "with-stats": item.repo }]}>
               {item.href ? <a href={item.href} target="_blank" rel="noreferrer">{item.title}</a> : item.title}
