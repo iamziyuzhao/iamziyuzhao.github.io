@@ -29,6 +29,10 @@ jobs:
           enablement: true
       - name: Build site
         uses: withastro/action@v3
+        env:
+          # read-only token so the build's GitHub API calls (project star and
+          # fork counts) are not limited to 60 requests an hour
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           # Astro 6 needs Node >=22.12; the action defaults to Node 20
           node-version: 22

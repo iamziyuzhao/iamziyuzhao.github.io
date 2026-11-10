@@ -295,6 +295,57 @@ section {
   margin-top: 0.3rem;
 }
 
+/* GitHub star / fork pills beside a project's name; on narrow screens
+   they wrap under the name, flush left */
+.entry-name.with-stats {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+}
+
+.repo-stats {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.repo-stats .repo-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 9px;
+  border: 1.5px solid var(--border);
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted);
+  transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
+}
+
+.repo-stats .repo-stat[hidden] {
+  display: none;
+}
+
+.repo-stats .repo-stat:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-light);
+}
+
+/* paper / blog links under a project's summary */
+.entry-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1rem;
+  margin-top: 0.4rem;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.entry-links a::after {
+  content: " →";
+}
+
 /* ========== Post lists (home + /blog/) ========== */
 
 .post-title {

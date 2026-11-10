@@ -35,10 +35,15 @@ export interface ExperienceEntry {
 export interface ProjectEntry {
   title: string;
   href?: string;
+  /** GitHub "owner/name". Shows star and fork counts that link to the repo's
+   *  stargazers and forks pages; the browser refreshes them on every visit. */
+  repo?: string;
   logos: Logo[];
   venue: string;
   date: string;
   summary: string;
+  /** Extra links shown under the summary (paper, blog post, ...). */
+  links?: ProfileLink[];
 }
 
 export const profile = {
@@ -143,13 +148,34 @@ export const experience: ExperienceEntry[] = [
 
 export const projects: ProjectEntry[] = [
   {
-    title: "FlashInfer-Bench",
-    href: "https://github.com/flashinfer-ai/flashinfer-bench",
-    logos: [{ src: "/logos/flashinfer.svg", alt: "" }],
+    title: "Hermit",
+    href: "https://github.com/Infini-AI-Lab/hermit",
+    repo: "Infini-AI-Lab/hermit",
+    logos: [{ src: "/logos/hermit.svg", alt: "" }],
     venue: "Open source",
-    date: "2025 – Present",
+    date: "Sep 2026 – Present",
+    summary: "Author of Hermit, currently in development.",
+  },
+  {
+    title: "AstraFlow",
+    href: "https://github.com/Infini-AI-Lab/astraflow",
+    repo: "Infini-AI-Lab/astraflow",
+    logos: [{ src: "/logos/infini-ai-lab.png", alt: "", wide: true }],
+    venue: "NeurIPS 2026",
+    date: "Aug 2026 – Present",
     summary:
-      "Contributed DeepSeek-V4 model support to rigorous evaluation and production deployment of AI-agent-generated GPU kernels.",
+      "Enabled MoE post-training for Qwen3-30B-A3B by orchestrating disaggregated training (Megatron) and rollout (SGLang) across two heterogeneous GPU nodes (6× H200 + 6× B200).",
+    links: [{ label: "Paper", href: "https://arxiv.org/abs/2605.15565" }],
+  },
+  {
+    title: "Harbor",
+    href: "https://github.com/harbor-framework/harbor",
+    repo: "harbor-framework/harbor",
+    logos: [{ src: "/logos/harbor.png", alt: "" }],
+    venue: "Open source",
+    date: "Jun 2026 – Present",
+    summary: "Built the anti-cheating feature for agent environments to support agentic RL training with Miles and SGLang.",
+    links: [{ label: "Blog post", href: "/blog/eval-infra-case-study/" }],
   },
   {
     title: "Kaggle MakeDataCount",

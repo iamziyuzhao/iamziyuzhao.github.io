@@ -1,11 +1,14 @@
 ---
 import Base from "../layouts/Base.astro";
 import LogoMark from "../components/LogoMark.astro";
+import RepoStats from "../components/RepoStats.astro";
 import { education, experience, profile, projects } from "../data/profile";
 import { formatDate } from "../data/format";
+import { fetchRepoStats } from "../data/github";
 import { posts } from "../data/posts";
 
 const latestPosts = posts.slice(0, 3);
+const repoStats = await fetchRepoStats(projects.flatMap((p) => (p.repo ? [p.repo] : [])));
 ---
 
 <Base
@@ -76,11 +79,21 @@ const latestPosts = posts.slice(0, 3);
         <div class="entry">
           <LogoMark logos={item.logos} />
           <div class="entry-body">
-            <div class="entry-name">
+            <div class:list={["entry-name", { "with-stats": item.repo }]}>
               {item.href ? <a href={item.href} target="_blank" rel="noreferrer">{item.title}</a> : item.title}
+              {item.repo && <RepoStats repo={item.repo} stats={repoStats[item.repo]} />}
             </div>
             <div class="entry-date">{item.venue} · {item.date}</div>
             <div class="entry-detail">{item.summary}</div>
+            {item.links && (
+              <div class="entry-links">
+                {item.links.map((link) => (
+                  <a href={link.href} target={link.href.startsWith("http") ? "_blank" : undefined} rel="noreferrer">
+                    {link.label}
+                  </a>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       ))}

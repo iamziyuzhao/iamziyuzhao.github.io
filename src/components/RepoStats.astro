@@ -1,0 +1,123 @@
+---
+// Star and fork counts for one GitHub repo, each linking to the matching
+// GitHub page. The build supplies the first numbers; the script below
+// refreshes them in the browser so they stay current between deploys.
+import { formatCount, type RepoStats } from "../data/github";
+
+interface Props {
+  /** GitHub "owner/name". */
+  repo: string;
+  /** Counts fetched at build time; missing when that fetch failed. */
+  stats?: RepoStats;
+}
+
+const { repo, stats } = Astro.props;
+const stars = stats ? formatCount(stats.stars) : "";
+const forks = stats ? formatCount(stats.forks) : "";
+---
+
+<span class="repo-stats" data-repo={repo}>
+  <a
+    class="repo-stat"
+    href={`https://github.com/${repo}/stargazers`}
+    target="_blank"
+    rel="noreferrer"
+    data-stat="stars"
+    aria-label={`${stars} stars on GitHub`}
+    hidden={!stats}
+  >
+    <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+      <path
+        fill="currentColor"
+        d="M8 .25a.75.75 0 0 1 .673.418l1.882 3.815 4.21.612a.75.75 0 0 1 .416 1.279l-3.046 2.97.719 4.192a.751.751 0 0 1-1.088.791L8 12.347l-3.766 1.98a.75.75 0 0 1-1.088-.79l.72-4.194L.818 6.374a.75.75 0 0 1 .416-1.28l4.21-.611L7.327.668A.75.75 0 0 1 8 .25Zm0 2.445L6.615 5.5a.75.75 0 0 1-.564.41l-3.097.45 2.24 2.184a.75.75 0 0 1 .216.664l-.528 3.084 2.769-1.456a.75.75 0 0 1 .698 0l2.77 1.456-.53-3.084a.75.75 0 0 1 .216-.664l2.24-2.183-3.096-.45a.75.75 0 0 1-.564-.41L8 2.694Z"
+      ></path>
+    </svg>
+    <span class="repo-count">{stars}</span>
+  </a>
+  <a
+    class="repo-stat"
+    href={`https://github.com/${repo}/forks`}
+    target="_blank"
+    rel="noreferrer"
+    data-stat="forks"
+    aria-label={`${forks} forks on GitHub`}
+    hidden={!stats}
+  >
+    <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+      <path
+        fill="currentColor"
+        d="M5 5.372v.878c0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75v-.878a2.25 2.25 0 1 1 1.5 0v.878a2.25 2.25 0 0 1-2.25 2.25h-1.5v2.128a2.251 2.251 0 1 1-1.5 0V8.5h-1.5A2.25 2.25 0 0 1 3.5 6.25v-.878a2.25 2.25 0 1 1 1.5 0ZM5 3.25a.75.75 0 1 0-1.5 0 .75.75 0 0 0 1.5 0Zm6.75.75a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Zm-3 8.75a.75.75 0 1 0-1.5 0 .75.75 0 0 0 1.5 0Z"
+      ></path>
+    </svg>
+    <span class="repo-count">{forks}</span>
+  </a>
+</span>
+
+<script>
+  import { formatCount, type RepoStats } from "../data/github";
+
+  // Each visitor's browser may call the GitHub API 60 times an hour without a
+  // token, so counts are cached for a few minutes between page loads.
+  const CACHE_KEY = "repo-stats";
+  const MAX_AGE_MS = 10 * 60 * 1000;
+
+  type Cache = Record<string, { at: number; stats: RepoStats }>;
+
+  function readCache(): Cache {
+    try {
+      return JSON.parse(localStorage.getItem(CACHE_KEY) ?? "{}");
+    } catch {
+      return {};
+    }
+  }
+
+  function writeCache(cache: Cache) {
+    try {
+      localStorage.setItem(CACHE_KEY, JSON.stringify(cache));
+    } catch {
+      // storage blocked (private window etc.): just skip caching
+    }
+  }
+
+  async function getStats(repo: string, cache: Cache): Promise<RepoStats | null> {
+    const hit = cache[repo];
+    if (hit && Date.now() - hit.at < MAX_AGE_MS) return hit.stats;
+    try {
+      const res = await fetch(`https://api.github.com/repos/${repo}`, {
+        headers: { Accept: "application/vnd.github+json" },
+      });
+      if (!res.ok) return hit?.stats ?? null;
+      const data = await res.json();
+      const stats = { stars: data.stargazers_count, forks: data.forks_count };
+      cache[repo] = { at: Date.now(), stats };
+      return stats;
+    } catch {
+      return hit?.stats ?? null;
+    }
+  }
+
+  function show(el: Element, stat: "stars" | "forks", value: number) {
+    const link = el.querySelector<HTMLElement>(`[data-stat="${stat}"]`);
+    const count = link?.querySelector(".repo-count");
+    if (!link || !count) return;
+    count.textContent = formatCount(value);
+    link.setAttribute("aria-label", `${formatCount(value)} ${stat} on GitHub`);
+    link.hidden = false;
+  }
+
+  async function refresh() {
+    const cache = readCache();
+    const blocks = [...document.querySelectorAll<HTMLElement>(".repo-stats[data-repo]")];
+    await Promise.all(
+      blocks.map(async (el) => {
+        const stats = await getStats(el.dataset.repo!, cache);
+        if (!stats) return;
+        show(el, "stars", stats.stars);
+        show(el, "forks", stats.forks);
+      }),
+    );
+    writeCache(cache);
+  }
+
+  refresh();
+</script>
