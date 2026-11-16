@@ -104,7 +104,7 @@ export const experience: ExperienceEntry[] = [
     ],
     role: "Research Intern",
     date: "Sep 2026 – Present",
-    detail: `Advised by ${beidiChen}, working closely with ${haizhongZheng}. Working on recursive self-improvement and continual learning.`,
+    detail: `Advised by ${beidiChen}, working closely with ${haizhongZheng} on recursive self-improvement and continual learning.`,
   },
   {
     org: "Carnegie Mellon University, Catalyst Group",
@@ -115,7 +115,7 @@ export const experience: ExperienceEntry[] = [
     ],
     role: "Research Intern",
     date: "Jun 2026 – Sep 2026",
-    detail: `Advised by ${tianqiChen}. Working on agents and kernels.`,
+    detail: `Advised by ${tianqiChen}, working on agents and kernels.`,
   },
   {
     org: "Cornell University, Computer Systems Laboratory",
@@ -126,7 +126,7 @@ export const experience: ExperienceEntry[] = [
     ],
     role: "Research Intern",
     date: "May 2026 – Sep 2026",
-    detail: `Advised by ${mohamedAbdelfattah}, working closely with ${jakeHyun}. Working on an efficient post-quantization approach for LLM inference.`,
+    detail: `Advised by ${mohamedAbdelfattah}, working closely with ${jakeHyun} on an efficient post-quantization approach for LLM inference.`,
   },
   {
     org: "Tencent, Hunyuan LLM Team",
