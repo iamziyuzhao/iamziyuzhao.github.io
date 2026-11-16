@@ -2,7 +2,7 @@
 import Base from "../layouts/Base.astro";
 import LogoMark from "../components/LogoMark.astro";
 import RepoStats from "../components/RepoStats.astro";
-import { education, experience, profile, projects } from "../data/profile";
+import { education, experience, preSeedArticle, profile, projects } from "../data/profile";
 import { formatDate } from "../data/format";
 import { fetchRepoStats } from "../data/github";
 import { posts } from "../data/posts";
@@ -20,13 +20,13 @@ const repoStats = await fetchRepoStats(projects.flatMap((p) => (p.repo ? [p.repo
     <div class="profile-info">
       <h1>{profile.name} <span class="nickname">({profile.nickname})</span></h1>
       <p>
-        I am a first-year M.S. student in Information Networking at Carnegie Mellon University, concentrating on Machine Learning and AI Infrastructure. I am advised by <a href="https://www.andrew.cmu.edu/user/beidic/" target="_blank" rel="noreferrer">Dr. Beidi Chen</a> in the <a href="https://www.infini-ai-lab.cmu.edu/" target="_blank" rel="noreferrer">InfiniAI Lab</a>, working on recursive self-improvement and continual learning. My research explores how to expand agent capabilities and build efficient agent training systems.
+        I am a first-year M.S. student in Information Networking at Carnegie Mellon University, concentrating on Machine Learning and AI Infrastructure. I am advised by <a href="https://www.andrew.cmu.edu/user/beidic/" target="_blank" rel="noreferrer">Prof. Beidi Chen</a> in the <a href="https://www.infini-ai-lab.cmu.edu/" target="_blank" rel="noreferrer">InfiniAI Lab</a>, working on recursive self-improvement and continual learning. My research explores how to expand agent capabilities and build efficient agent training systems.
       </p>
       <p>
         Previously, I was a research engineer focused on post-training infrastructure at Tencent Hunyuan, where I worked on scaling long-horizon agentic capabilities for the <a href="https://hy.tencent.ai/research/hy3" target="_blank" rel="noreferrer">Hy3 model</a> across coding, browser DOM, shell and filesystem, OS and GUI, and hardware I/O environments. Motivated by the challenge of policy staleness in agentic reinforcement learning, I joined the <a href="https://www.csl.cornell.edu/faculty/" target="_blank" rel="noreferrer">Computer Systems Lab</a> at Cornell University, where I worked with <a href="https://www.mohsaied.com/" target="_blank" rel="noreferrer">Prof. Mohamed S. Abdelfattah</a> on efficient quantized LLM inference to accelerate rollout generation.
       </p>
       <p>
-        During my undergraduate studies at the University of Rochester, I was glad to work with the Google Cloud team that built search and API infrastructure at <a href="https://www.haystackteam.com/key-features/universal-search" target="_blank" rel="noreferrer">Haystack</a>. Inspired by the power of search and recommendation algorithms, several colleagues and I founded the AI company GetMyHome.ai (now <a href="https://www.realkey.ai/" target="_blank" rel="noreferrer">RealKey</a>), where we raised $1.5 million in a pre-seed round.
+        During my undergraduate studies at the University of Rochester, I was glad to work with the Google Cloud team that built search and API infrastructure at <a href="https://www.haystackteam.com/key-features/universal-search" target="_blank" rel="noreferrer">Haystack</a>. Inspired by the power of search and recommendation algorithms, several colleagues and I founded the AI company GetMyHome.ai (now <a href="https://www.realkey.ai/" target="_blank" rel="noreferrer">RealKey</a>), where we raised <a href={preSeedArticle} target="_blank" rel="noreferrer">$1.5 million</a> in a pre-seed round.
       </p>
       <nav class="social-links" aria-label="Profile links">
         {profile.email && <a href={`mailto:${profile.email}`}>Email</a>}
@@ -65,7 +65,7 @@ const repoStats = await fetchRepoStats(projects.flatMap((p) => (p.repo ? [p.repo
             <div class="entry-name">{item.org}</div>
             <div class="entry-date">{item.date}</div>
             <div class="entry-role">{item.role}</div>
-            <div class="entry-detail">{item.detail}</div>
+            <div class="entry-detail" set:html={item.detail} />
           </div>
         </div>
       ))}

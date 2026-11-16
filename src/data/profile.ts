@@ -29,6 +29,7 @@ export interface ExperienceEntry {
   logos: Logo[];
   role: string;
   date: string;
+  /** HTML: may contain links to advisors and collaborators (see `link`). */
   detail: string;
 }
 
@@ -63,6 +64,19 @@ const cmuSeal: Logo = { src: "/logos/cmu.png", alt: "Carnegie Mellon University"
 const cmu: Logo = { ...cmuSeal, href: "https://www.cmu.edu/" };
 const rochester: Logo = { src: "/logos/rochester.png", alt: "University of Rochester", href: "https://www.rochester.edu/" };
 
+/** An external link as HTML, for the experience details below. */
+const link = (text: string, href: string) => `<a href="${href}" target="_blank" rel="noreferrer">${text}</a>`;
+
+// advisors and collaborators, linked wherever they are named
+const tianqiChen = link("Prof. Tianqi Chen", "https://tqchen.com/");
+const beidiChen = link("Prof. Beidi Chen", "https://www.andrew.cmu.edu/user/beidic/");
+const haizhongZheng = link("Dr. Haizhong Zheng", "https://zhenghaizhong.com/");
+const mohamedAbdelfattah = link("Prof. Mohamed S. Abdelfattah", "https://www.mohsaied.com/");
+const jakeHyun = link("Jake Hyun", "https://jakehyun.com/");
+
+/** Source for the GetMyHome.ai pre-seed round. */
+export const preSeedArticle = "https://www.axios.com/pro/fintech-deals/2024/11/20/getmyhome-real-estate-commissions-technology";
+
 export const education: EducationEntry[] = [
   {
     school: "Carnegie Mellon University",
@@ -82,17 +96,6 @@ export const education: EducationEntry[] = [
 
 export const experience: ExperienceEntry[] = [
   {
-    org: "Carnegie Mellon University, Catalyst Group",
-    href: "https://catalyst.cs.cmu.edu/",
-    logos: [
-      cmuSeal,
-      { src: "/logos/catalyst.png", alt: "Catalyst Group", wide: true },
-    ],
-    role: "Research Intern",
-    date: "Jun 2026 – Sep 2026",
-    detail: "Advised by Prof. Tianqi Chen. Working on agents and kernels.",
-  },
-  {
     org: "Carnegie Mellon University, InfiniAI Lab",
     href: "https://www.infini-ai-lab.cmu.edu/",
     logos: [
@@ -101,7 +104,18 @@ export const experience: ExperienceEntry[] = [
     ],
     role: "Research Intern",
     date: "Sep 2026 – Present",
-    detail: "Advised by Prof. Beidi Chen. Working on recursive self-improvement and continual learning.",
+    detail: `Advised by ${beidiChen}, working closely with ${haizhongZheng}. Working on recursive self-improvement and continual learning.`,
+  },
+  {
+    org: "Carnegie Mellon University, Catalyst Group",
+    href: "https://catalyst.cs.cmu.edu/",
+    logos: [
+      cmuSeal,
+      { src: "/logos/catalyst.png", alt: "Catalyst Group", wide: true },
+    ],
+    role: "Research Intern",
+    date: "Jun 2026 – Sep 2026",
+    detail: `Advised by ${tianqiChen}. Working on agents and kernels.`,
   },
   {
     org: "Cornell University, Computer Systems Laboratory",
@@ -112,7 +126,7 @@ export const experience: ExperienceEntry[] = [
     ],
     role: "Research Intern",
     date: "May 2026 – Sep 2026",
-    detail: "Advised by Prof. Mohamed S. Abdelfattah and Jake Hyun. Working on an efficient post-quantization approach for LLM inference.",
+    detail: `Advised by ${mohamedAbdelfattah}, working closely with ${jakeHyun}. Working on an efficient post-quantization approach for LLM inference.`,
   },
   {
     org: "Tencent, Hunyuan LLM Team",
@@ -133,7 +147,7 @@ export const experience: ExperienceEntry[] = [
     role: "Machine Learning Engineer",
     date: "Oct 2024 – Sep 2025",
     detail:
-      "Founding team member ($1.5M pre-seed round). Worked on multi-agent infrastructure, retrieval and ranking algorithms, and recommender systems.",
+      `Founding team member (${link("$1.5M pre-seed round", preSeedArticle)}). Worked on multi-agent infrastructure, retrieval and ranking algorithms, and recommender systems.`,
   },
   {
     org: "Haystack",
