@@ -83,7 +83,10 @@ const repoStats = await fetchRepoStats(projects.flatMap((p) => (p.repo ? [p.repo
               {item.href ? <a href={item.href} target="_blank" rel="noreferrer">{item.title}</a> : item.title}
               {item.repo && <RepoStats repo={item.repo} stats={repoStats[item.repo]} />}
             </div>
-            <div class="entry-date">{item.venue} · {item.date}</div>
+            <div class="entry-date">
+              {item.venueHref ? <a href={item.venueHref} target="_blank" rel="noreferrer">{item.venue}</a> : item.venue}
+              {" · "}{item.date}{item.role && <> · {item.role}</>}
+            </div>
             <div class="entry-detail">{item.summary}</div>
             {item.links && (
               <div class="entry-links">

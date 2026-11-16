@@ -41,7 +41,11 @@ export interface ProjectEntry {
   repo?: string;
   logos: Logo[];
   venue: string;
+  /** Makes the venue a link (e.g. to a certificate). */
+  venueHref?: string;
   date: string;
+  /** Your role, shown after the date (e.g. "Team Leader"). */
+  role?: string;
   summary: string;
   /** Extra links shown under the summary (paper, blog post, ...). */
   links?: ProfileLink[];
@@ -195,7 +199,9 @@ export const projects: ProjectEntry[] = [
     href: "https://www.kaggle.com/certification/competitions/jojozhaoamz/make-data-count-finding-data-references",
     logos: [{ src: "/logos/kaggle.svg", alt: "Kaggle", wide: true }],
     venue: "Silver Medal, rank 54 / 1,282",
+    venueHref: "https://www.kaggle.com/certification/competitions/jojozhaoamz/make-data-count-finding-data-references",
     date: "2025",
+    role: "Team Leader",
     summary: "Built a vLLM-accelerated NLP pipeline with AWQ-quantized Qwen2.5-32B for distributed GPU inference.",
   },
 ];
