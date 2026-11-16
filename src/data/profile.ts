@@ -155,7 +155,7 @@ export const experience: ExperienceEntry[] = [
     logos: [{ src: "/logos/haystack.png", alt: "Haystack", wide: true }],
     role: "Software Engineer Intern",
     date: "May 2024 – Sep 2024",
-    detail: "Worked on organization-wide universal search, a dual-protocol API gateway, Docker, and Kubernetes.",
+    detail: `Worked on ${link("organization-wide universal search", "https://www.haystackteam.com/key-features/universal-search")}, a dual-protocol API gateway, Docker, and Kubernetes.`,
   },
 ];
 
