@@ -40,12 +40,11 @@ export interface ProjectEntry {
    *  stargazers and forks pages; the browser refreshes them on every visit. */
   repo?: string;
   logos: Logo[];
+  /** The muted line under the title, e.g. "Open Source · NeurIPS 2026". */
   venue: string;
-  /** Makes the venue a link (e.g. to a certificate). */
-  venueHref?: string;
-  date: string;
-  /** Your role, shown after the date (e.g. "Team Leader"). */
-  role?: string;
+  /** Your role, shown in bold like an experience entry's (e.g. "Team Leader"). */
+  role: string;
+  /** HTML: may contain links (see `link`). */
   summary: string;
   /** Extra links shown under the summary (paper, blog post, ...). */
   links?: ProfileLink[];
@@ -68,7 +67,7 @@ const cmuSeal: Logo = { src: "/logos/cmu.png", alt: "Carnegie Mellon University"
 const cmu: Logo = { ...cmuSeal, href: "https://www.cmu.edu/" };
 const rochester: Logo = { src: "/logos/rochester.png", alt: "University of Rochester", href: "https://www.rochester.edu/" };
 
-/** An external link as HTML, for the experience details below. */
+/** An external link as HTML, for the experience details and project summaries below. */
 const link = (text: string, href: string) => `<a href="${href}" target="_blank" rel="noreferrer">${text}</a>`;
 
 // advisors and collaborators, linked wherever they are named
@@ -80,6 +79,9 @@ const jakeHyun = link("Jake Hyun", "https://jakehyun.com/");
 
 /** Source for the GetMyHome.ai pre-seed round. */
 export const preSeedArticle = "https://www.axios.com/pro/fintech-deals/2024/11/20/getmyhome-real-estate-commissions-technology";
+
+/** Kaggle certificate for the MakeDataCount silver medal. */
+const kaggleCertificate = "https://www.kaggle.com/certification/competitions/jojozhaoamz/make-data-count-finding-data-references";
 
 export const education: EducationEntry[] = [
   {
@@ -169,17 +171,17 @@ export const projects: ProjectEntry[] = [
     href: "https://github.com/Infini-AI-Lab/hermit",
     repo: "Infini-AI-Lab/hermit",
     logos: [{ src: "/logos/hermit.svg", alt: "Hermit" }],
-    venue: "Open source",
-    date: "Sep 2026 – Present",
-    summary: "Author of Hermit, currently in development.",
+    venue: "Open Source",
+    role: "Author",
+    summary: "Currently in development.",
   },
   {
     title: "AstraFlow",
     href: "https://github.com/Infini-AI-Lab/astraflow",
     repo: "Infini-AI-Lab/astraflow",
     logos: [{ src: "/logos/astraflow.svg", alt: "AstraFlow", wide: true }],
-    venue: "NeurIPS 2026",
-    date: "Aug 2026 – Present",
+    venue: "Open Source · NeurIPS 2026",
+    role: "Contributor",
     summary:
       "Enabled MoE post-training for Qwen3-30B-A3B by orchestrating disaggregated training (Megatron) and rollout (SGLang) across two heterogeneous GPU nodes (6× H200 + 6× B200).",
     links: [{ label: "Paper", href: "https://arxiv.org/abs/2605.15565" }],
@@ -189,19 +191,17 @@ export const projects: ProjectEntry[] = [
     href: "https://github.com/harbor-framework/harbor",
     repo: "harbor-framework/harbor",
     logos: [{ src: "/logos/harbor.png", alt: "Harbor" }],
-    venue: "Open source",
-    date: "Jun 2026 – Present",
+    venue: "Open Source",
+    role: "Contributor",
     summary: "Built the anti-cheating feature for agent environments to support agentic RL training with Miles and SGLang.",
     links: [{ label: "Blog post", href: "/blog/eval-infra-case-study/" }],
   },
   {
     title: "Kaggle MakeDataCount",
-    href: "https://www.kaggle.com/certification/competitions/jojozhaoamz/make-data-count-finding-data-references",
+    href: kaggleCertificate,
     logos: [{ src: "/logos/kaggle.svg", alt: "Kaggle", wide: true }],
-    venue: "Silver Medal, rank 54 / 1,282",
-    venueHref: "https://www.kaggle.com/certification/competitions/jojozhaoamz/make-data-count-finding-data-references",
-    date: "2025",
+    venue: "Research Competition",
     role: "Team Leader",
-    summary: "Built a vLLM-accelerated NLP pipeline with AWQ-quantized Qwen2.5-32B for distributed GPU inference.",
+    summary: `Built a vLLM-accelerated NLP pipeline with AWQ-quantized Qwen2.5-32B for distributed GPU inference, and received a ${link("Silver Medal (team rank 54&nbsp;/&nbsp;1,282)", kaggleCertificate)}.`,
   },
 ];
