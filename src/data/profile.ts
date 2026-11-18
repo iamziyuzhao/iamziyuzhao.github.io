@@ -172,7 +172,7 @@ export const projects: ProjectEntry[] = [
     repo: "Infini-AI-Lab/hermit",
     logos: [{ src: "/logos/hermit.svg", alt: "Hermit" }],
     venue: "Open Source",
-    role: "Co-Author",
+    role: "Co-Creator & Core Contributor",
     summary: "Currently in development.",
   },
   {
