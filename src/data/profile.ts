@@ -170,7 +170,7 @@ export const experience: ExperienceEntry[] = [
     role: "Research Engineer Intern, Post-Train Infra",
     date: "Jan 2026 – Apr 2026",
     detail:
-      `Joined the Hunyuan LLM Reinforcement Learning Team 1 and contributed key parts of the evaluation, distillation, SFT, RFT, and sandbox infrastructure used to train and fine-tune the ${link("Hy3 model", "https://hy.tencent.ai/research/hy3")} (295B MoE, A21B, 256K-token context).`,
+      `Joined the Hunyuan LLM Reinforcement Learning Team 1 and contributed the major parts of Evaluation/Distillation/SFT/RFT/Sandbox infrastructure to train and fine-tune the ${link("Hy3 model", "https://hy.tencent.ai/research/hy3")} (295B MoE, A21B, 256K-token ctx) on coding, browser-DOM, shell/filesystem, OS/GUI, and hardware I/O tasks.`,
   },
   {
     org: "GetMyHome.ai (now RealKey)",
