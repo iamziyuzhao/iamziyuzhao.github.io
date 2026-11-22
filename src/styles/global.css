@@ -332,6 +332,41 @@ section {
   background: var(--accent-light);
 }
 
+/* papers: teaser figure on the left, like guangxuanx.com */
+.entry.paper {
+  grid-template-columns: 260px 1fr;
+}
+
+.paper-image {
+  display: block;
+  padding: 0.5rem;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.paper-image img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.paper-authors {
+  margin: 0.3rem 0;
+  font-size: 16px;
+  color: var(--muted);
+}
+
+.paper-authors strong {
+  color: var(--text);
+}
+
+.paper-venue {
+  font-size: 15px;
+  font-style: italic;
+  color: var(--muted);
+}
+
 /* paper / blog links under a project's summary */
 .entry-links {
   display: flex;
@@ -534,6 +569,14 @@ section {
 /* ========== Small screens ========== */
 
 @media (max-width: 700px) {
+  .entry.paper {
+    grid-template-columns: 1fr;
+  }
+
+  .paper-image {
+    max-width: 320px;
+  }
+
   body {
     font-size: 16px;
   }

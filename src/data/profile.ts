@@ -50,6 +50,17 @@ export interface ProjectEntry {
   links?: ProfileLink[];
 }
 
+export interface Paper {
+  title: string;
+  href: string;
+  /** Teaser figure shown beside the entry. */
+  image: string;
+  /** Author names in order; the site owner's name is shown in bold. */
+  authors: string[];
+  venue: string;
+  links: ProfileLink[];
+}
+
 export const profile = {
   name: "Ziyu Zhao",
   nickname: "Albert",
@@ -57,6 +68,7 @@ export const profile = {
   // Fill in to show an "Email" button next to the links below.
   email: "",
   links: [
+    { label: "Google Scholar", href: "https://scholar.google.com/citations?user=EEtVlGoAAAAJ&hl=en" },
     { label: "GitHub", href: "https://github.com/iamziyuzhao" },
     { label: "LinkedIn", href: "https://www.linkedin.com/in/albertzzhao/" },
     { label: "Blog", href: "/blog/" },
@@ -82,6 +94,20 @@ export const preSeedArticle = "https://www.axios.com/pro/fintech-deals/2024/11/2
 
 /** Kaggle certificate for the MakeDataCount silver medal. */
 const kaggleCertificate = "https://www.kaggle.com/certification/competitions/jojozhaoamz/make-data-count-finding-data-references";
+
+export const papers: Paper[] = [
+  {
+    title: "StrataFlux: Memory-Hierarchy-Native Low-Bit LLM Inference",
+    href: "https://arxiv.org/abs/2611.08363",
+    image: "/images/papers/strataflux.png",
+    authors: ["Jake Hyun", "Ziyu Zhao", "Jae-sun Seo", "Mohamed S. Abdelfattah"],
+    venue: "arXiv preprint, 2026",
+    links: [
+      { label: "Paper", href: "https://arxiv.org/abs/2611.08363" },
+      { label: "PDF", href: "https://arxiv.org/pdf/2611.08363" },
+    ],
+  },
+];
 
 export const education: EducationEntry[] = [
   {

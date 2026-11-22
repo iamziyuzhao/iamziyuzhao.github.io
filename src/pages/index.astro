@@ -2,7 +2,7 @@
 import Base from "../layouts/Base.astro";
 import LogoMark from "../components/LogoMark.astro";
 import RepoStats from "../components/RepoStats.astro";
-import { education, experience, preSeedArticle, profile, projects } from "../data/profile";
+import { education, experience, papers, preSeedArticle, profile, projects } from "../data/profile";
 import { formatDate } from "../data/format";
 import { fetchRepoStats } from "../data/github";
 import { posts } from "../data/posts";
@@ -37,6 +37,38 @@ const repoStats = await fetchRepoStats(projects.flatMap((p) => (p.repo ? [p.repo
       <img src={profile.photo} alt="Ziyu (Albert) Zhao" width="1280" height="960" />
     </div>
   </header>
+
+  <section>
+    <h2 class="section-heading">Research</h2>
+    <div class="entries">
+      {papers.map((paper) => (
+        <div class="entry paper">
+          <a class="paper-image" href={paper.href} target="_blank" rel="noreferrer">
+            <img src={paper.image} alt="" loading="lazy" />
+          </a>
+          <div class="entry-body">
+            <div class="entry-name">
+              <a href={paper.href} target="_blank" rel="noreferrer">{paper.title}</a>
+            </div>
+            <div class="paper-authors">
+              {paper.authors.map((author, i) => (
+                <>
+                  {i > 0 && ", "}
+                  {author === profile.name ? <strong>{author}</strong> : author}
+                </>
+              ))}
+            </div>
+            <div class="paper-venue">{paper.venue}</div>
+            <div class="entry-links">
+              {paper.links.map((link) => (
+                <a href={link.href} target="_blank" rel="noreferrer">{link.label}</a>
+              ))}
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  </section>
 
   <section>
     <h2 class="section-heading">Education</h2>
