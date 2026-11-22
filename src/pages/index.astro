@@ -71,6 +71,35 @@ const repoStats = await fetchRepoStats(projects.flatMap((p) => (p.repo ? [p.repo
   </section>
 
   <section>
+    <h2 class="section-heading">Projects</h2>
+    <div class="entries">
+      {projects.map((item) => (
+        <div class="entry">
+          <LogoMark logos={item.logos} href={item.href} />
+          <div class="entry-body">
+            <div class:list={["entry-name", { "with-stats": item.repo }]}>
+              {item.href ? <a href={item.href} target="_blank" rel="noreferrer">{item.title}</a> : item.title}
+              {item.repo && <RepoStats repo={item.repo} stats={repoStats[item.repo]} />}
+            </div>
+            <div class="entry-date">{item.venue}</div>
+            <div class="entry-role">{item.role}</div>
+            <div class="entry-detail" set:html={item.summary} />
+            {item.links && (
+              <div class="entry-links">
+                {item.links.map((link) => (
+                  <a href={link.href} target={link.href.startsWith("http") ? "_blank" : undefined} rel="noreferrer">
+                    {link.label}
+                  </a>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  </section>
+
+  <section>
     <h2 class="section-heading">Education</h2>
     <div class="entries">
       {education.map((item) => (
@@ -98,35 +127,6 @@ const repoStats = await fetchRepoStats(projects.flatMap((p) => (p.repo ? [p.repo
             <div class="entry-date">{item.date}</div>
             <div class="entry-role">{item.role}</div>
             <div class="entry-detail" set:html={item.detail} />
-          </div>
-        </div>
-      ))}
-    </div>
-  </section>
-
-  <section>
-    <h2 class="section-heading">Projects</h2>
-    <div class="entries">
-      {projects.map((item) => (
-        <div class="entry">
-          <LogoMark logos={item.logos} href={item.href} />
-          <div class="entry-body">
-            <div class:list={["entry-name", { "with-stats": item.repo }]}>
-              {item.href ? <a href={item.href} target="_blank" rel="noreferrer">{item.title}</a> : item.title}
-              {item.repo && <RepoStats repo={item.repo} stats={repoStats[item.repo]} />}
-            </div>
-            <div class="entry-date">{item.venue}</div>
-            <div class="entry-role">{item.role}</div>
-            <div class="entry-detail" set:html={item.summary} />
-            {item.links && (
-              <div class="entry-links">
-                {item.links.map((link) => (
-                  <a href={link.href} target={link.href.startsWith("http") ? "_blank" : undefined} rel="noreferrer">
-                    {link.label}
-                  </a>
-                ))}
-              </div>
-            )}
           </div>
         </div>
       ))}
