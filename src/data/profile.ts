@@ -104,7 +104,6 @@ export const papers: Paper[] = [
     venue: "arXiv preprint, 2026",
     links: [
       { label: "Paper", href: "https://arxiv.org/abs/2611.08363" },
-      { label: "PDF", href: "https://arxiv.org/pdf/2611.08363" },
     ],
   },
 ];

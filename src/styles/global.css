@@ -334,7 +334,7 @@ section {
 
 /* papers: teaser figure on the left, like guangxuanx.com */
 .entry.paper {
-  grid-template-columns: 260px 1fr;
+  grid-template-columns: 380px 1fr;
 }
 
 .paper-image {
@@ -573,9 +573,6 @@ section {
     grid-template-columns: 1fr;
   }
 
-  .paper-image {
-    max-width: 320px;
-  }
 
   body {
     font-size: 16px;
