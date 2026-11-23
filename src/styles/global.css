@@ -560,6 +560,173 @@ section {
   font-weight: 700;
 }
 
+/* ========== Bookshelf (home) ========== */
+
+.books-intro {
+  margin: 0 0 1.5rem;
+}
+
+.bookshelf {
+  --k: 1.12; /* spine scale; smaller on phones */
+  --serif: Georgia, "Times New Roman", "Songti SC", "STSong", "Noto Serif CJK SC", "Source Han Serif SC", SimSun, serif;
+  width: fit-content;
+  max-width: 100%;
+}
+
+/* Card for the active book, above the shelves. It keeps its space while
+   hidden so the shelves never jump, and is as wide as the widest shelf. */
+.book-card {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  grid-template-areas: "n text link";
+  align-items: center;
+  column-gap: 1rem;
+  min-height: 5.6rem;
+  margin-bottom: 1.75rem;
+  padding: 0.7rem 1.1rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+  box-shadow: var(--shadow);
+  font-family: var(--serif);
+  contain: inline-size;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(4px);
+  transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
+}
+
+.bookshelf.has-active .book-card {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+}
+
+.book-card-n {
+  grid-area: n;
+  min-width: 1.4rem;
+  font-size: 15px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.book-card-text {
+  grid-area: text;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.35;
+}
+
+.book-card-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.book-card-author {
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.book-card-link {
+  grid-area: link;
+  font-size: 15px;
+  color: var(--text);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  white-space: nowrap;
+}
+
+.book-card-link::after {
+  content: " ↗";
+}
+
+.shelf {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  gap: calc(3px * var(--k));
+  padding: 0 calc(8px * var(--k));
+}
+
+.shelf + .shelf {
+  margin-top: 2.75rem;
+}
+
+/* The plank under each row. */
+.shelf::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -6px;
+  height: 6px;
+  border-radius: 1px 1px 3px 3px;
+  background: linear-gradient(#f1ede5, #dcd5c7);
+  box-shadow: 0 8px 14px -6px rgba(0, 0, 0, 0.22);
+}
+
+/* A spine: --w/--h (px at scale 1), --fs (title size), --spine and --ink
+   (cloth and title colors) come from Bookshelf.astro. */
+.book {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(var(--w) * 1px * var(--k));
+  height: calc(var(--h) * 1px * var(--k));
+  border-radius: 3px 3px 2px 2px;
+  background-color: var(--spine);
+  background-image:
+    linear-gradient(90deg, rgba(0, 0, 0, 0.14), rgba(255, 255, 255, 0.1) 16%, rgba(255, 255, 255, 0) 45%, rgba(0, 0, 0, 0.06) 82%, rgba(0, 0, 0, 0.18)),
+    linear-gradient(rgba(255, 255, 255, 0.08), rgba(0, 0, 0, 0) 12%, rgba(0, 0, 0, 0) 90%, rgba(0, 0, 0, 0.08));
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.14);
+  color: var(--ink);
+  transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.35s ease;
+}
+
+/* The top edge of the pages. */
+.book::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 2px;
+  right: 2px;
+  height: 3px;
+  border-radius: 2px 2px 0 0;
+  background: linear-gradient(rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.12));
+}
+
+.book:hover,
+.book:focus-visible,
+.book.is-active {
+  color: var(--ink);
+  transform: translateY(calc(-12px * var(--k)));
+  box-shadow: 0 10px 16px -8px rgba(0, 0, 0, 0.35);
+}
+
+/* Vertical text: Latin titles run top to bottom, Chinese stays upright. A
+   title too long for one line wraps into a second, balanced one. */
+.book-title {
+  writing-mode: vertical-rl;
+  max-height: calc((var(--h) - 30) * 1px * var(--k));
+  overflow: hidden;
+  font-family: var(--serif);
+  font-size: calc(var(--fs) * 1px * var(--k));
+  line-height: 1.15;
+  letter-spacing: 0.02em;
+  text-align: center;
+  text-wrap: balance;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .book,
+  .book-card {
+    transition: none;
+  }
+}
+
 /* ========== Footer ========== */
 
 .footer {
@@ -823,6 +990,29 @@ section {
 
   .post-title {
     font-size: 17.5px;
+  }
+
+  .bookshelf {
+    --k: 0.86;
+  }
+
+  /* Narrow card: the link moves under the title. */
+  .book-card {
+    grid-template-columns: auto 1fr;
+    grid-template-areas: "n text" ". link";
+    column-gap: 0.75rem;
+    row-gap: 0.25rem;
+    min-height: 7rem;
+    padding: 0.6rem 0.85rem;
+  }
+
+  .book-card-link {
+    justify-self: start;
+    font-size: 14px;
+  }
+
+  .book-card-title {
+    font-size: 15.5px;
   }
 
   .prose {

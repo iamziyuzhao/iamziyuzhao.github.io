@@ -1,0 +1,160 @@
+---
+// A bookshelf of spines. Each spine's size, color and title layout are worked
+// out here at build time; the script below shows a card for the book under the
+// mouse (or tapped on a phone), with a link to buy it.
+import type { Book } from "../data/books";
+
+interface Props {
+  shelves: Book[][];
+}
+
+const { shelves } = Astro.props;
+
+// Muted cloth colors as [spine, title]. Neighbouring books step 5 places
+// through this list, so similar colors never end up side by side.
+const PALETTE: [string, string][] = [
+  ["#2f3d38", "#efe9dc"], // deep green
+  ["#e7e2d6", "#3b3833"], // cream
+  ["#b7ab7c", "#2f2c25"], // khaki
+  ["#ecebe7", "#555049"], // paper white
+  ["#8b9a82", "#f6f3ea"], // sage
+  ["#3d3b39", "#efe9dc"], // charcoal
+  ["#6f8489", "#f4f1ea"], // slate teal
+  ["#dcd5c6", "#3b3833"], // sand
+  ["#6c7b93", "#f4f1ea"], // grey blue
+  ["#8d7570", "#f4efe8"], // mauve
+  ["#6f8f87", "#f4f1ea"], // dusty teal
+  ["#a49b8c", "#2f2c25"], // taupe
+];
+
+const WIDTH = { thin: 26, medium: 30, thick: 36 };
+const CJK = /[㐀-鿿豈-﫿]/;
+
+/** Small stable hash, so a book keeps its height when the list is reordered. */
+function hash(s: string) {
+  let h = 7;
+  for (const ch of s) h = (h * 31 + ch.codePointAt(0)!) >>> 0;
+  return h;
+}
+
+/** Spine size (px at scale 1), title font size, line count and colors. */
+function layout(book: Book, n: number) {
+  const text = book.spine ?? book.title;
+  const height = 152 + (hash(book.title) % 28);
+  let width = WIDTH[book.thickness ?? "medium"];
+  const cjk = CJK.test(text);
+  const advance = cjk ? 1.04 : 0.56; // average glyph width, in em
+  const room = height - 30; // length of spine left for the title
+  const chars = [...text].length;
+  let lines = 1;
+  let size = room / (chars * advance);
+  if (size < 10) {
+    // Too long for one readable line: two balanced lines on a wider spine.
+    lines = 2;
+    size = Math.max(9, Math.min(12, room / ((chars / 2 + 2) * advance)));
+    width = Math.max(width, Math.round(size * 2.3 + 10));
+  }
+  size = Math.min(size, cjk ? 17 : 15, (width - 8) / 1.2);
+  const [spine, ink] = PALETTE[(n * 5) % PALETTE.length];
+  return { text, width, height, size: Math.round(size * 10) / 10, lines, spine, ink };
+}
+
+let count = 0;
+const rows = shelves.map((shelf) =>
+  shelf.map((book) => {
+    count += 1;
+    return { book, n: count, ...layout(book, count) };
+  }),
+);
+---
+
+<div class="bookshelf">
+  <div class="book-card" aria-hidden="true">
+    <span class="book-card-n"></span>
+    <span class="book-card-text">
+      <span class="book-card-title"></span>
+      <span class="book-card-author"></span>
+    </span>
+    <a class="book-card-link" target="_blank" rel="noopener" tabindex="-1"></a>
+  </div>
+  {rows.map((row) => (
+    <div class="shelf">
+      {row.map((s) => (
+        <a
+          class="book"
+          href={s.book.href}
+          target="_blank"
+          rel="noopener"
+          aria-label={`${s.book.title}, ${s.book.author}`}
+          data-n={s.n}
+          data-title={s.book.title}
+          data-author={s.book.author}
+          data-label={s.book.linkLabel ?? "Buy at Amazon"}
+          style={`--w:${s.width};--h:${s.height};--fs:${s.size};--spine:${s.spine};--ink:${s.ink}`}
+        >
+          <span class="book-title">{s.text}</span>
+        </a>
+      ))}
+    </div>
+  ))}
+</div>
+
+<script>
+  // The card follows the book under the mouse, or the one focused from the
+  // keyboard. On touch screens the first tap only picks a book; a second tap on
+  // it, or the card's link, opens it.
+  const shelf = document.querySelector<HTMLElement>(".bookshelf");
+
+  if (shelf) {
+    const card = shelf.querySelector<HTMLElement>(".book-card")!;
+    const part = (name: string) => card.querySelector<HTMLElement>(`.book-card-${name}`)!;
+    const link = part("link") as HTMLAnchorElement;
+    let active: HTMLAnchorElement | null = null;
+    let lastPointer = "mouse";
+
+    const pick = (book: HTMLAnchorElement | null) => {
+      if (book === active) return;
+      active?.classList.remove("is-active");
+      active = book;
+      shelf.classList.toggle("has-active", book !== null);
+      if (!book) return;
+      book.classList.add("is-active");
+      part("n").textContent = book.dataset.n!;
+      part("title").textContent = book.dataset.title!;
+      part("author").textContent = book.dataset.author!;
+      link.href = book.href;
+      link.textContent = book.dataset.label!;
+    };
+
+    for (const book of shelf.querySelectorAll<HTMLAnchorElement>(".book")) {
+      book.addEventListener("pointerenter", (e) => {
+        if (e.pointerType === "mouse") pick(book);
+      });
+      book.addEventListener("pointerdown", (e) => {
+        lastPointer = e.pointerType;
+      });
+      book.addEventListener("focus", () => {
+        if (book.matches(":focus-visible")) pick(book);
+      });
+      book.addEventListener("click", (e) => {
+        if (lastPointer !== "mouse" && book !== active) {
+          e.preventDefault();
+          pick(book);
+        }
+      });
+    }
+
+    shelf.addEventListener("pointerleave", (e) => {
+      if (e.pointerType === "mouse") pick(null);
+    });
+    shelf.addEventListener("focusout", (e) => {
+      if (!shelf.contains(e.relatedTarget as Node | null)) pick(null);
+    });
+    document.addEventListener("pointerdown", (e) => {
+      if (!shelf.contains(e.target as Node)) pick(null);
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") pick(null);
+    });
+  }
+</script>
