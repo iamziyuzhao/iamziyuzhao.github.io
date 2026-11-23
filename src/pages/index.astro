@@ -46,7 +46,10 @@ const repoStats = await fetchRepoStats(projects.flatMap((p) => (p.repo ? [p.repo
             {profile.researchInterests.map((topic) => <li>{topic}</li>)}
           </ul>
         </div>
-        <p class="motto">{profile.motto}</p>
+        <p class="motto">
+          <span class="motto-zh" lang="zh">{profile.motto.zh}</span>
+          <span class="motto-en">{profile.motto.en}</span>
+        </p>
       </div>
     </div>
   </header>
