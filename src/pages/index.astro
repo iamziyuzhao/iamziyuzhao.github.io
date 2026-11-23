@@ -1,7 +1,6 @@
 ---
 import Base from "../layouts/Base.astro";
 import Bookshelf from "../components/Bookshelf.astro";
-import AvatarMorph from "../components/AvatarMorph.astro";
 import LogoMark from "../components/LogoMark.astro";
 import RepoStats from "../components/RepoStats.astro";
 import { books } from "../data/books";
@@ -36,7 +35,12 @@ const repoStats = await fetchRepoStats(projects.flatMap((p) => (p.repo ? [p.repo
       </nav>
     </div>
     <div class="profile-side">
-      <AvatarMorph photo={profile.photo} alterEgo={profile.alterEgo} morph={profile.morph} />
+      <button class="profile-photo" type="button" aria-pressed="false" aria-label="Flip the photo">
+        <span class="flip-card">
+          <img class="flip-front" src={profile.photo} alt="Ziyu (Albert) Zhao" width="1280" height="960" />
+          <img class="flip-back" src={profile.alterEgo.src} alt={profile.alterEgo.alt} width="480" height="480" fetchpriority="high" />
+        </span>
+      </button>
       <div class="research-interests">
         <div class="interests-list">
           <h2>Research Interests</h2>
@@ -169,3 +173,17 @@ const repoStats = await fetchRepoStats(projects.flatMap((p) => (p.repo ? [p.repo
     <Bookshelf books={books} />
   </section>
 </Base>
+
+<script>
+  // Touch screens have no hover: a tap flips the photo, another tap flips it
+  // back. On desktop a click pins the flipped side until clicked again.
+  const side = document.querySelector(".profile-side");
+  const photo = side?.querySelector(".profile-photo");
+  if (side && photo) {
+    photo.addEventListener("click", () => {
+      const flipped = side.classList.toggle("is-flipped");
+      photo.setAttribute("aria-pressed", String(flipped));
+    });
+
+  }
+</script>
