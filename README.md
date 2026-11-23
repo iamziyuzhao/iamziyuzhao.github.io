@@ -15,7 +15,28 @@ npm install       # install dependencies
 npm run dev       # dev server at http://localhost:4321
 npm run build     # production build to dist/
 npm run preview   # serve the production build locally
+npm test          # check avatar interaction, loading, and motion preferences
 ```
+
+## Avatar transformation
+
+The homepage opens on Sun Wukong, holds for 850 ms after the images load, then
+transforms into Albert over 1.7 seconds. Hovering reveals Wukong; leaving restores
+Albert. Touch and keyboard activation toggle the portraits. Visitors with reduced
+motion enabled see the photo first and switch without animation.
+
+- `src/components/AvatarMorph.astro` contains the accessible button and image loading setup.
+- `src/scripts/avatar-controller.ts` controls timing and input. Change the four
+  `*_MS` constants to tune the opening pause and transition durations.
+- `src/scripts/avatar-renderer.ts` blends adjacent frames of the existing morph
+  strip and draws the brief gold glow, clouds, and particles. It does no drawing
+  while the avatar is still.
+- `src/styles/global.css` controls the avatar frame and its outer glow.
+
+The two still images and the morph strip are configured in `src/data/profile.ts`.
+Changing either image also requires regenerating the matching morph strip with
+`tools/morph.py`; it contains manually aligned face/body landmarks for these images.
+If the animation asset cannot load, the controller falls back to still images.
 
 ## Project structure
 

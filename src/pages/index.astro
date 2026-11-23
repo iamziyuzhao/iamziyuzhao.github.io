@@ -1,6 +1,7 @@
 ---
 import Base from "../layouts/Base.astro";
 import Bookshelf from "../components/Bookshelf.astro";
+import AvatarMorph from "../components/AvatarMorph.astro";
 import LogoMark from "../components/LogoMark.astro";
 import RepoStats from "../components/RepoStats.astro";
 import { books } from "../data/books";
@@ -34,14 +35,8 @@ const repoStats = await fetchRepoStats(projects.flatMap((p) => (p.repo ? [p.repo
         {profile.links.map((link) => <a href={link.href}>{link.label}</a>)}
       </nav>
     </div>
-    <div class="profile-side" data-morph-src={profile.morph.src} data-morph-frames={profile.morph.frames}>
-      <button class="profile-photo" type="button" aria-pressed="false" aria-label="Turn into Sun Wukong">
-        <span class="flip-card">
-          <img class="flip-front" src={profile.photo} alt="Ziyu (Albert) Zhao" width="1280" height="960" />
-          <img class="flip-back" src={profile.alterEgo.src} alt={profile.alterEgo.alt} width="480" height="480" fetchpriority="high" />
-          <span class="morph" aria-hidden="true"></span>
-        </span>
-      </button>
+    <div class="profile-side">
+      <AvatarMorph photo={profile.photo} alterEgo={profile.alterEgo} morph={profile.morph} />
       <div class="research-interests">
         <div class="interests-list">
           <h2>Research Interests</h2>
@@ -55,9 +50,6 @@ const repoStats = await fetchRepoStats(projects.flatMap((p) => (p.repo ? [p.repo
         </p>
       </div>
     </div>
-    <script is:inline>
-      document.querySelector(".profile-side").classList.add("is-flipped");
-    </script>
   </header>
 
   <section>
@@ -177,96 +169,3 @@ const repoStats = await fetchRepoStats(projects.flatMap((p) => (p.repo ? [p.repo
     <Bookshelf books={books} />
   </section>
 </Base>
-
-<script>
-  // Wukong <-> photo morph. The page opens on Wukong (an inline script adds
-  // .is-flipped before first paint); 1.5s in, the morph strip plays and
-  // Wukong turns into the photo. Hover, focus, or a tap plays it backwards
-  // (photo -> Wukong); leaving plays it forward again. A run that is
-  // interrupted turns around from the frame it is on.
-  const side = document.querySelector<HTMLElement>(".profile-side");
-  const photo = side?.querySelector<HTMLButtonElement>(".profile-photo");
-  const morph = side?.querySelector<HTMLElement>(".morph");
-  if (side && photo && morph) {
-    const FRAMES = Number(side.dataset.morphFrames);
-    const LAST = FRAMES - 1;
-    const FULL_MS = 1300; // one full Wukong -> photo run
-    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-    let frame = 0; // the page opens on Wukong
-    let raf = 0;
-    let pinned = false; // a tap/click keeps Wukong up until tapped again
-    let ready = false;
-
-    const show = (f: number) => {
-      morph.style.backgroundPositionX = `${(f / LAST) * 100}%`;
-    };
-    // the static picture underneath and the text follow the target side
-    const setSide = (wukong: boolean) => {
-      side.classList.toggle("is-flipped", wukong);
-      photo.setAttribute("aria-pressed", String(wukong));
-    };
-
-    const animateTo = (target: number) => {
-      cancelAnimationFrame(raf);
-      setSide(target === 0);
-      if (reduceMotion || !ready || frame === target) {
-        frame = target;
-        morph.classList.remove("is-playing");
-        return;
-      }
-      const from = frame;
-      const duration = (FULL_MS * Math.abs(target - from)) / LAST;
-      const start = performance.now();
-      morph.classList.add("is-playing");
-      const step = (now: number) => {
-        const t = Math.min(1, (now - start) / duration);
-        frame = Math.round(from + (target - from) * t);
-        show(frame);
-        if (t < 1) raf = requestAnimationFrame(step);
-        else morph.classList.remove("is-playing");
-      };
-      show(from);
-      raf = requestAnimationFrame(step);
-    };
-
-    const toWukong = () => animateTo(0);
-    const toPhoto = () => {
-      if (!pinned) animateTo(LAST);
-    };
-
-    // load the strip, then open the show 1.5s after the page started
-    const strip = new Image();
-    strip.src = side.dataset.morphSrc ?? "";
-    strip
-      .decode()
-      .then(() => {
-        morph.style.backgroundImage = `url(${strip.src})`;
-        ready = true;
-        const wait = Math.max(0, 1500 - performance.now());
-        window.setTimeout(() => {
-          if (frame === 0 && !pinned && !photo.matches(":hover")) toPhoto();
-        }, wait);
-      })
-      .catch(() => {
-        // no strip: fall back to a plain swap after the same pause
-        window.setTimeout(() => toPhoto(), 1500);
-      });
-
-    photo.addEventListener("pointerenter", (e) => {
-      if (e.pointerType === "mouse") toWukong();
-    });
-    photo.addEventListener("pointerleave", (e) => {
-      if (e.pointerType === "mouse") toPhoto();
-    });
-    photo.addEventListener("focus", () => {
-      if (photo.matches(":focus-visible")) toWukong();
-    });
-    photo.addEventListener("blur", toPhoto);
-    photo.addEventListener("click", () => {
-      pinned = !pinned;
-      if (pinned) toWukong();
-      else animateTo(LAST);
-    });
-  }
-</script>

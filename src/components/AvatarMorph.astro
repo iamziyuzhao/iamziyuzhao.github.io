@@ -1,0 +1,63 @@
+---
+interface Props {
+  photo: string;
+  alterEgo: { src: string; alt: string };
+  morph: { src: string; frames: number };
+}
+const { photo, alterEgo, morph } = Astro.props;
+---
+
+<button
+  class="profile-photo"
+  type="button"
+  aria-pressed="false"
+  aria-label="Show Sun Wukong portrait"
+  aria-describedby="avatar-instructions"
+  title="Hover to transform into Sun Wukong · Tap to switch"
+  data-morph-src={morph.src}
+  data-morph-frames={morph.frames}
+>
+  <span class="avatar-frame">
+    <img class="avatar-photo" src={photo} alt="Ziyu (Albert) Zhao" width="1280" height="960" fetchpriority="high" />
+    <img class="avatar-wukong" src={alterEgo.src} alt="" aria-hidden="true" width="480" height="480" fetchpriority="high" />
+    <canvas class="avatar-morph" width="480" height="480" aria-hidden="true"></canvas>
+  </span>
+</button>
+<span class="visually-hidden" id="avatar-instructions">
+  Albert's portrait transforms into Sun Wukong on hover. Tap, or press Enter or Space, to switch portraits.
+</span>
+
+<script is:inline>
+  // Set the opening image before first paint. Without JavaScript, the photo
+  // stays visible; reduced-motion visitors also begin with the photo.
+  (() => {
+    const button = document.currentScript?.previousElementSibling?.previousElementSibling;
+    if (!button || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    button.closest(".profile-side")?.classList.add("is-flipped");
+    button.setAttribute("aria-pressed", "true");
+  })();
+</script>
+
+<script>
+  import { initAvatarMotion } from "../scripts/avatar-controller";
+  import { createAvatarRenderer } from "../scripts/avatar-renderer";
+
+  const button = document.querySelector<HTMLButtonElement>(".profile-photo");
+  const side = button?.closest<HTMLElement>(".profile-side");
+  const canvas = button?.querySelector<HTMLCanvasElement>(".avatar-morph");
+  if (button && side && canvas) {
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const renderer = createAvatarRenderer(button, canvas);
+    initAvatarMotion({
+      button,
+      reduceMotion,
+      ready: renderer.ready,
+      initialWukong: side.classList.contains("is-flipped"),
+      render: renderer.render,
+      setState: (wukong) => {
+        side.classList.toggle("is-flipped", wukong);
+        button.setAttribute("aria-pressed", String(wukong));
+      },
+    });
+  }
+</script>
