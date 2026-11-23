@@ -18,14 +18,13 @@ export interface Book {
 export const shelves: Book[][] = [
   // Investing and business
   [
-    { title: "The Intelligent Investor", author: "Benjamin Graham", href: "https://www.amazon.com/dp/0060555661", thickness: "thick" },
     { title: "一个投机者的告白·实战版", author: "安纳金", href: "https://www.amazon.com/dp/B07PRG1PZL" },
     { title: "大道：段永平投资问答录", author: "段永平", href: "https://www.amazon.com/dp/7521774663", thickness: "thick" },
     { title: "Principles: Life and Work", spine: "Principles", author: "Ray Dalio", href: "https://www.amazon.com/dp/1501124021", thickness: "thick" },
     { title: "Principles for Navigating Big Debt Crises", spine: "Big Debt Crises", author: "Ray Dalio", href: "https://www.amazon.com/dp/1668009293", thickness: "thick" },
     { title: "Only the Paranoid Survive", author: "Andrew S. Grove", href: "https://www.amazon.com/dp/0385483821" },
     { title: "Influence: The Psychology of Persuasion", spine: "Influence", author: "Robert B. Cialdini", href: "https://www.amazon.com/dp/006124189X" },
-    { title: "A Compass to Fulfillment", author: "Kazuo Inamori", href: "https://www.amazon.com/dp/0071615091", thickness: "thin" },
+    { title: "活法", author: "稻盛和夫", href: "https://www.amazon.com/dp/B07B4SXZBJ", thickness: "thin" },
     { title: "干法", author: "稻盛和夫", href: "https://www.amazon.com/dp/7111635574", thickness: "thin" },
     { title: "心法：稻盛和夫的哲学", spine: "心法", author: "稻盛和夫", href: "https://www.amazon.com/dp/B00KWXCDTG", thickness: "thin" },
   ],
