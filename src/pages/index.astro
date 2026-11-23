@@ -181,8 +181,43 @@ const repoStats = await fetchRepoStats(projects.flatMap((p) => (p.repo ? [p.repo
   const photo = side?.querySelector(".profile-photo");
   if (side && photo) {
     photo.addEventListener("click", () => {
+      side.classList.remove("is-peeking");
       const flipped = side.classList.toggle("is-flipped");
       photo.setAttribute("aria-pressed", String(flipped));
     });
+
+    // First visit only: after a moment the photo turns over by itself, shows
+    // Wukong and the motto for a few seconds, then turns back, so visitors
+    // learn the card has a back. Skipped for reduced motion and repeat visits.
+    const SEEN_KEY = "wukong-peek-seen";
+    const seen = () => {
+      try {
+        return localStorage.getItem(SEEN_KEY) === "1";
+      } catch {
+        return false;
+      }
+    };
+    const markSeen = () => {
+      try {
+        localStorage.setItem(SEEN_KEY, "1");
+      } catch {
+        /* private mode etc.: the peek may simply show again next time */
+      }
+    };
+    const back = side.querySelector<HTMLImageElement>(".flip-back");
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (!seen() && !reduceMotion && back) {
+      const peek = () => {
+        if (side.classList.contains("is-flipped")) return; // visitor already flipped it
+        side.classList.add("is-peeking");
+        markSeen();
+        window.setTimeout(() => side.classList.remove("is-peeking"), 3200);
+      };
+      // wait for the back image so the card never turns to a blank face
+      back
+        .decode()
+        .catch(() => undefined)
+        .then(() => window.setTimeout(peek, 1500));
+    }
   }
 </script>

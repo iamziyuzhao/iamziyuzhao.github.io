@@ -172,7 +172,8 @@ img {
   transform: rotateY(180deg);
 }
 
-.profile-side.is-flipped .flip-card {
+.profile-side.is-flipped .flip-card,
+.profile-side.is-peeking .flip-card {
   transform: rotateY(180deg);
 }
 
@@ -215,12 +216,14 @@ img {
   color: var(--muted);
 }
 
-.profile-side.is-flipped .interests-list {
+.profile-side.is-flipped .interests-list,
+.profile-side.is-peeking .interests-list {
   opacity: 0;
   visibility: hidden;
 }
 
-.profile-side.is-flipped .motto {
+.profile-side.is-flipped .motto,
+.profile-side.is-peeking .motto {
   opacity: 1;
   visibility: visible;
 }
