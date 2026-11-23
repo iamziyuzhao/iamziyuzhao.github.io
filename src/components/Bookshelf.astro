@@ -38,24 +38,38 @@ function hash(s: string) {
   return h;
 }
 
-/** Spine size (px at scale 1), title font size and colors. */
+const LINE_HEIGHT = 1.15; // keep in step with .book-title in global.css
+
+/** Font size and line count for `text` set vertically along `room` px: the
+ *  fewest lines (up to 3) that keep it at least `min` px, at most `max` px. */
+function fit(text: string, room: number, max: number, min: number) {
+  const advance = CJK.test(text) ? 1.04 : 0.56; // average glyph width, in em
+  const chars = [...text].length;
+  for (let lines = 1; lines <= 3; lines++) {
+    // A wrapped line breaks between words, so leave it a little slack.
+    const perLine = lines === 1 ? chars : chars / lines + 2;
+    const size = room / (perLine * advance);
+    if (size >= min) return { size: Math.min(size, lines === 1 ? max : Math.min(max, 12)), lines };
+  }
+  return { size: min, lines: 3 };
+}
+
+/** Spine size (px at scale 1), title and subtitle font sizes, and colors. A
+ *  title with a colon puts the part after it in a smaller subtitle. */
 function layout(book: Book, n: number) {
   const text = book.spine ?? book.title;
+  const [, main = text, sub = ""] = text.match(/^(.+?)\s*[:：]\s*(.+)$/) ?? [];
   const height = 152 + (hash(book.title) % 28);
-  let width = WIDTH[book.thickness ?? "medium"];
-  const cjk = CJK.test(text);
-  const advance = cjk ? 1.04 : 0.56; // average glyph width, in em
   const room = height - 30; // length of spine left for the title
-  const chars = [...text].length;
-  let size = room / (chars * advance);
-  if (size < 10) {
-    // Too long for one readable line: two balanced lines on a wider spine.
-    size = Math.max(9, Math.min(12, room / ((chars / 2 + 2) * advance)));
-    width = Math.max(width, Math.round(size * 2.3 + 10));
-  }
-  size = Math.min(size, cjk ? 17 : 15, (width - 8) / 1.2);
+
+  const m = fit(main, room, CJK.test(main) ? 17 : 15, 10);
+  const s = sub ? fit(sub, room, Math.min(9.5, m.size * 0.75), 7.5) : null;
+  const columns = m.lines * m.size + (s ? s.lines * s.size + 2 / LINE_HEIGHT : 0);
+  const width = Math.max(WIDTH[book.thickness ?? "medium"], Math.round(columns * LINE_HEIGHT + 9));
+
   const [spine, ink] = PALETTE[(n * 5) % PALETTE.length];
-  return { text, width, height, size: Math.round(size * 10) / 10, spine, ink };
+  const round = (x: number) => Math.round(x * 10) / 10;
+  return { main, sub, width, height, size: round(m.size), subSize: s ? round(s.size) : 0, spine, ink };
 }
 
 const spines = books.map((book, i) => ({ book, n: i + 1, ...layout(book, i + 1) }));
@@ -83,9 +97,12 @@ const spines = books.map((book, i) => ({ book, n: i + 1, ...layout(book, i + 1) 
           data-title={s.book.title}
           data-author={s.book.author}
           data-label={s.book.linkLabel ?? "Buy at Amazon"}
-          style={`--w:${s.width};--h:${s.height};--fs:${s.size};--spine:${s.spine};--ink:${s.ink}`}
+          style={`--w:${s.width};--h:${s.height};--fs:${s.size};--fs2:${s.subSize};--spine:${s.spine};--ink:${s.ink}`}
         >
-          <span class="book-title">{s.text}</span>
+          <span class="book-title">
+            <span class="book-main">{s.main}</span>
+            {s.sub && <span class="book-sub">{s.sub}</span>}
+          </span>
         </a>
       ))}
     </div>

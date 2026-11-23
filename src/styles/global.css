@@ -716,18 +716,33 @@ section {
   box-shadow: 0 10px 16px -8px rgba(0, 0, 0, 0.35);
 }
 
-/* Vertical text: Latin titles run top to bottom, Chinese stays upright. A
-   title too long for one line wraps into a second, balanced one. */
+/* Vertical text: Latin titles run top to bottom, Chinese stays upright. The
+   title (--fs) and the smaller subtitle (--fs2) each wrap into balanced lines
+   when they are too long for one. */
 .book-title {
   writing-mode: vertical-rl;
   max-height: calc((var(--h) - 30) * 1px * var(--k));
   overflow: hidden;
   font-family: var(--serif);
-  font-size: calc(var(--fs) * 1px * var(--k));
   line-height: 1.15;
   letter-spacing: 0.02em;
   text-align: center;
+}
+
+.book-main,
+.book-sub {
+  display: block;
   text-wrap: balance;
+}
+
+.book-main {
+  font-size: calc(var(--fs) * 1px * var(--k));
+}
+
+.book-sub {
+  margin-block-start: calc(2px * var(--k));
+  font-size: calc(var(--fs2) * 1px * var(--k));
+  opacity: 0.85;
 }
 
 @media (prefers-reduced-motion: reduce) {
