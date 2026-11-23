@@ -33,8 +33,16 @@ const repoStats = await fetchRepoStats(projects.flatMap((p) => (p.repo ? [p.repo
         {profile.links.map((link) => <a href={link.href}>{link.label}</a>)}
       </nav>
     </div>
-    <div class="profile-photo">
-      <img src={profile.photo} alt="Ziyu (Albert) Zhao" width="1280" height="960" />
+    <div class="profile-side">
+      <div class="profile-photo">
+        <img src={profile.photo} alt="Ziyu (Albert) Zhao" width="1280" height="960" />
+      </div>
+      <div class="research-interests">
+        <h2>Research Interests</h2>
+        <ul>
+          {profile.researchInterests.map((topic) => <li>{topic}</li>)}
+        </ul>
+      </div>
     </div>
   </header>
 

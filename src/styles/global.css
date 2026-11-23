@@ -129,7 +129,8 @@ img {
   margin: 0 0 0.8rem;
 }
 
-.profile-photo {
+/* Right-hand column: the photo, with research interests under it. */
+.profile-side {
   flex-shrink: 0;
   width: 240px;
 }
@@ -147,6 +148,49 @@ img {
 .profile-photo img:hover {
   box-shadow: 0 0 0 4px var(--bg), 0 0 0 5.5px var(--accent), var(--shadow-hover);
   transform: scale(1.02);
+}
+
+.research-interests {
+  margin-top: 1.75rem;
+}
+
+.research-interests h2 {
+  margin: 0 0 0.6rem;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.research-interests ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.research-interests li {
+  position: relative;
+  padding-left: 1rem;
+  font-size: 15px;
+  line-height: 1.5;
+  text-wrap: balance; /* split long items into even lines, no lone last word */
+}
+
+.research-interests li + li {
+  margin-top: 0.35rem;
+}
+
+/* Small accent-colored dot in place of a list bullet. */
+.research-interests li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.6em;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
 }
 
 .social-links {
@@ -583,7 +627,7 @@ section {
   }
 
   .profile {
-    flex-direction: column-reverse;
+    flex-direction: column;
     align-items: center;
     text-align: center;
     gap: 1.5rem;
@@ -598,6 +642,22 @@ section {
   .profile-photo img {
     width: 160px;
     height: 160px;
+  }
+
+  /* On phones the photo leads, then the bio, then the interests list. */
+  .profile-side {
+    display: contents;
+  }
+
+  .profile-photo {
+    order: -1;
+  }
+
+  .research-interests {
+    order: 1;
+    width: min(100%, 320px); /* a centered block; text stays left-aligned */
+    margin-top: 0;
+    text-align: left;
   }
 
   .profile-info h1 {

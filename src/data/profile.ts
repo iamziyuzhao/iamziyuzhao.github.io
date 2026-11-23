@@ -65,6 +65,14 @@ export const profile = {
   name: "Ziyu Zhao",
   nickname: "Albert",
   photo: "/images/albert-zhao.jpg",
+  /** Listed under the photo. */
+  researchInterests: [
+    "LLM Agents",
+    "Recursive Self-Improvement",
+    "Reinforcement & Continual Learning",
+    // The   (no-break spaces) keep "(training & inference)" on one line when this item wraps.
+    "Efficient ML Systems (training & inference) for LLMs",
+  ],
   // Fill in to show an "Email" button next to the links below.
   email: "",
   links: [
