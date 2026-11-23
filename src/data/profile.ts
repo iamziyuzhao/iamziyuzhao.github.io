@@ -176,7 +176,7 @@ export const experience: ExperienceEntry[] = [
     org: "GetMyHome.ai (now RealKey)",
     href: "https://www.realkey.ai/",
     logos: [{ src: "/logos/provided/getmyhome.svg", alt: "GetMyHome.ai" }],
-    role: "Machine Learning Engineer",
+    role: "Founding Machine Learning Engineer",
     date: "Oct 2024 – Sep 2025",
     detail:
       `Founding team member (${link("$1.5M pre-seed round", preSeedArticle)}). Worked on multi-agent infrastructure, retrieval and ranking algorithms, and recommender systems.`,
