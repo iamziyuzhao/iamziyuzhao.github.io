@@ -33,14 +33,20 @@ const repoStats = await fetchRepoStats(projects.flatMap((p) => (p.repo ? [p.repo
       </nav>
     </div>
     <div class="profile-side">
-      <div class="profile-photo">
-        <img src={profile.photo} alt="Ziyu (Albert) Zhao" width="1280" height="960" />
-      </div>
+      <button class="profile-photo" type="button" aria-pressed="false" aria-label="Flip the photo">
+        <span class="flip-card">
+          <img class="flip-front" src={profile.photo} alt="Ziyu (Albert) Zhao" width="1280" height="960" />
+          <img class="flip-back" src={profile.alterEgo.src} alt={profile.alterEgo.alt} width="480" height="480" />
+        </span>
+      </button>
       <div class="research-interests">
-        <h2>Research Interests</h2>
-        <ul>
-          {profile.researchInterests.map((topic) => <li>{topic}</li>)}
-        </ul>
+        <div class="interests-list">
+          <h2>Research Interests</h2>
+          <ul>
+            {profile.researchInterests.map((topic) => <li>{topic}</li>)}
+          </ul>
+        </div>
+        <p class="motto">{profile.motto}</p>
       </div>
     </div>
   </header>
@@ -154,3 +160,16 @@ const repoStats = await fetchRepoStats(projects.flatMap((p) => (p.repo ? [p.repo
     {posts.length > latestPosts.length && <p class="more-link"><a href="/blog/">All posts →</a></p>}
   </section>
 </Base>
+
+<script>
+  // Touch screens have no hover: a tap flips the photo, another tap flips it
+  // back. On desktop a click pins the flipped side until clicked again.
+  const side = document.querySelector(".profile-side");
+  const photo = side?.querySelector(".profile-photo");
+  if (side && photo) {
+    photo.addEventListener("click", () => {
+      const flipped = side.classList.toggle("is-flipped");
+      photo.setAttribute("aria-pressed", String(flipped));
+    });
+  }
+</script>
