@@ -68,10 +68,10 @@ export const profile = {
   /** Listed under the photo. */
   researchInterests: [
     "LLM Agents",
+    // \u00a0 is a no-break space: it keeps "(training & inference)" together if this item wraps.
+    "ML Systems (training\u00a0&\u00a0inference)",
+    "Reinforcement Learning",
     "Recursive Self-Improvement",
-    "Reinforcement & Continual Learning",
-    // The   (no-break spaces) keep "(training & inference)" on one line when this item wraps.
-    "Efficient ML Systems (training & inference) for LLMs",
   ],
   // Fill in to show an "Email" button next to the links below.
   email: "",
