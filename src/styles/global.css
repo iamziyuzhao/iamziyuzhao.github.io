@@ -242,21 +242,21 @@ img {
   }
 }
 
-/* Every page load opens on the Wukong side with the motto, holds it for 1.5
+/* Every page load opens on the Wukong side with the motto, holds it for 2.2
    seconds, then turns to the photo. "backwards" fill applies the first
    keyframe during the delay and then hands back to the normal styles, so
    hover and tap keep working afterwards. */
 @media (prefers-reduced-motion: no-preference) {
   .flip-card {
-    animation: open-on-wukong 0.7s cubic-bezier(0.4, 0.2, 0.2, 1) 1.5s backwards;
+    animation: open-on-wukong 0.7s cubic-bezier(0.4, 0.2, 0.2, 1) 2.2s backwards;
   }
 
   .motto {
-    animation: motto-leaves 0.4s ease 1.65s backwards;
+    animation: motto-leaves 0.4s ease 2.35s backwards;
   }
 
   .interests-list {
-    animation: interests-return 0.4s ease 1.65s backwards;
+    animation: interests-return 0.4s ease 2.35s backwards;
   }
 }
 
