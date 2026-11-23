@@ -39,4 +39,5 @@ export const books: Book[] = [
   { title: "The Autobiography of Benjamin Franklin", author: "Benjamin Franklin", href: "https://www.amazon.com/dp/0486290735", thickness: "thin" },
   { title: "Zen Mind, Beginner's Mind", author: "Shunryu Suzuki", href: "https://www.amazon.com/dp/1611808413", thickness: "thin" },
   { title: "上海交通大学生存手册", author: "交大生存手册编委会", href: "https://survivesjtu.gitbook.io/survivesjtumanual/", thickness: "thin", linkLabel: "Read online" },
+  { title: "Artificial Intelligence: A Modern Approach", author: "Stuart Russell & Peter Norvig", href: "https://www.amazon.com/dp/0134610997", thickness: "thick" },
 ];
