@@ -198,7 +198,7 @@ export const projects: ProjectEntry[] = [
     repo: "Infini-AI-Lab/hermit",
     logos: [{ src: "/logos/hermit.svg", alt: "Hermit" }],
     venue: "Open Source",
-    role: "Co-Creator & Maintainer",
+    role: "Co-Creator & Core Maintainer",
     summary:
       "Hermit is a framework for training, evaluating, and deploying harness plugins, with support for multiple harness evolution algorithms. It recursively self-improves your agent for new tasks while keeping your existing model and harness unchanged.",
   },
