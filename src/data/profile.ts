@@ -73,13 +73,13 @@ export const profile = {
     "Reinforcement Learning",
     "Recursive Self-Improvement",
   ],
-  // Fill in to show an "Email" button next to the links below.
-  email: "",
+  // The buttons under the bio, in this order.
   links: [
     { label: "Google Scholar", href: "https://scholar.google.com/citations?user=EEtVlGoAAAAJ&hl=en" },
     { label: "GitHub", href: "https://github.com/iamziyuzhao" },
     { label: "X", href: "https://x.com/albertzzhao" },
     { label: "LinkedIn", href: "https://www.linkedin.com/in/albertzzhao/" },
+    { label: "Email", href: "mailto:ziyuzhao@andrew.cmu.edu" },
     { label: "Blog", href: "/blog/" },
   ] as ProfileLink[],
 };

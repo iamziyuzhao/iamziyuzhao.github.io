@@ -29,7 +29,6 @@ const repoStats = await fetchRepoStats(projects.flatMap((p) => (p.repo ? [p.repo
         During my undergraduate studies at the University of Rochester, I was glad to work with the Google Cloud team that built search and API infrastructure at <a href="https://www.haystackteam.com/key-features/universal-search" target="_blank" rel="noreferrer">Haystack</a>. Inspired by the power of search and recommendation algorithms, several colleagues and I founded the AI company GetMyHome.ai (now <a href="https://www.realkey.ai/" target="_blank" rel="noreferrer">RealKey</a>), where we raised <a href={preSeedArticle} target="_blank" rel="noreferrer">$1.5 million</a> in a pre-seed round.
       </p>
       <nav class="social-links" aria-label="Profile links">
-        {profile.email && <a href={`mailto:${profile.email}`}>Email</a>}
         {profile.links.map((link) => <a href={link.href}>{link.label}</a>)}
       </nav>
     </div>
