@@ -172,8 +172,7 @@ img {
   transform: rotateY(180deg);
 }
 
-.profile-side.is-flipped .flip-card,
-.profile-side.is-peeking .flip-card {
+.profile-side.is-flipped .flip-card {
   transform: rotateY(180deg);
 }
 
@@ -216,14 +215,12 @@ img {
   color: var(--muted);
 }
 
-.profile-side.is-flipped .interests-list,
-.profile-side.is-peeking .interests-list {
+.profile-side.is-flipped .interests-list {
   opacity: 0;
   visibility: hidden;
 }
 
-.profile-side.is-flipped .motto,
-.profile-side.is-peeking .motto {
+.profile-side.is-flipped .motto {
   opacity: 1;
   visibility: visible;
 }
@@ -240,6 +237,55 @@ img {
   }
 
   .profile-side:has(.profile-photo:hover, .profile-photo:focus-visible) .motto {
+    opacity: 1;
+    visibility: visible;
+  }
+}
+
+/* Every page load opens on the Wukong side with the motto, holds it for a
+   second, then turns to the photo. "backwards" fill applies the first
+   keyframe during the delay and then hands back to the normal styles, so
+   hover and tap keep working afterwards. */
+@media (prefers-reduced-motion: no-preference) {
+  .flip-card {
+    animation: open-on-wukong 0.7s cubic-bezier(0.4, 0.2, 0.2, 1) 1s backwards;
+  }
+
+  .motto {
+    animation: motto-leaves 0.4s ease 1.15s backwards;
+  }
+
+  .interests-list {
+    animation: interests-return 0.4s ease 1.15s backwards;
+  }
+}
+
+@keyframes open-on-wukong {
+  from {
+    transform: rotateY(180deg);
+  }
+  to {
+    transform: rotateY(0deg);
+  }
+}
+
+@keyframes motto-leaves {
+  from {
+    opacity: 1;
+    visibility: visible;
+  }
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+
+@keyframes interests-return {
+  from {
+    opacity: 0;
+    visibility: hidden;
+  }
+  to {
     opacity: 1;
     visibility: visible;
   }

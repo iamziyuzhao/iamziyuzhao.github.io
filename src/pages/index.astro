@@ -38,7 +38,7 @@ const repoStats = await fetchRepoStats(projects.flatMap((p) => (p.repo ? [p.repo
       <button class="profile-photo" type="button" aria-pressed="false" aria-label="Flip the photo">
         <span class="flip-card">
           <img class="flip-front" src={profile.photo} alt="Ziyu (Albert) Zhao" width="1280" height="960" />
-          <img class="flip-back" src={profile.alterEgo.src} alt={profile.alterEgo.alt} width="480" height="480" />
+          <img class="flip-back" src={profile.alterEgo.src} alt={profile.alterEgo.alt} width="480" height="480" fetchpriority="high" />
         </span>
       </button>
       <div class="research-interests">
@@ -181,30 +181,9 @@ const repoStats = await fetchRepoStats(projects.flatMap((p) => (p.repo ? [p.repo
   const photo = side?.querySelector(".profile-photo");
   if (side && photo) {
     photo.addEventListener("click", () => {
-      side.classList.remove("is-peeking");
       const flipped = side.classList.toggle("is-flipped");
       photo.setAttribute("aria-pressed", String(flipped));
     });
 
-    // On every page load (first visit or refresh): after a moment the photo
-    // turns over by itself, holds Wukong and the motto for about a second,
-    // then turns back, so visitors learn the card has a back. Skipped for
-    // reduced motion.
-    const FLIP_MS = 700; // matches the .flip-card transition
-    const HOLD_MS = 1000;
-    const back = side.querySelector<HTMLImageElement>(".flip-back");
-    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (!reduceMotion && back) {
-      const peek = () => {
-        if (side.classList.contains("is-flipped")) return; // visitor already flipped it
-        side.classList.add("is-peeking");
-        window.setTimeout(() => side.classList.remove("is-peeking"), FLIP_MS + HOLD_MS);
-      };
-      // wait for the back image so the card never turns to a blank face
-      back
-        .decode()
-        .catch(() => undefined)
-        .then(() => window.setTimeout(peek, 1500));
-    }
   }
 </script>
