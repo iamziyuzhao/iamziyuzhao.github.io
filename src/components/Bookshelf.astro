@@ -1,14 +1,15 @@
 ---
 // A bookshelf of spines. Each spine's size, color and title layout are worked
-// out here at build time; the script below shows a card for the book under the
-// mouse (or tapped on a phone), with a link to buy it.
+// out here at build time. The script below lays the books out to fit the page
+// (one row when it is wide enough, otherwise rows of about equal length) and
+// shows a card for the book under the mouse, or tapped on a phone.
 import type { Book } from "../data/books";
 
 interface Props {
-  shelves: Book[][];
+  books: Book[];
 }
 
-const { shelves } = Astro.props;
+const { books } = Astro.props;
 
 // Muted cloth colors as [spine, title]. Neighbouring books step 5 places
 // through this list, so similar colors never end up side by side.
@@ -37,7 +38,7 @@ function hash(s: string) {
   return h;
 }
 
-/** Spine size (px at scale 1), title font size, line count and colors. */
+/** Spine size (px at scale 1), title font size and colors. */
 function layout(book: Book, n: number) {
   const text = book.spine ?? book.title;
   const height = 152 + (hash(book.title) % 28);
@@ -46,26 +47,18 @@ function layout(book: Book, n: number) {
   const advance = cjk ? 1.04 : 0.56; // average glyph width, in em
   const room = height - 30; // length of spine left for the title
   const chars = [...text].length;
-  let lines = 1;
   let size = room / (chars * advance);
   if (size < 10) {
     // Too long for one readable line: two balanced lines on a wider spine.
-    lines = 2;
     size = Math.max(9, Math.min(12, room / ((chars / 2 + 2) * advance)));
     width = Math.max(width, Math.round(size * 2.3 + 10));
   }
   size = Math.min(size, cjk ? 17 : 15, (width - 8) / 1.2);
   const [spine, ink] = PALETTE[(n * 5) % PALETTE.length];
-  return { text, width, height, size: Math.round(size * 10) / 10, lines, spine, ink };
+  return { text, width, height, size: Math.round(size * 10) / 10, spine, ink };
 }
 
-let count = 0;
-const rows = shelves.map((shelf) =>
-  shelf.map((book) => {
-    count += 1;
-    return { book, n: count, ...layout(book, count) };
-  }),
-);
+const spines = books.map((book, i) => ({ book, n: i + 1, ...layout(book, i + 1) }));
 ---
 
 <div class="bookshelf">
@@ -77,9 +70,9 @@ const rows = shelves.map((shelf) =>
     </span>
     <a class="book-card-link" target="_blank" rel="noopener" tabindex="-1"></a>
   </div>
-  {rows.map((row) => (
+  <div class="shelves">
     <div class="shelf">
-      {row.map((s) => (
+      {spines.map((s) => (
         <a
           class="book"
           href={s.book.href}
@@ -96,16 +89,88 @@ const rows = shelves.map((shelf) =>
         </a>
       ))}
     </div>
-  ))}
+  </div>
 </div>
 
 <script>
-  // The card follows the book under the mouse, or the one focused from the
-  // keyboard. On touch screens the first tap only picks a book; a second tap on
-  // it, or the card's link, opens it.
   const shelf = document.querySelector<HTMLElement>(".bookshelf");
 
   if (shelf) {
+    const shelvesEl = shelf.querySelector<HTMLElement>(".shelves")!;
+    const books = [...shelf.querySelectorAll<HTMLAnchorElement>(".book")];
+
+    // ---- Layout -------------------------------------------------------------
+    // Spines are sized in px at scale 1 (--w) and drawn at scale --k. Pick the
+    // fewest rows that keep --k at or above K_MIN, split the books into rows
+    // of about equal length, then set --k so the longest row fills the width
+    // (never above K_MAX, so a wide page keeps books at a natural size).
+    const K_MIN = 0.85;
+    const K_MAX = 1.15;
+    const style = getComputedStyle(shelf);
+    const gap = Number(style.getPropertyValue("--gap")) || 3; // between spines
+    const pad = 2 * (Number(style.getPropertyValue("--pad")) || 8); // row ends
+    const widths = books.map((b) => Number(b.style.getPropertyValue("--w")));
+
+    const rowWidth = (row: number[]) =>
+      row.reduce((sum, i) => sum + widths[i], 0) + gap * (row.length - 1) + pad;
+
+    /** Books in order, a new row whenever the next one would pass `cap`. */
+    const pack = (cap: number) => {
+      const rows: number[][] = [[]];
+      widths.forEach((_, i) => {
+        const row = rows[rows.length - 1];
+        if (row.length > 0 && rowWidth([...row, i]) > cap) rows.push([i]);
+        else row.push(i);
+      });
+      return rows;
+    };
+
+    /** `n` rows whose longest is as short as possible. */
+    const balance = (n: number) => {
+      let lo = Math.max(...widths) + pad;
+      let hi = rowWidth(widths.map((_, i) => i));
+      while (hi - lo > 0.5) {
+        const mid = (lo + hi) / 2;
+        if (pack(mid).length <= n) hi = mid;
+        else lo = mid;
+      }
+      return pack(hi);
+    };
+
+    let current = "";
+    const arrange = () => {
+      const room = shelf.parentElement!.clientWidth - 1;
+      let rows = balance(1);
+      let k = room / rowWidth(rows[0]);
+      for (let n = 2; k < K_MIN && n <= books.length; n++) {
+        rows = balance(n);
+        k = room / Math.max(...rows.map(rowWidth));
+      }
+      shelf.style.setProperty("--k", Math.min(k, K_MAX).toFixed(3));
+
+      const key = rows.map((r) => r.length).join(",");
+      if (key === current) return;
+      current = key;
+      shelvesEl.replaceChildren(
+        ...rows.map((row) => {
+          const el = document.createElement("div");
+          el.className = "shelf";
+          el.append(...row.map((i) => books[i]));
+          return el;
+        }),
+      );
+    };
+
+    let frame = 0;
+    new ResizeObserver(() => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(arrange);
+    }).observe(shelf.parentElement!);
+
+    // ---- Card ---------------------------------------------------------------
+    // The card follows the book under the mouse, or the one focused from the
+    // keyboard. On touch screens the first tap only picks a book; a second tap
+    // on it, or the card's link, opens it.
     const card = shelf.querySelector<HTMLElement>(".book-card")!;
     const part = (name: string) => card.querySelector<HTMLElement>(`.book-card-${name}`)!;
     const link = part("link") as HTMLAnchorElement;
@@ -126,7 +191,7 @@ const rows = shelves.map((shelf) =>
       link.textContent = book.dataset.label!;
     };
 
-    for (const book of shelf.querySelectorAll<HTMLAnchorElement>(".book")) {
+    for (const book of books) {
       book.addEventListener("pointerenter", (e) => {
         if (e.pointerType === "mouse") pick(book);
       });

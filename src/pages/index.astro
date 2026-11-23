@@ -3,7 +3,7 @@ import Base from "../layouts/Base.astro";
 import Bookshelf from "../components/Bookshelf.astro";
 import LogoMark from "../components/LogoMark.astro";
 import RepoStats from "../components/RepoStats.astro";
-import { shelves } from "../data/books";
+import { books } from "../data/books";
 import { education, experience, papers, preSeedArticle, profile, projects } from "../data/profile";
 import { formatDate } from "../data/format";
 import { fetchRepoStats } from "../data/github";
@@ -170,7 +170,7 @@ const repoStats = await fetchRepoStats(projects.flatMap((p) => (p.repo ? [p.repo
     <p class="books-intro">
       Books have really changed my life. I enjoy reading and sharing good books with friends as gifts. It's always fun to learn other people's thoughts on things. Here are some I've especially enjoyed.
     </p>
-    <Bookshelf shelves={shelves} />
+    <Bookshelf books={books} />
   </section>
 </Base>
 

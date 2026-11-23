@@ -569,8 +569,14 @@ section {
   margin: 0 0 1.5rem;
 }
 
+/* Bookshelf.astro's script sets --k (spine scale) to fit the page and splits
+   the books into rows; these values are the fallback without it. --gap (between
+   spines) and --pad (at each end of a row) are px at scale 1, read by the
+   script too. */
 .bookshelf {
-  --k: 1.12; /* spine scale; smaller on phones */
+  --k: 1.12;
+  --gap: 3;
+  --pad: 8;
   --serif: Georgia, "Times New Roman", "Songti SC", "STSong", "Noto Serif CJK SC", "Source Han Serif SC", SimSun, serif;
   width: fit-content;
   max-width: 100%;
@@ -648,9 +654,10 @@ section {
 .shelf {
   position: relative;
   display: flex;
+  flex-wrap: wrap; /* only without the script; its rows always fit */
   align-items: flex-end;
-  gap: calc(3px * var(--k));
-  padding: 0 calc(8px * var(--k));
+  gap: 2.75rem calc(var(--gap) * 1px * var(--k));
+  padding: 0 calc(var(--pad) * 1px * var(--k));
 }
 
 .shelf + .shelf {
