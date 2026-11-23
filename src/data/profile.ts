@@ -67,7 +67,7 @@ export const profile = {
   photo: "/images/albert-zhao.jpg",
   // Hovering (or tapping) the photo flips it to this picture, and the
   // research-interests list under it gives way to the motto.
-  alterEgo: { src: "/images/wukong.jpg", alt: "Sun Wukong meditating on a cloud" },
+  alterEgo: { src: "/images/wukong-centered.jpg", alt: "Sun Wukong meditating on a cloud" },
   motto: { zh: "#平常心做非常事", en: "Ordinary mind, extraordinary deeds." },
   /** Listed under the photo. */
   researchInterests: [
